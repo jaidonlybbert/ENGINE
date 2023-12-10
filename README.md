@@ -13,16 +13,21 @@ It is intended to be forked to start simple games and simulations, but does not 
 ## Windows
 
 Install the Vulkan SDK https://www.lunarg.com/vulkan-sdk/
-
+```
 git --recurse-submodules clone git@github.com:jaidonlybbert/ENGINE.git
+```
 
 From the /Engine/vcpkg directory run
 
+```
 ./bootstrap-vpkg.bat
 
 ./vcpkg.exe install glfw3
+```
 
 From /Engine/build run
 
+```
 cmake ..
 cmake --build .
+```
