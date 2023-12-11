@@ -18,18 +18,21 @@ endif()
 
 # execute_process(COMMAND ${CMAKE_COMMAND} -E environment)
 
-find_package(glfw3 CONFIG REQUIRED)
-
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 
 add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
+
+
+find_package(glfw3 CONFIG REQUIRED)
 
 target_include_directories(Engine PUBLIC 
 			   "${PROJECT_BINARY_DIR}"
 			   "${VULKAN_SDK}/Include"
 			   )
 
-target_link_libraries(Engine PUBLIC glfw)
+target_link_libraries(Engine PUBLIC 
+			glfw
+			"${VULKAN_SDK}/Lib/vulkan-1.lib")
 
 cmake_print_variables(PROJECT_BINARY_DIR)
 cmake_print_variables(PROJECT_SOURCE_DIR)
