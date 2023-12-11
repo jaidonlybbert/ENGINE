@@ -12,6 +12,12 @@ project(Engine VERSION 0.1)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if (NOT "$ENV{VULKAN_SDK}" STREQUAL "")
+    set(VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE INTERNAL "Copied from environment variable")
+endif()
+
+# execute_process(COMMAND ${CMAKE_COMMAND} -E environment)
+
 find_package(glfw3 CONFIG REQUIRED)
 
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
@@ -27,3 +33,4 @@ target_link_libraries(Engine PUBLIC glfw)
 
 cmake_print_variables(PROJECT_BINARY_DIR)
 cmake_print_variables(PROJECT_SOURCE_DIR)
+cmake_print_variables(VULKAN_SDK)
