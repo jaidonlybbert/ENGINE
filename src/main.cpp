@@ -2,14 +2,23 @@
 #include<vector>
 #include<stdexcept>
 #include<cstdlib>
+#include<cstring>
 #include "vulkan/vulkan.hpp"
 #include "GLFW/glfw3.h"
 #include "EngineConfig.h"
 
-using namespace std;
-
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
+
+const std::vector<const char*> validationLayers = {
+	"VK_LAYER_KHRONOS_validation"
+};
+
+#ifdef NDEBUG
+	const bool enableValidationLayers = false;
+#else
+	const bool enableValidationLayers = true;
+#endif
 
 class VulkanTemplateApp {
 public:
@@ -32,10 +41,15 @@ private:
 	}
 
 	void initVulkan() {
-
+		createInstance();
 	}
 
 	void createInstance() {
+
+		if (enableValidationLayers && !checkValidationLayerSupport()) {
+			throw std::runtime_error("validation layers requested, but not available!");
+		}
+
 		VkApplicationInfo appInfo{};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.pApplicationName = "Vulkan Template";
@@ -56,7 +70,13 @@ private:
 
 		createInfo.enabledExtensionCount = glfwExtensionCount;
 		createInfo.ppEnabledExtensionNames = glfwExtensions;
-		createInfo.enabledLayerCount = 0;
+
+		if (enableValidationLayers) {
+			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+			createInfo.ppEnabledLayerNames = validationLayers.data();
+		} else {
+			createInfo.enabledLayerCount = 0;
+		}
 		
 		// Query available extensions
 		uint32_t extensionCount = 0;
@@ -64,16 +84,40 @@ private:
 		std::vector<VkExtensionProperties> extensions(extensionCount);
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-		std::cout << "Available Vulkan Extensions:" << endl;
+		std::cout << "Available Vulkan Extensions:" << std::endl;
 
 		for (const auto& extension: extensions) {
-			std::cout << '\t' << extension.extensionName << endl;
+			std::cout << '\t' << extension.extensionName << std::endl;
 		}
 
 		// Create instance
 		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create instance!");
 		}
+	}
+
+	bool checkValidationLayerSupport() {
+		uint32_t layerCount;
+		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+		std::vector<VkLayerProperties> availableLayers(layerCount);
+		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+
+		for (const char* layerName : validationLayers) {
+			bool layerFound = false;
+			for (const auto& layerProperties: availableLayers) {
+				if (strcmp(layerName, layerProperties.layerName) == 0) {
+					layerFound = true;
+					break;
+				}
+			}
+
+			if (!layerFound) {
+				return false;
+			}
+		}
+	
+		return true;
 	}
 
 	void mainLoop() {
@@ -90,17 +134,17 @@ private:
 };
 
 int main() {
-    cout << "Engine Version: " << Engine_VERSION_MAJOR << "." 
-         << Engine_VERSION_MINOR << endl;
+	std::cout << "Engine Version: " << Engine_VERSION_MAJOR << "." 
+         << Engine_VERSION_MINOR << std::endl;
 
-    VulkanTemplateApp app;
+	VulkanTemplateApp app;
 
-    try {
-	    app.run();
-    } catch (const std::exception& e) {
-	    std::cerr << e.what() << std::endl;
-	    return EXIT_FAILURE;
-    }
+	try {
+	    	app.run();
+	} catch (const std::exception& e) {
+		std::cerr << e.what() << std::endl;
+	    	return EXIT_FAILURE;
+	}
 
-    return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
