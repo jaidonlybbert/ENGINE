@@ -1,3 +1,5 @@
 // Configuration options for Engine project
+#define Engine_NAME "@PROJECT_NAME@"
 #define Engine_VERSION_MAJOR @Engine_VERSION_MAJOR@
 #define Engine_VERSION_MINOR @Engine_VERSION_MINOR@
+#define Engine_VERSION_PATCH @Engine_VERSION_PATCH@

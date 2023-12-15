@@ -50,13 +50,56 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
 
 class VulkanTemplateApp {
 public:
-	void run() {
+	VulkanTemplateApp() {
 		initWindow();
 		initVulkan();
-		mainLoop();
-		cleanup();
 	}
 
+	void run() {
+		while(!glfwWindowShouldClose(window)) {
+			glfwPollEvents();
+		}
+	}
+
+	~VulkanTemplateApp() {
+		if (enableValidationLayers) {
+			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+		}
+
+		vkDestroySwapchainKHR(device, swapChain, nullptr);
+		vkDestroySurfaceKHR(instance, surface, nullptr);
+		vkDestroyDevice(device, nullptr);
+		vkDestroyInstance(instance, nullptr);
+		glfwDestroyWindow(window);
+		glfwTerminate();
+	}
+
+	friend std::ostream& operator<<(std::ostream& os, const VulkanTemplateApp& app) {
+		// Print application name and version
+		std::cout << Engine_NAME << " Version: " << Engine_VERSION_MAJOR << "." 
+			 << Engine_VERSION_MINOR << "." << Engine_VERSION_PATCH << std::endl;
+
+		// Print physical device properties
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(app.physicalDevice, &deviceProperties);
+		std::cout << std::endl << "Physical Device Properties: " << std::endl;
+		std::cout << "Name:\t" << deviceProperties.deviceName << std::endl;
+		std::cout << "API Version:\t" << deviceProperties.apiVersion << std::endl;
+		std::cout << "Driver Version:\t" << deviceProperties.driverVersion << std::endl;
+		std::cout << std::endl;
+		
+		// Print available extensions
+		uint32_t extensionCount = 0;
+		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
+		std::cout << "Available Vulkan Extensions:" << std::endl;
+		for (const auto& extension: availableExtensions) {
+			std::cout << '\t' << extension.extensionName << std::endl;
+		}
+
+		return os;
+	}
 private:
 	GLFWwindow* window;
 	VkInstance instance;
@@ -177,13 +220,6 @@ private:
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 		VkPhysicalDeviceFeatures deviceFeatures;
 		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-
-		std::cout << std::endl << "Physical Device Properties: " << std::endl;
-		
-		std::cout << "Name:\t" << deviceProperties.deviceName << std::endl;
-		std::cout << "API Version:\t" << deviceProperties.apiVersion << std::endl;
-		std::cout << "Driver Version:\t" << deviceProperties.driverVersion << std::endl;
-		std::cout << std::endl;
 
 		// check device supports required queue families
 		QueueFamilyIndices indices = findQueueFamilies(device);
@@ -360,11 +396,12 @@ private:
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.pApplicationName = "Vulkan Template";
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = "No Engine";
-		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+		appInfo.pEngineName = Engine_NAME;
+		appInfo.engineVersion = VK_MAKE_VERSION(Engine_VERSION_MAJOR, 
+				Engine_VERSION_MINOR, Engine_VERSION_PATCH);
 		appInfo.apiVersion = VK_API_VERSION_1_0;
-		
-		// Vulkan Instance info
+
+		// Vulkan Instance Info
 		VkInstanceCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
@@ -386,20 +423,6 @@ private:
 			createInfo.pNext = nullptr;
 		}
 		
-		// Query available extensions
-		uint32_t extensionCount = 0;
-		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
-
-		std::cout << "Available Vulkan Extensions:" << std::endl;
-
-		for (const auto& extension: availableExtensions) {
-			std::cout << '\t' << extension.extensionName << std::endl;
-		}
-
-
-
 		// Create instance
 		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create instance!");
@@ -514,33 +537,12 @@ private:
 			return actualExtent;
 		}
 	}
-
-	void mainLoop() {
-		while(!glfwWindowShouldClose(window)) {
-			glfwPollEvents();
-		}
-	}
-
-	void cleanup() {
-		if (enableValidationLayers) {
-			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
-		}
-
-		vkDestroySwapchainKHR(device, swapChain, nullptr);
-		vkDestroySurfaceKHR(instance, surface, nullptr);
-		vkDestroyDevice(device, nullptr);
-		vkDestroyInstance(instance, nullptr);
-		glfwDestroyWindow(window);
-		glfwTerminate();
-	}
 };
 
 int main() {
-	std::cout << "Engine Version: " << Engine_VERSION_MAJOR << "." 
-         << Engine_VERSION_MINOR << std::endl;
-
 	VulkanTemplateApp app;
 
+	std::cout << app;
 	try {
 	    	app.run();
 	} catch (const std::exception& e) {
