@@ -16,8 +16,19 @@ if (NOT "$ENV{VULKAN_SDK}" STREQUAL "")
     set(VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE INTERNAL "Copied from environment variable")
 endif()
 
-# execute_process(COMMAND ${CMAKE_COMMAND} -E environment)
+# Compile shaders to SPIR-V with GLSLC
+find_program(GLSLC glslc)
+set(shader_path ${CMAKE_HOME_DIRECTORY}/shaders/)
+file(GLOB shaders RELATIVE ${CMAKE_SOURCE_DIR} "${shader_path}*.vert"
+	"${shader_path}*.frag")
+foreach(shader ${shaders})
+	set(input_glsl "${CMAKE_HOME_DIRECTORY}/${shader}")
+	set(output_spv "${input_glsl}.spv")
+	execute_process(COMMAND "glslc" "${input_glsl}" "-o" "${output_spv}")
+endforeach()
 
+
+# Compile and link cpp source
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 
 add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
