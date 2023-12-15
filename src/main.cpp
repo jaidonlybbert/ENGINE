@@ -74,7 +74,7 @@ public:
 		glfwTerminate();
 	}
 
-	friend std::ostream& operator<<(std::ostream& os, const VulkanTemplateApp& app) {
+	friend std::ostream& operator<<(std::ostream& os, VulkanTemplateApp& app) {
 		// Print application name and version
 		std::cout << Engine_NAME << " Version: " << Engine_VERSION_MAJOR << "." 
 			 << Engine_VERSION_MINOR << "." << Engine_VERSION_PATCH << std::endl;
@@ -98,6 +98,13 @@ public:
 			std::cout << '\t' << extension.extensionName << std::endl;
 		}
 
+		// Print used extensions
+		auto enabledExtensions = app.getRequiredExtensions();
+
+		std::cout << "Enabled Vulkan Extensions:" << std::endl;
+		for (auto extension : enabledExtensions) {
+			std::cout << '\t' << extension << std::endl;
+		}
 		return os;
 	}
 private:
