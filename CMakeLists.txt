@@ -30,17 +30,13 @@ foreach(shader ${shaders})
 		DEPENDS "${input_glsl}"
 		VERBATIM)
 	list(APPEND shader_outputs ${CMAKE_HOME_DIRECTORY}/${shader}.spv)
-	#add_custom_target(${shader} DEPENDS "${output_spv}")
-	#execute_process(COMMAND "glslc" "${input_glsl}" "-o" "${output_spv}")
 endforeach()
+add_custom_target(shader_compile ALL DEPENDS ${shader_outputs} VERBATIM)
 
 # Compile and link cpp source
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 
 add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
-
-add_custom_target(shader_compile DEPENDS ${shader_outputs} VERBATIM)
-add_dependencies(Engine shader_compile)
 
 find_package(glfw3 CONFIG REQUIRED)
 
