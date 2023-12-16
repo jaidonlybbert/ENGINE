@@ -1,5 +1,5 @@
 #version 450
-// test
+
 layout(location = 0) out vec3 fragColor;
 
 vec3 colors[3] = vec3[](

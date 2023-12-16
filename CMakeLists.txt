@@ -24,15 +24,23 @@ file(GLOB shaders RELATIVE ${CMAKE_SOURCE_DIR} "${shader_path}*.vert"
 foreach(shader ${shaders})
 	set(input_glsl "${CMAKE_HOME_DIRECTORY}/${shader}")
 	set(output_spv "${input_glsl}.spv")
-	execute_process(COMMAND "glslc" "${input_glsl}" "-o" "${output_spv}")
+	add_custom_command(
+		OUTPUT "${output_spv}"
+		COMMAND "glslc" "${input_glsl}" "-o" "${output_spv}"
+		DEPENDS "${input_glsl}"
+		VERBATIM)
+	list(APPEND shader_outputs ${CMAKE_HOME_DIRECTORY}/${shader}.spv)
+	#add_custom_target(${shader} DEPENDS "${output_spv}")
+	#execute_process(COMMAND "glslc" "${input_glsl}" "-o" "${output_spv}")
 endforeach()
-
 
 # Compile and link cpp source
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 
 add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
 
+add_custom_target(shader_compile DEPENDS ${shader_outputs} VERBATIM)
+add_dependencies(Engine shader_compile)
 
 find_package(glfw3 CONFIG REQUIRED)
 
@@ -48,3 +56,5 @@ target_link_libraries(Engine PUBLIC
 cmake_print_variables(PROJECT_BINARY_DIR)
 cmake_print_variables(PROJECT_SOURCE_DIR)
 cmake_print_variables(VULKAN_SDK)
+cmake_print_variables(shader_outputs)
+cmake_print_variables(output_spv)
