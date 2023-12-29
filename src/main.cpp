@@ -12,6 +12,7 @@
 #include "vulkan/vulkan.hpp"
 #include "GLFW/glfw3.h"
 #include "EngineConfig.h"
+#include "Boost/filesystem.hpp"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -654,6 +655,7 @@ private:
 	}
 
 	void createGraphicsPipeline() {
+		boost::filesystem::path p ("shaders/");
 		auto vertShaderCode = readFile("shaders/triVert.vert.spv");
 		auto fragShaderCode = readFile("shaders/triFrag.frag.spv");
 

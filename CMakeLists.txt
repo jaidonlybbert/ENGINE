@@ -39,6 +39,7 @@ configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 find_package(glfw3 CONFIG REQUIRED)
+find_package(Boost REQUIRED COMPONENTS filesystem)
 
 target_include_directories(Engine PUBLIC 
 			   "${PROJECT_BINARY_DIR}"
@@ -47,7 +48,8 @@ target_include_directories(Engine PUBLIC
 
 target_link_libraries(Engine PUBLIC 
 			glfw
-			"${VULKAN_SDK}/Lib/vulkan-1.lib")
+			"${VULKAN_SDK}/Lib/vulkan-1.lib"
+			Boost::filesystem)
 
 cmake_print_variables(PROJECT_BINARY_DIR)
 cmake_print_variables(PROJECT_SOURCE_DIR)
