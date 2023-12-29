@@ -56,3 +56,38 @@ cmake_print_variables(PROJECT_SOURCE_DIR)
 cmake_print_variables(VULKAN_SDK)
 cmake_print_variables(shader_outputs)
 cmake_print_variables(output_spv)
+
+# Set Install Target
+install(TARGETS Engine
+    RUNTIME ARCHIVE LIBRARY RUNTIME FRAMEWORK BUNDLE PUBLIC_HEADER RESOURCE)
+install(TARGETS Engine
+    COMPONENT Engine
+    RUNTIME_DEPENDENCIES
+    PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
+    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
+    DIRECTORIES $<TARGET_FILE_DIR:Engine>)
+
+# Build Installers
+include(InstallRequiredSystemLibraries)
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_VERSION_MAJOR "${Engine_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${Engine_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${Engine_VERSION_PATCH}")
+set(CPACK_PACKAGE_VENDOR "Jreamm LLC")
+set(CPACK_SOURCE_GENERATOR "NSIS")
+set(CPACK_GENERATOR "NSIS")
+
+# NSIS Specific
+set(CPACK_NSIS_DISPLAY_NAME "ENGINE")
+set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/icon/Engine.ico")
+set(CPACK_NSIS_INSTALLED_ICON_NAME "${CMAKE_CURRENT_SOURCE_DIR}/icon/Engine.ico")
+SET(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+WriteRegStr HKLM \\\"Software\\\\${CPACK_PACKAGE_VENDOR}\\\" \\\"InstallDir\\\" \\\"$INSTDIR\\\"
+   ")
+SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+  DeleteRegKey HKLM \\\"Software\\\\${CPACK_PACKAGE_VENDOR}\\\" 
+ ")
+set(CPACK_NSIS_CREATE_ICONS_EXTRA
+	"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Engine.lnk' '$INSTDIR\\\\bin\\\\Engine.exe' "
+    )
+include(CPack)
