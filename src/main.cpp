@@ -27,6 +27,31 @@ const std::vector<const char*> validationLayers = {
 	const bool enableValidationLayers = true;
 #endif
 
+std::string InstallDir;
+
+#ifdef __linux__
+	throw std::runtime_error("Linux support for finding InstallDir not implemented!");
+#elif __APPLE__ 
+	throw std::runtime_error("Mac OS support for finding InstallDir not implemented!");
+#elif _WIN32
+	#define NOMINMAX
+	#include<windows.h>
+
+void get_install_directory() {
+	DWORD val;
+	DWORD dataSize = sizeof(val);
+	if (ERROR_SUCCESS == RegGetValueA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "LongPathsEnabled", RRF_RT_DWORD, nullptr /*type not required*/, &val, &dataSize)) {
+	  printf("Value is %i\n", val);
+	  // no CloseKey needed because it is a predefined registry key
+	}
+	else {
+	  printf("Error reading.\n");
+	}
+}
+#else
+	throw std::runtime_error("No supported OS for finding InstallDir found!");
+#endif
+
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 
 		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
 		const VkAllocationCallbacks* pAllocator, 
@@ -103,9 +128,7 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& os, VulkanTemplateApp& app) {
 		// Print application name and version
-		std::cout << Engine_NAME << " Version: " << Engine_VERSION_MAJOR << "." 
-			 << Engine_VERSION_MINOR << "." << Engine_VERSION_PATCH << std::endl;
-
+		std::cout << PROJECT_NAME_AND_VERSION << std::endl;
 		// Print physical device properties
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(app.physicalDevice, &deviceProperties);
@@ -808,6 +831,7 @@ private:
 int main() {
 	
 	try {
+			get_install_directory();
 			VulkanTemplateApp app;
 			std::cout << app;
 	    	app.run();
