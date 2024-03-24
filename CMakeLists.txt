@@ -7,7 +7,6 @@ set(ENG_PROJECT_NAME "ENGINE")
 set(ENG_PROJECT_VERSION "0.0.1")
 
 cmake_minimum_required(VERSION 3.22)
-
 set(VCPKG_TARGET_TRIPLET "x64-windows")
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
@@ -46,10 +45,12 @@ add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
+find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
 
 target_include_directories(Engine PUBLIC 
 			   "${PROJECT_BINARY_DIR}"
 			   "${VULKAN_SDK}/Include"
+			    ${WINREG_INCLUDE_DIRS}
 			   )
 
 target_link_libraries(Engine PUBLIC 

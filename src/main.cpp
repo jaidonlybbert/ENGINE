@@ -3,6 +3,7 @@
 #include<stdexcept>
 #include<cstdlib>
 #include<cstring>
+#include<string>
 #include<optional>
 #include<set>
 #include<algorithm>
@@ -27,27 +28,26 @@ const std::vector<const char*> validationLayers = {
 	const bool enableValidationLayers = true;
 #endif
 
-std::string InstallDir;
-
 #ifdef __linux__
 	throw std::runtime_error("Linux support for finding InstallDir not implemented!");
 #elif __APPLE__ 
 	throw std::runtime_error("Mac OS support for finding InstallDir not implemented!");
 #elif _WIN32
 	#define NOMINMAX
-	#include<windows.h>
-
-void get_install_directory() {
-	DWORD val;
-	DWORD dataSize = sizeof(val);
-	if (ERROR_SUCCESS == RegGetValueA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "LongPathsEnabled", RRF_RT_DWORD, nullptr /*type not required*/, &val, &dataSize)) {
-	  printf("Value is %i\n", val);
-	  // no CloseKey needed because it is a predefined registry key
-	}
-	else {
-	  printf("Error reading.\n");
-	}
+	#include "winreg/winreg.hpp"
+std::optional<std::wstring> get_install_directory() {
+	winreg::RegKey key{ HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\ENGINE_PUBLISHER\\Engine 0.0.1" };
+	std::wstring s = key.GetStringValue(L"InstallDir");
+	return s;
 }
+
+
+// std::optional<std::string> get_install_directory() {
+// 	RegKey key{ HKEY_LOCAL_MACHINE, L"SYSTEM\\
+// 	LPCSTR install_dir_windows;
+// 	DWORD data_size_windows = sizeof(install_dir_windows);
+// 	if (ERROR_SUCCESS == RegGetValueA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "LongPathsEnabled", RRF_RT_DWORD, nullptr /*type not required*/, &install_dir_windows, &data_size_windows)) {
+// }
 #else
 	throw std::runtime_error("No supported OS for finding InstallDir found!");
 #endif
@@ -831,9 +831,20 @@ private:
 int main() {
 	
 	try {
-			get_install_directory();
-			VulkanTemplateApp app;
-			std::cout << app;
+		printf("Starting app\n");
+		std::optional<std::wstring> install_dir = get_install_directory();
+		boost::filesystem::path p;
+		if (install_dir.has_value()) {
+			std::wcout << "Application path: " << install_dir.value() <<
+				std::endl;
+			p = boost::filesystem::path(install_dir.value());
+			std::wcout << p.native();
+
+		} else {
+			std::cout << "No InstallDir found!" << std::endl;
+		}
+		VulkanTemplateApp app;
+		std::cout << app;
 	    	app.run();
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
