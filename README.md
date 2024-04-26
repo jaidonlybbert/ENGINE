@@ -36,9 +36,11 @@ From the /Engine/vcpkg directory run
 
 Build installation wizard and executables for the template application.
 
-From /Engine/build run
+From /Engine/ run
 
 ```
+mkdir build
+cd build
 cmake ..
 cmake --build . --config Release
 cpack --config .\CPackConfig.cmake

@@ -49,7 +49,10 @@ std::optional<std::wstring> get_install_directory() {
 // 	if (ERROR_SUCCESS == RegGetValueA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "LongPathsEnabled", RRF_RT_DWORD, nullptr /*type not required*/, &install_dir_windows, &data_size_windows)) {
 // }
 #else
+std::optional<std::wstring> get_install_directory() {
 	throw std::runtime_error("No supported OS for finding InstallDir found!");
+	return Null
+}
 #endif
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 
