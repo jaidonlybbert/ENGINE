@@ -1,6 +1,9 @@
 include(CMakePrintHelpers)
 include(FetchContent)
 
+# Create a "compile_commands.json" file to inform LSP about build configuration
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Modify these!
 set(ENG_PUBLISHER "ENGINE_PUBLISHER")
 set(ENG_PROJECT_NAME "ENGINE")

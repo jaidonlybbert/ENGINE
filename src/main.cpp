@@ -35,6 +35,7 @@ const std::vector<const char*> validationLayers = {
 #elif _WIN32
 	#define NOMINMAX
 	#include "winreg/winreg.hpp"
+
 std::optional<std::wstring> get_install_directory() {
 	winreg::RegKey key{ HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\ENGINE_PUBLISHER\\Engine 0.0.1" };
 	std::wstring s = key.GetStringValue(L"InstallDir");
