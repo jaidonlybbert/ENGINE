@@ -10,7 +10,12 @@ set(ENG_PROJECT_NAME "ENGINE")
 set(ENG_PROJECT_VERSION "0.0.1")
 
 cmake_minimum_required(VERSION 3.22)
-set(VCPKG_TARGET_TRIPLET "x64-windows")
+if (APPLE)
+	set(VCPKG_TARGET_TRIPLET "arm64-osx")
+elseif (WIN32)
+	set(VCPKG_TARGET_TRIPLET "x64-windows")
+endif()
+
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
   CACHE STRING "Vcpkg toolchain file")
 
@@ -48,12 +53,15 @@ add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
-find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
+
+if (WIN32)
+	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
+	target_include_directories(Engine PUBLIC ${WINREG_INCLUDE_DIRS})
+endif()
 
 target_include_directories(Engine PUBLIC 
 			   "${PROJECT_BINARY_DIR}"
 			   "${VULKAN_SDK}/Include"
-			    ${WINREG_INCLUDE_DIRS}
 			   )
 
 target_link_libraries(Engine PUBLIC 
@@ -68,14 +76,20 @@ cmake_print_variables(shader_outputs)
 cmake_print_variables(output_spv)
 
 # Set Install Target
-install(TARGETS Engine
-    RUNTIME ARCHIVE LIBRARY RUNTIME FRAMEWORK BUNDLE PUBLIC_HEADER RESOURCE)
-install(TARGETS Engine
-    COMPONENT Engine
-    RUNTIME_DEPENDENCIES
-    PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
-    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
-    DIRECTORIES $<TARGET_FILE_DIR:Engine>)
+if (WIN32)
+	install(TARGETS Engine
+	    COMPONENT Engine
+	    RUNTIME_DEPENDENCIES
+	    PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
+	    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
+	    DIRECTORIES $<TARGET_FILE_DIR:Engine>)
+elseif (APPLE)
+	install(TARGETS Engine
+	    RUNTIME ARCHIVE LIBRARY RUNTIME 
+	    FRAMEWORK DESTINATION ./frameworks
+	    BUNDLE PUBLIC_HEADER RESOURCE)
+endif()
+	
 
 # Build Installers
 include(InstallRequiredSystemLibraries)

@@ -1,9 +1,17 @@
 # ENGINE
+ENGINE's not Growing, It's Not an Engine
 
 # What is it then?
-ENGINE is simply a collection of cross-platform C++ libraries along with some build files to kickstart a graphics app for Windows and Linux.
+Minimal code required to build a cross-platform graphics application for the supported platforms using the listed dependencies.
 
-It is intended to be forked to start simple games and simulations, but minimizes its own runtime code.
+This is NOT a real-time engine or framework, it has NO API. It is a CMakeLists file bundled with vcpkg manager, and instructions for getting a triangle on screen for any of the supported platforms.
+
+# Features
+- Builds an application that opens a window and draws a triangle
+
+# Supported Platforms
+- arm64-osx
+- x64-windows
 
 # Features
 ## Windows
@@ -13,7 +21,12 @@ It is intended to be forked to start simple games and simulations, but minimizes
 # Installing
 ## Pre-requisites
 - CMAKE 3.22 or newer
+- Ninja
+- Clang
 - Vulkan SDK
+
+# Additional Dependencies for MacOS
+- pkg-config
 
 ## Windows
 

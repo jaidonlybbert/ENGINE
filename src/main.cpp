@@ -1,4 +1,5 @@
 #include<iostream>
+#include<locale>
 #include<vector>
 #include<stdexcept>
 #include<cstdlib>
@@ -31,7 +32,10 @@ const std::vector<const char*> validationLayers = {
 #ifdef __linux__
 	throw std::runtime_error("Linux support for finding InstallDir not implemented!");
 #elif __APPLE__ 
-	throw std::runtime_error("Mac OS support for finding InstallDir not implemented!");
+std::optional<std::wstring> get_install_directory() {
+	std::wstring s = L".";
+	return s;
+}
 #elif _WIN32
 	#define NOMINMAX
 	#include "winreg/winreg.hpp"
@@ -842,7 +846,7 @@ int main() {
 			std::wcout << "Application path: " << install_dir.value() <<
 				std::endl;
 			p = boost::filesystem::path(install_dir.value());
-			std::wcout << p.native();
+			std::wcout << p.make_preferred().wstring();
 
 		} else {
 			std::cout << "No InstallDir found!" << std::endl;
