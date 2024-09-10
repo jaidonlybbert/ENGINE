@@ -1,3 +1,5 @@
+# Archived: vulkan-samples is more supported and does essentially the goal of this project
+
 # ENGINE
 ENGINE's not Growing, It's Not an Engine
 
