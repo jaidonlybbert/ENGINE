@@ -87,7 +87,6 @@ static std::vector<char> readFile(const std::string& filename) {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 	if (!file.is_open()) {
-		std::cout << "no open not debug lol";
 		throw std::runtime_error("failed to open file!");
 	}
 
@@ -115,6 +114,9 @@ public:
 	}
 
 	~VulkanTemplateApp() {
+		for (auto framebuffer : swapChainFramebuffers) {
+			vkDestroyFramebuffer(device, framebuffer, nullptr);
+		}
 		vkDestroyPipeline(device, graphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyRenderPass(device, renderPass, nullptr);
@@ -179,12 +181,16 @@ private:
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent; 
 	std::vector<VkImageView> swapChainImageViews;
+	std::vector<VkFramebuffer> swapChainFramebuffers;
 	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
 
 	const std::vector<const char*> deviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		// Support for MoltenVK for macOS
+		"VK_KHR_portability_subset"
+		// VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
 	};
 
 	struct QueueFamilyIndices {
@@ -219,6 +225,7 @@ private:
 		createImageViews();
 		createRenderPass();
 		createGraphicsPipeline();
+		createFramebuffers();
 	}
 
 	VkShaderModule createShaderModule(const std::vector<char>& code) {
@@ -306,6 +313,8 @@ private:
 
 	bool isDeviceSuitable(VkPhysicalDevice device) {
 		VkPhysicalDeviceProperties deviceProperties;
+		// std::cout << deviceProperties.sType << std::endl;
+		// std::cout << VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 << std::endl;
 		vkGetPhysicalDeviceProperties(device, &deviceProperties);
 		VkPhysicalDeviceFeatures deviceFeatures;
 		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
@@ -317,6 +326,7 @@ private:
 
 		bool swapChainAdequate = false;
 		if (extensionsSupported) {
+			std::cout << "Extensions supported" << std::endl;
 			SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
 			swapChainAdequate = !swapChainSupport.formats.empty() && 
 				!swapChainSupport.presentModes.empty();
@@ -330,11 +340,22 @@ private:
 		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, 
 				nullptr);
 		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+		
 		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, 
 				availableExtensions.data());
 
+		std::cout << "Available Ext" << std::endl;
+		for (auto ext : availableExtensions) {
+			std::cout << ext.extensionName << std::endl;
+		}
+
 		std::set<std::string> requiredExtensions(deviceExtensions.begin(), 
 				deviceExtensions.end());
+
+		std::cout << "Required Ext" << std::endl;
+		for (auto ext : requiredExtensions) {
+			std::cout << ext << std::endl;
+		}
 
 		for (const auto& extension : availableExtensions) {
 			requiredExtensions.erase(extension.extensionName);
@@ -384,6 +405,8 @@ private:
 
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+		std::cout << "Device count: " << deviceCount << std::endl;
 
 		for (const auto& device : devices) {
 			if (isDeviceSuitable(device)) {
@@ -511,6 +534,11 @@ private:
 			createInfo.enabledLayerCount = 0;
 			createInfo.pNext = nullptr;
 		}
+
+#if (defined(__APPLE__))
+		// Added to support MoltenVK for macOS
+		createInfo.flags = createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 		
 		// Create instance
 		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
@@ -530,6 +558,29 @@ private:
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 
+
+#if (defined(__APPLE__))
+		extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+		extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
+
+#if defined(VK_USE_PLATFORM_ANDROID_KHR)
+		active_instance_extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_WIN32_KHR)
+		active_instance_extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+		active_instance_extensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+		active_instance_extensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_XLIB_KHR)
+		active_instance_extensions.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
+		active_instance_extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+#elif defined(VK_USE_PLATFORM_DISPLAY_KHR)
+		active_instance_extensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
+#else
+#pragma error Platform not supported
+#endif
 		return extensions;
 	}
 
@@ -540,16 +591,24 @@ private:
 		std::vector<VkLayerProperties> availableLayers(layerCount);
 		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
+		std::cout << "Available layers: " << std::endl;
+		for (const auto& layerProperties: availableLayers)
+		{
+			std::cout << layerProperties.layerName << std::endl;
+		}
+
 		for (const char* layerName : validationLayers) {
 			bool layerFound = false;
 			for (const auto& layerProperties: availableLayers) {
 				if (strcmp(layerName, layerProperties.layerName) == 0) {
+					std::cout << "Layer found: " << layerName << std::endl;
 					layerFound = true;
 					break;
 				}
 			}
 
 			if (!layerFound) {
+				std::cout << "Layer not found: " << layerName << std::endl;
 				return false;
 			}
 		}
@@ -688,8 +747,8 @@ private:
 
 	void createGraphicsPipeline() {
 		boost::filesystem::path p ("shaders/");
-		auto vertShaderCode = readFile("shaders/triVert.vert.spv");
-		auto fragShaderCode = readFile("shaders/triFrag.frag.spv");
+		auto vertShaderCode = readFile("../shaders/triVert.vert.spv");
+		auto fragShaderCode = readFile("../shaders/triFrag.frag.spv");
 
 		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -832,6 +891,28 @@ private:
 
 		vkDestroyShaderModule(device, fragShaderModule, nullptr);
 		vkDestroyShaderModule(device, vertShaderModule, nullptr);
+	}
+
+	void createFramebuffers() {
+		swapChainFramebuffers.resize(swapChainImageViews.size());
+		for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+		    VkImageView attachments[] = {
+			swapChainImageViews[i]
+		    };
+
+		    VkFramebufferCreateInfo framebufferInfo{};
+		    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		    framebufferInfo.renderPass = renderPass;
+		    framebufferInfo.attachmentCount = 1;
+		    framebufferInfo.pAttachments = attachments;
+		    framebufferInfo.width = swapChainExtent.width;
+		    framebufferInfo.height = swapChainExtent.height;
+		    framebufferInfo.layers = 1;
+
+		    if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create framebuffer!");
+		    }
+		}
 	}
 };
 

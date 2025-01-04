@@ -26,7 +26,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if (NOT "$ENV{VULKAN_SDK}" STREQUAL "")
-    set(VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE INTERNAL "Copied from environment variable")
+	set(VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE INTERNAL "Copied from environment variable")
+endif()
+
+if (NOT "$ENV{DYLD_LIBRARY_PATH}" STREQUAL "")
+	set(DYLD_LIBRARY_PATH "$ENV{DYLD_LIBRARY_PATH}" CACHE INTERNAL "Copied from environment variable")
+	cmake_print_variables(DYLD_LIBRARY_PATH)
 endif()
 
 # Compile shaders to SPIR-V with GLSLC
@@ -41,7 +46,7 @@ foreach(shader ${shaders})
 		OUTPUT "${output_spv}"
 		COMMAND "glslc" "${input_glsl}" "-o" "${output_spv}"
 		DEPENDS "${input_glsl}"
-		VERBATIM)
+	VERBATIM)
 	list(APPEND shader_outputs ${CMAKE_HOME_DIRECTORY}/${shader}.spv)
 endforeach()
 add_custom_target(shader_compile ALL DEPENDS ${shader_outputs} VERBATIM)
@@ -62,12 +67,21 @@ endif()
 target_include_directories(Engine PUBLIC 
 			   "${PROJECT_BINARY_DIR}"
 			   "${VULKAN_SDK}/Include"
-			   )
+)
 
-target_link_libraries(Engine PUBLIC 
-			glfw
-			"${VULKAN_SDK}/Lib/vulkan-1.lib"
-			Boost::filesystem)
+cmake_print_variables(DYLD_LIBRARY_PATH)
+
+if (WIN32)
+	target_link_libraries(Engine PUBLIC 
+				glfw
+				"${VULKAN_SDK}/Lib/vulkan-1.lib"
+	Boost::filesystem)
+elseif (APPLE)
+	target_link_libraries(Engine PUBLIC 
+				glfw
+				"${DYLD_LIBRARY_PATH}/libvulkan.1.dylib"
+	Boost::filesystem)
+endif()
 
 cmake_print_variables(PROJECT_BINARY_DIR)
 cmake_print_variables(PROJECT_SOURCE_DIR)
@@ -89,7 +103,7 @@ elseif (APPLE)
 	    FRAMEWORK DESTINATION ./frameworks
 	    BUNDLE PUBLIC_HEADER RESOURCE)
 endif()
-	
+
 
 # Build Installers
 include(InstallRequiredSystemLibraries)
@@ -113,5 +127,5 @@ SET(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
  ")
 set(CPACK_NSIS_CREATE_ICONS_EXTRA
 	"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Engine.lnk' '$INSTDIR\\\\bin\\\\Engine.exe' "
-    )
+)
 include(CPack)
