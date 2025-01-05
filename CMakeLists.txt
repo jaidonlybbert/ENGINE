@@ -58,6 +58,7 @@ add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
+find_package(glm CONFIG REQUIRED)
 
 if (WIN32)
 	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
@@ -80,7 +81,8 @@ elseif (APPLE)
 	target_link_libraries(Engine PUBLIC 
 				glfw
 				"${DYLD_LIBRARY_PATH}/libvulkan.1.dylib"
-	Boost::filesystem)
+	Boost::filesystem
+	glm::glm)
 endif()
 
 cmake_print_variables(PROJECT_BINARY_DIR)
