@@ -59,6 +59,8 @@ add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
 find_package(glm CONFIG REQUIRED)
+find_package(Stb REQUIRED)
+
 
 if (WIN32)
 	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
@@ -67,8 +69,8 @@ endif()
 
 target_include_directories(Engine PUBLIC 
 			   "${PROJECT_BINARY_DIR}"
-			   "${VULKAN_SDK}/Include"
-)
+			   "${VULKAN_SDK}/Include")
+target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
