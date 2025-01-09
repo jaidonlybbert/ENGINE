@@ -60,7 +60,7 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
 find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
-
+find_package(tinyobjloader CONFIG REQUIRED)
 
 if (WIN32)
 	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
@@ -74,6 +74,7 @@ target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
+target_link_libraries(Engine PRIVATE tinyobjloader::tinyobjloader)
 if (WIN32)
 	target_link_libraries(Engine PUBLIC 
 				glfw
@@ -84,7 +85,8 @@ elseif (APPLE)
 				glfw
 				"${DYLD_LIBRARY_PATH}/libvulkan.1.dylib"
 	Boost::filesystem
-	glm::glm)
+	glm::glm
+	)
 endif()
 
 cmake_print_variables(PROJECT_BINARY_DIR)
