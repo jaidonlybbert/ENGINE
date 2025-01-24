@@ -47,7 +47,7 @@ From the /Engine/vcpkg directory run
 ```
 ./bootstrap-vpkg.bat
 
-./vcpkg.exe install glfw3 winreg
+./vcpkg.exe install glfw3 winreg boost-filesystem glm stb tinyobjloader
 ```
 
 Build installation wizard and executables for the template application.

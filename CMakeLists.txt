@@ -75,18 +75,11 @@ target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
 target_link_libraries(Engine PRIVATE tinyobjloader::tinyobjloader)
+target_link_libraries(Engine PUBLIC glfw Boost::filesystem glm::glm)
 if (WIN32)
-	target_link_libraries(Engine PUBLIC 
-				glfw
-				"${VULKAN_SDK}/Lib/vulkan-1.lib"
-	Boost::filesystem)
+	target_link_libraries(Engine PUBLIC "${VULKAN_SDK}/Lib/vulkan-1.lib")
 elseif (APPLE)
-	target_link_libraries(Engine PUBLIC 
-				glfw
-				"${DYLD_LIBRARY_PATH}/libvulkan.1.dylib"
-	Boost::filesystem
-	glm::glm
-	)
+	target_link_libraries(Engine PUBLIC "${DYLD_LIBRARY_PATH}/libvulkan.1.dylib")
 endif()
 
 cmake_print_variables(PROJECT_BINARY_DIR)
