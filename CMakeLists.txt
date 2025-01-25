@@ -54,7 +54,10 @@ add_custom_target(shader_compile ALL DEPENDS ${shader_outputs} VERBATIM)
 # Compile and link cpp source
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 
-add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp)
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+file(GLOB IMGUI_SOURCES "${PROJECT_SOURCE_DIR}/third_party/imgui/*.cpp")
+add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
@@ -71,6 +74,8 @@ target_include_directories(Engine PUBLIC
 			   "${PROJECT_BINARY_DIR}"
 			   "${VULKAN_SDK}/Include")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui/backends")
 
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
