@@ -76,12 +76,17 @@ if (WIN32)
 	target_include_directories(Engine PUBLIC ${WINREG_INCLUDE_DIRS})
 endif()
 
+set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/tinygltf")
+
 target_include_directories(Engine PUBLIC 
 			   "${PROJECT_BINARY_DIR}"
 			   "${VULKAN_SDK}/Include")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui/backends")
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/tinygltf")
 
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
