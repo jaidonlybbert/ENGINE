@@ -54,8 +54,6 @@ add_custom_target(shader_compile ALL DEPENDS ${shader_outputs} VERBATIM)
 # Compile and link cpp source
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
 file(GLOB IMGUI_SOURCES "${PROJECT_SOURCE_DIR}/third_party/imgui/*.cpp")
 add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
 
@@ -64,6 +62,14 @@ find_package(Boost REQUIRED COMPONENTS filesystem)
 find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
+
+if (WIN32)
+	# Tracy profiler doesn't build on ARM64 MacOS, the client does build however,
+	# so maybe another machine could be used for the profiler over the network
+	option(TRACY_ENABLE "" ON)
+	option(TRACY_ON_DEMAND "" ON)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/tracy")
+endif()
 
 if (WIN32)
 	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
@@ -83,6 +89,7 @@ target_link_libraries(Engine PRIVATE tinyobjloader::tinyobjloader)
 target_link_libraries(Engine PUBLIC glfw Boost::filesystem glm::glm)
 if (WIN32)
 	target_link_libraries(Engine PUBLIC "${VULKAN_SDK}/Lib/vulkan-1.lib")
+	target_link_libraries(Engine PUBLIC Tracy::TracyClient)
 elseif (APPLE)
 	target_link_libraries(Engine PUBLIC "${DYLD_LIBRARY_PATH}/libvulkan.1.dylib")
 endif()

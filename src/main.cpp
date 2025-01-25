@@ -27,6 +27,11 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
+#ifdef _WIN32
+#define TRACY_ENABLE
+#include "tracy/Tracy.hpp"
+#endif
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
@@ -179,9 +184,15 @@ public:
 
 	void run() {
 		while(!glfwWindowShouldClose(window)) {
+#ifdef _WIN32
+			FrameMarkStart("run_frame");
+#endif
 			glfwPollEvents();
 			drawGUI();
 			drawFrame();
+#ifdef _WIN32
+			FrameMarkEnd("run_frame");
+#endif
 
 		}
 
