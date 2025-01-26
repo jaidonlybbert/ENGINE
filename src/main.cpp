@@ -109,22 +109,16 @@ std::optional<std::wstring> get_install_directory() {
 	return s;
 }
 #elif _WIN32
-	#define NOMINMAX
-	#include "winreg/winreg.hpp"
+	// #define NOMINMAX
+	// #include "winreg/winreg.hpp"
 
 std::optional<std::wstring> get_install_directory() {
-	winreg::RegKey key{ HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\ENGINE_PUBLISHER\\Engine 0.0.1" };
-	std::wstring s = key.GetStringValue(L"InstallDir");
-	return s;
+	// winreg::RegKey key{ HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\ENGINE_PUBLISHER\\Engine 0.0.1" };
+	// std::wstring s = key.GetStringValue(L"InstallDir");
+	
+	return L".";
 }
 
-
-// std::optional<std::string> get_install_directory() {
-// 	RegKey key{ HKEY_LOCAL_MACHINE, L"SYSTEM\\
-// 	LPCSTR install_dir_windows;
-// 	DWORD data_size_windows = sizeof(install_dir_windows);
-// 	if (ERROR_SUCCESS == RegGetValueA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "LongPathsEnabled", RRF_RT_DWORD, nullptr /*type not required*/, &install_dir_windows, &data_size_windows)) {
-// }
 #else
 std::optional<std::wstring> get_install_directory() {
 	throw std::runtime_error("No supported OS for finding InstallDir found!");
@@ -374,9 +368,11 @@ private:
 
 	const std::vector<const char*> deviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef __APPLE__
 		// Support for MoltenVK for macOS
 		"VK_KHR_portability_subset"
 		// VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
+#endif
 	};
 
 	struct QueueFamilyIndices {
