@@ -30,7 +30,6 @@
 #include <tiny_obj_loader.h>
 
 #ifdef _WIN32
-#define TRACY_ENABLE
 #include "tracy/Tracy.hpp"
 #endif
 
@@ -1896,8 +1895,7 @@ private:
 	}
 };
 
-
-void load_gltf(const boost::filesystem::path gltf_path) {
+bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& application) {
 	using namespace tinygltf;
 
 	Model model;
@@ -1906,7 +1904,6 @@ void load_gltf(const boost::filesystem::path gltf_path) {
 	std::string warn;
 
 	bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, gltf_path.string());
-	//bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, argv[1]); // for binary glTF(.glb)
 
 	if (!warn.empty()) {
 		printf("Warn: %s\n", warn.c_str());
@@ -1918,9 +1915,23 @@ void load_gltf(const boost::filesystem::path gltf_path) {
 
 	if (!ret) {
 		printf("Failed to parse glTF\n");
+		return false;
 	} else {
 		printf("Load glTF successful\n");
 	}
+
+	for (const auto camera : model.cameras) {
+		if (camera.name == "main_camera") {
+			gltf_bind_camera(camera);
+		}
+	}
+
+	return true;
+}
+
+static void gltf_bind_camera(const tinygltf::Camera& camera, VulkanTemplateApp& application)
+{
+
 }
 
 
