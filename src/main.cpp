@@ -1901,21 +1901,64 @@ private:
 };
 
 
+void load_gltf(const boost::filesystem::path gltf_path) {
+	using namespace tinygltf;
+
+	Model model;
+	auto loader = TinyGLTF();
+	std::string err;
+	std::string warn;
+
+	bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, gltf_path.string());
+	//bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, argv[1]); // for binary glTF(.glb)
+
+	if (!warn.empty()) {
+		printf("Warn: %s\n", warn.c_str());
+	}
+
+	if (!err.empty()) {
+		printf("Err: %s\n", err.c_str());
+	}
+
+	if (!ret) {
+		printf("Failed to parse glTF\n");
+	} else {
+		printf("Load glTF successful\n");
+	}
+}
+
+
+std::optional<std::wstring> get_gltf_directory() {
+	return L"../gltf/sandbox/sandbox.gltf";
+}
+
+
 int main() {
 	
 	try {
 		printf("Starting app\n");
 		std::optional<std::wstring> install_dir = get_install_directory();
+		std::optional<std::wstring> gltf_dir = get_gltf_directory();
 		boost::filesystem::path p;
 		if (install_dir.has_value()) {
 			std::wcout << "Application path: " << install_dir.value() <<
 				std::endl;
 			p = boost::filesystem::path(install_dir.value());
-			std::wcout << p.make_preferred().wstring();
+			std::wcout << p.make_preferred().wstring() << std::endl;
 
 		} else {
 			std::cout << "No InstallDir found!" << std::endl;
 		}
+
+		if (gltf_dir.has_value()) {
+			std::wcout << "GLTF path: " << gltf_dir.value() << std::endl;
+			p = boost::filesystem::path(gltf_dir.value());
+			std::wcout << p.make_preferred().wstring() << std::endl;
+			load_gltf(p);
+		} else {
+			std::wcout << "No GLTF path found!" << std::endl;
+		}
+
 		VulkanTemplateApp app;
 		std::cout << app;
 	    	app.run();
