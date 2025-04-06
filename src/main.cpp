@@ -52,6 +52,13 @@ const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
+struct SceneState {
+	tinygltf::Model scene;
+	size_t activeCameraNodeIdx;
+	double cursor_x;
+	double cursor_y;
+};
+
 struct Vertex {
     glm::vec3 pos;
     glm::vec3 color;
@@ -187,6 +194,7 @@ public:
 #ifdef _WIN32
 			FrameMarkStart("run_frame");
 #endif
+			glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
 			glfwPollEvents();
 			drawGUI();
 			drawFrame();
@@ -319,6 +327,8 @@ public:
 		}
 		return os;
 	}
+
+	SceneState sceneState;
 private:
 	GLFWwindow* window;
 	VkInstance instance;
@@ -389,12 +399,20 @@ private:
 		std::vector<VkPresentModeKHR> presentModes;
 	};
 
+	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+	{
+		if (key == GLFW_KEY_E && action == GLFW_PRESS)
+			std::cout << "E key down" << std::endl;
+	}
+
 	void initWindow() {
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+		glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
+		glfwSetKeyCallback(window, key_callback);
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
@@ -427,7 +445,6 @@ private:
 		createDescriptorSets();
 		createCommandBuffers();
 		createSyncObjects();
-
 	}
 
 	VkShaderModule createShaderModule(const std::vector<char>& code) {
@@ -1553,15 +1570,18 @@ private:
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+		const auto& camera_node = sceneState.scene.nodes[sceneState.activeCameraNodeIdx];
 		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
+
+		const auto& camera = sceneState.scene.cameras[camera_node.camera];
+		const auto fovy = static_cast<float>(camera.perspective.yfov);
+		const auto aspect = static_cast<float>(camera.perspective.aspectRatio);
+		const auto znear = static_cast<float>(camera.perspective.znear);
+		const auto zfar = static_cast<float>(camera.perspective.zfar);
+		ubo.proj = glm::perspective(fovy, aspect, znear, zfar);
 		ubo.proj[1][1] *= -1;
 
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -1895,11 +1915,10 @@ private:
 	}
 };
 
-bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& application) {
-	using namespace tinygltf;
+bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) {
 
-	Model model;
-	auto loader = TinyGLTF();
+	auto loader = tinygltf::TinyGLTF();
+	auto& model = app.sceneState.scene;
 	std::string err;
 	std::string warn;
 
@@ -1920,23 +1939,25 @@ bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& appli
 		printf("Load glTF successful\n");
 	}
 
-	for (const auto camera : model.cameras) {
-		if (camera.name == "main_camera") {
-			gltf_bind_camera(camera);
+	auto& active_camera = app.sceneState;
+
+	size_t idx{0};
+	std::cout << "Nodes found:" << std::endl;
+	for (const auto& node : model.nodes) {
+		std::cout << "\t" << node.name << std::endl;
+		if (node.name == "main_camera") {
+			app.sceneState.activeCameraNodeIdx = idx;
+			std::cout << "Camera node set" << std::endl;
 		}
+		++idx;
 	}
 
 	return true;
 }
 
-static void gltf_bind_camera(const tinygltf::Camera& camera, VulkanTemplateApp& application)
-{
-
-}
-
 
 std::optional<std::wstring> get_gltf_directory() {
-	return L"../gltf/sandbox/sandbox.gltf";
+	return L"../gltf/suzanne/suzanne.gltf";
 }
 
 
@@ -1957,18 +1978,21 @@ int main() {
 			std::cout << "No InstallDir found!" << std::endl;
 		}
 
+		VulkanTemplateApp app;
+		std::cout << app;
+
 		if (gltf_dir.has_value()) {
 			std::wcout << "GLTF path: " << gltf_dir.value() << std::endl;
 			p = boost::filesystem::path(gltf_dir.value());
 			std::wcout << p.make_preferred().wstring() << std::endl;
-			load_gltf(p);
-		} else {
+			load_gltf(p, app);
+		}
+		else {
 			std::wcout << "No GLTF path found!" << std::endl;
 		}
 
-		VulkanTemplateApp app;
-		std::cout << app;
-	    	app.run();
+		app.run();
+
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
 	    	return EXIT_FAILURE;
