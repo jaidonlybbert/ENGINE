@@ -15,6 +15,7 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <chrono>
 #include "vulkan/vulkan.hpp"
 #include "GLFW/glfw3.h"
@@ -48,6 +49,38 @@ const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 const std::string MODEL_PATH = "../models/viking_room.obj";
 const std::string TEXTURE_PATH = "../textures/viking_room.png";
 
+const std::map<int, VkFormat> TINYGLTF_COMPONENT_TYPE_TO_VKFORMAT = {
+	{TINYGLTF_COMPONENT_TYPE_BYTE, VK_FORMAT_R8_UINT},
+	{TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, VK_FORMAT_R8_UINT},
+	{TINYGLTF_COMPONENT_TYPE_SHORT, VK_FORMAT_R16_SINT},
+	{TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT, VK_FORMAT_R16_UINT},
+	{TINYGLTF_COMPONENT_TYPE_INT, VK_FORMAT_R32_SINT},
+	{TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT, VK_FORMAT_R32_UINT},
+	{TINYGLTF_COMPONENT_TYPE_FLOAT, VK_FORMAT_R32_SFLOAT},
+	{TINYGLTF_COMPONENT_TYPE_DOUBLE, VK_FORMAT_R64_SFLOAT}
+};
+
+static VkFormat get_vk_format_from_tinygltf_accessor(const tinygltf::Accessor& acc)
+{
+	VkFormat retval{ VkFormat::VK_FORMAT_UNDEFINED };
+	const auto& ctype = acc.componentType;
+	const auto& type = acc.type;
+	assert(ctype != -1);
+	assert(type != -1);
+
+	if (ctype == TINYGLTF_COMPONENT_TYPE_FLOAT)
+	{
+		retval = 
+			type == TINYGLTF_TYPE_VEC2 ? VkFormat::VK_FORMAT_R32G32_SFLOAT :
+			type == TINYGLTF_TYPE_VEC3 ? VkFormat::VK_FORMAT_R32G32B32_SFLOAT :
+			type == TINYGLTF_TYPE_VEC4 ? VkFormat::VK_FORMAT_R32G32B32A32_SFLOAT : VkFormat::VK_FORMAT_UNDEFINED;
+	}
+
+	assert(retval != VK_FORMAT_UNDEFINED);
+	return retval;
+}
+
+
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
@@ -55,6 +88,8 @@ const std::vector<const char*> validationLayers = {
 struct SceneState {
 	tinygltf::Model scene;
 	size_t activeCameraNodeIdx;
+	glm::mat4 test_model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
 	double cursor_x;
 	double cursor_y;
 };
@@ -403,13 +438,33 @@ private:
 	{
 		if (key == GLFW_KEY_E && action == GLFW_PRESS)
 			std::cout << "E key down" << std::endl;
+			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
+			auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
+			auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
+			// rotate 3 degrees around x-axis when E is pressed
+			auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			cam_quat = cam_quat * dx;
+			camera_rotation[0] = cam_quat.z;
+			camera_rotation[1] = cam_quat.x;
+			camera_rotation[2] = cam_quat.y;
+			camera_rotation[3] = cam_quat.w;
+
+		if (key == GLFW_KEY_R && action == GLFW_PRESS)
+		{
+			std::cout << "R key down" << std::endl;
+			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
+			auto& test_rot = sceneState->test_model;
+			// rotate 3 degrees around y-axis when E is pressed
+			auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			test_rot = glm::mat4_cast(dx) * test_rot;
+		}
 	}
 
 	void initWindow() {
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-		glfwSetWindowUserPointer(window, this);
+		glfwSetWindowUserPointer(window, &sceneState);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 		glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
 		glfwSetKeyCallback(window, key_callback);
@@ -1571,10 +1626,20 @@ private:
 
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		// ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.model = sceneState.test_model;
 
 		const auto& camera_node = sceneState.scene.nodes[sceneState.activeCameraNodeIdx];
+
 		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		/*
+		const auto& cam_rot = camera_node.rotation;
+		if (cam_rot.size() == 4)
+		{
+			auto quat1 = glm::quat(cam_rot[3], cam_rot[0], cam_rot[1], cam_rot[2]);
+			ubo.view = glm::mat4_cast(quat1);
+		}
+		*/
 
 		const auto& camera = sceneState.scene.cameras[camera_node.camera];
 		const auto fovy = static_cast<float>(camera.perspective.yfov);
@@ -1939,8 +2004,6 @@ bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) 
 		printf("Load glTF successful\n");
 	}
 
-	auto& active_camera = app.sceneState;
-
 	size_t idx{0};
 	std::cout << "Nodes found:" << std::endl;
 	for (const auto& node : model.nodes) {
@@ -1948,6 +2011,30 @@ bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) 
 		if (node.name == "main_camera") {
 			app.sceneState.activeCameraNodeIdx = idx;
 			std::cout << "Camera node set" << std::endl;
+		}
+
+		VkBuffer buff{};
+		if (node.mesh >= 0)
+		{
+			const auto& mesh = model.meshes[node.mesh];
+			for (const auto& primitive : mesh.primitives)
+			{
+				VkVertexInputBindingDescription binding_desc{};
+				std::vector<VkVertexInputAttributeDescription> attrs{};
+				std::size_t location{0};
+				for (const auto& attr : primitive.attributes)
+				{
+					std::cout << "\t\tLoading attribute: " << attr.first << " accessor: " << attr.second << std::endl;
+					const auto& accessor = model.accessors[attr.second];
+					VkVertexInputAttributeDescription attr_desc{};
+					attr_desc.binding = node.mesh;
+					attr_desc.location = location;
+					assert(accessor.componentType != -1);
+					assert(accessor.type != -1);
+					attr_desc.format = get_vk_format_from_tinygltf_accessor(accessor);
+					++location;
+				}
+			}
 		}
 		++idx;
 	}
