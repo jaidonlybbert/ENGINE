@@ -60,7 +60,16 @@ const std::map<int, VkFormat> TINYGLTF_COMPONENT_TYPE_TO_VKFORMAT = {
 	{TINYGLTF_COMPONENT_TYPE_DOUBLE, VK_FORMAT_R64_SFLOAT}
 };
 
-static VkFormat get_vk_format_from_tinygltf_accessor(const tinygltf::Accessor& acc)
+static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc)
+{
+	const auto& ctype = acc.componentType;
+	const auto& type = acc.type;
+	assert(ctype != -1);
+	assert(type != -1);
+	return tinygltf::GetNumComponentsInType(type) * tinygltf::GetComponentSizeInBytes(ctype);
+}
+
+static VkFormat get_vk_format_from_tinygltf_accessor(const tinygltf::Accessor& acc, size_t& size_bytes)
 {
 	VkFormat retval{ VkFormat::VK_FORMAT_UNDEFINED };
 	const auto& ctype = acc.componentType;
@@ -76,6 +85,8 @@ static VkFormat get_vk_format_from_tinygltf_accessor(const tinygltf::Accessor& a
 			type == TINYGLTF_TYPE_VEC4 ? VkFormat::VK_FORMAT_R32G32B32A32_SFLOAT : VkFormat::VK_FORMAT_UNDEFINED;
 	}
 
+	size_bytes = tinygltf::GetNumComponentsInType(type) * tinygltf::GetComponentSizeInBytes(ctype);
+
 	assert(retval != VK_FORMAT_UNDEFINED);
 	return retval;
 }
@@ -85,6 +96,50 @@ const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
+
+struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec2 texCoord;
+};
+
+
+struct Mesh {
+	std::vector<Vertex> vertices{};
+	std::vector<uint32_t> indices{};
+
+	static VkVertexInputBindingDescription getBindingDescription() {
+		VkVertexInputBindingDescription bindingDescription{};
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		return bindingDescription;
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+		return attributeDescriptions;
+	}
+};
+
+
 struct SceneState {
 	tinygltf::Model scene;
 	size_t activeCameraNodeIdx;
@@ -92,43 +147,9 @@ struct SceneState {
 
 	double cursor_x;
 	double cursor_y;
+	std::vector<Mesh> meshes;
 };
 
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-        return attributeDescriptions;
-    }
-};
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -493,8 +514,8 @@ private:
 		createTextureImageView();
 		createTextureSampler();
 		loadModel();
-		createVertexBuffer();
-		createIndexBuffer();
+		createVertexBuffer(sceneState.meshes[0]);
+		createIndexBuffer(sceneState.meshes[0]);
 		createUniformBuffers();
 		createDescriptorPool();
 		createDescriptorSets();
@@ -1065,8 +1086,8 @@ private:
 		dynamicState.pDynamicStates = dynamicStates.data();
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-		auto bindingDescription = Vertex::getBindingDescription();
-		auto attributeDescriptions = Vertex::getAttributeDescriptions();
+		auto bindingDescription = Mesh::getBindingDescription();
+		auto attributeDescriptions = Mesh::getAttributeDescriptions();
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
@@ -1381,8 +1402,8 @@ private:
 		}
 	}
 
-	void createVertexBuffer() {
-		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	void createVertexBuffer(const auto& mesh) {
+		VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1400,8 +1421,8 @@ private:
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 	}
 
-	void createIndexBuffer() {
-		VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+	void createIndexBuffer(const auto& mesh) {
+		VkDeviceSize bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1895,6 +1916,8 @@ private:
 				indices.push_back(indices.size());
 			}
 		}
+
+		sceneState.meshes.push_back(Mesh{vertices, indices});
 	}
 
 	void initGui() {
@@ -1980,10 +2003,19 @@ private:
 	}
 };
 
-bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) {
+const std::map<std::string, int> GLTF_ATTRIBUTE_NAME_TO_VK_VERTEX_ATTR_LOCATION {
+	{"POSITION", 0},
+	{"COLOR_0", 1},
+	{"TEXCOORD_0", 2},
+	{"NORMAL", 3},
+	{"JOINTS_0", 4},
+	{"WEIGHTS_0", 5},
+	{"TANGENT", 6},
+	{"TEXCOORD_1", 7}
+};
 
+bool load_gltf_model(const boost::filesystem::path gltf_path, tinygltf::Model& model) {
 	auto loader = tinygltf::TinyGLTF();
-	auto& model = app.sceneState.scene;
 	std::string err;
 	std::string warn;
 
@@ -1999,9 +2031,96 @@ bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) 
 
 	if (!ret) {
 		printf("Failed to parse glTF\n");
-		return false;
 	} else {
 		printf("Load glTF successful\n");
+	}
+
+	return ret;
+}
+
+void load_gltf_mesh_attributes_non_interleaved(const tinygltf::Model& model,
+					       const tinygltf::Node& node,
+					       const tinygltf::Primitive& primitive,
+					       Mesh& mesh)
+{
+	std::optional<std::size_t> bufferIdx;
+	// Assumes vertex data is NOT interleaved in gltf buffer
+	// Each attribute exists in a contiguous section of the gltf buffer, and gets it's own
+	// binding & attribute description
+
+	// guarantees unique binding index as long as less than 10 attributes
+	size_t bindingIdx{static_cast<size_t>(node.mesh) * 10};  
+	assert(primitive.attributes.size() < 10);
+	if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("COLOR0")
+		&& primitive.attributes.contains("TEXCOORD_0"))
+	{
+		const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
+		const auto& col_acc = model.accessors[primitive.attributes.at("COLOR0")];
+		const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+		assert(primitive.indices >= 0);
+		const auto& ind_acc = model.accessors[primitive.indices];
+
+		const auto& pos_bv = model.bufferViews[pos_acc.bufferView];
+		const auto& col_bv = model.bufferViews[col_acc.bufferView];
+		const auto& tex_bv = model.bufferViews[tex_acc.bufferView];
+		const auto& ind_bv = model.bufferViews[ind_acc.bufferView];
+
+		const auto& pos_buff = model.buffers[pos_bv.buffer];
+		const auto& col_buff = model.buffers[col_bv.buffer];
+		const auto& tex_buff = model.buffers[tex_bv.buffer];
+		const auto& ind_buff = model.buffers[ind_bv.buffer];
+
+		size_t pos_size{get_size_bytes_from_tinygltf_accessor(pos_acc)};
+		size_t col_size{get_size_bytes_from_tinygltf_accessor(col_acc)};
+		size_t tex_size{get_size_bytes_from_tinygltf_accessor(tex_acc)};
+		size_t ind_size{get_size_bytes_from_tinygltf_accessor(ind_acc)};
+		assert(pos_size == 12);
+		assert(col_size == 12);
+		assert(tex_size == 8);
+		assert(ind_size == 4);
+
+		const size_t num_elements = pos_bv.byteLength / pos_size;
+		assert(num_elements == col_bv.byteLength / col_size);
+		assert(num_elements == tex_bv.byteLength / tex_size);
+		assert(num_elements == ind_bv.byteLength / ind_size);
+
+		mesh.vertices.resize(num_elements);
+		mesh.indices.resize(num_elements);
+		for (size_t i = 0; i < num_elements; ++i)
+		{
+			Vertex vert = {};
+			// Assumes data is not interleaved
+			assert(pos_bv.byteStride == 0);
+			assert(col_bv.byteStride == 0);
+			assert(tex_bv.byteStride == 0);
+			vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
+			vert.color = static_cast<glm::vec3>(col_buff.data[col_bv.byteOffset + i * col_size]);
+			vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
+
+			mesh.vertices[i] = vert;
+			mesh.indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
+		}
+	}
+}
+
+void load_gltf_node(const tinygltf::Node& node, SceneState& sceneState) {
+	const auto& model = sceneState.scene;
+
+	if (node.mesh < 0) return;
+
+	const auto& mesh = model.meshes[node.mesh];
+	for (const auto& primitive : mesh.primitives)
+	{
+		Mesh mesh;
+		load_gltf_mesh_attributes_non_interleaved(model, node, primitive, mesh);
+		sceneState.meshes.push_back(mesh);
+	}
+}
+
+bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) {
+	auto& model = app.sceneState.scene;
+	if (!load_gltf_model(gltf_path, model)) {
+		return false;
 	}
 
 	size_t idx{0};
@@ -2012,30 +2131,7 @@ bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) 
 			app.sceneState.activeCameraNodeIdx = idx;
 			std::cout << "Camera node set" << std::endl;
 		}
-
-		VkBuffer buff{};
-		if (node.mesh >= 0)
-		{
-			const auto& mesh = model.meshes[node.mesh];
-			for (const auto& primitive : mesh.primitives)
-			{
-				VkVertexInputBindingDescription binding_desc{};
-				std::vector<VkVertexInputAttributeDescription> attrs{};
-				std::size_t location{0};
-				for (const auto& attr : primitive.attributes)
-				{
-					std::cout << "\t\tLoading attribute: " << attr.first << " accessor: " << attr.second << std::endl;
-					const auto& accessor = model.accessors[attr.second];
-					VkVertexInputAttributeDescription attr_desc{};
-					attr_desc.binding = node.mesh;
-					attr_desc.location = location;
-					assert(accessor.componentType != -1);
-					assert(accessor.type != -1);
-					attr_desc.format = get_vk_format_from_tinygltf_accessor(accessor);
-					++location;
-				}
-			}
-		}
+		load_gltf_node(node, app.sceneState);
 		++idx;
 	}
 
