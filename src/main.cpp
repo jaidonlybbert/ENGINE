@@ -105,6 +105,7 @@ struct Vertex {
 
 
 struct Mesh {
+	std::string name;
 	std::vector<Vertex> vertices{};
 	std::vector<uint32_t> indices{};
 
@@ -514,8 +515,8 @@ private:
 		createTextureImageView();
 		createTextureSampler();
 		loadModel();
-		createVertexBuffer(sceneState.meshes[0]);
-		createIndexBuffer(sceneState.meshes[0]);
+		createVertexBuffers(sceneState.meshes);
+		createIndexBuffers(sceneState.meshes);
 		createUniformBuffers();
 		createDescriptorPool();
 		createDescriptorSets();
@@ -1402,8 +1403,17 @@ private:
 		}
 	}
 
-	void createVertexBuffer(const auto& mesh) {
-		VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
+	void createVertexBuffers(const std::vector<Mesh> &meshes)
+	{
+		const auto vert_size = sizeof(meshes[0].vertices[0]);
+		VkDeviceSize bufferSize = vert_size * meshes[0].vertices.size();
+		if (meshes.size() > 1)
+		{
+			for (auto mesh_it = meshes.begin() + 1; mesh_it != meshes.end(); ++mesh_it)
+			{
+				bufferSize += vert_size * mesh_it->vertices.size();
+			}
+		}
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1411,7 +1421,14 @@ private:
 
 		void* data;
 		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices.data(), (size_t) bufferSize);
+		char* last_byte = (char*) data + bufferSize;
+		for (const auto& mesh : meshes)
+		{
+			size_t buffSize = (size_t) vert_size * mesh.vertices.size();
+			assert((char*)data + buffSize <= last_byte);
+			memcpy(data, mesh.vertices.data(), buffSize);
+			data = (char*) data + buffSize;
+		}
 		vkUnmapMemory(device, stagingBufferMemory);
 
 		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
@@ -1419,10 +1436,20 @@ private:
 		copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		std::cout << "Vertex buffer created successfully" << std::endl;
 	}
 
-	void createIndexBuffer(const auto& mesh) {
-		VkDeviceSize bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
+	void createIndexBuffers(const std::vector<Mesh> &meshes)
+	{
+		size_t idx_size = sizeof(meshes[0].indices[0]);
+		VkDeviceSize bufferSize = idx_size * meshes[0].indices.size();
+		if (meshes.size() > 1)
+		{
+			for (auto mesh_it = meshes.begin() + 1; mesh_it != meshes.end(); ++mesh_it)
+			{
+				bufferSize += idx_size * mesh_it->indices.size();
+			}
+		}
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1430,6 +1457,14 @@ private:
 
 		void* data;
 		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		char* last_byte = (char*) data + bufferSize;
+		for (const auto& mesh : meshes)
+		{
+			size_t buffSize = (size_t) idx_size * mesh.indices.size();
+			assert((char*)data + buffSize <= last_byte);
+			memcpy(data, mesh.indices.data(), buffSize);
+			data = (char*) data + buffSize;
+		}
 		memcpy(data, indices.data(), (size_t) bufferSize);
 		vkUnmapMemory(device, stagingBufferMemory);
 
@@ -1439,7 +1474,9 @@ private:
 
 		vkDestroyBuffer(device, stagingBuffer, nullptr);
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		std::cout << "idx buffer created successfully" << std::endl;
 	}
+
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 		VkPhysicalDeviceMemoryProperties memProperties;
@@ -1917,7 +1954,7 @@ private:
 			}
 		}
 
-		sceneState.meshes.push_back(Mesh{vertices, indices});
+		sceneState.meshes.emplace_back("Room", vertices, indices);
 	}
 
 	void initGui() {
@@ -2108,10 +2145,11 @@ void load_gltf_node(const tinygltf::Node& node, SceneState& sceneState) {
 
 	if (node.mesh < 0) return;
 
-	const auto& mesh = model.meshes[node.mesh];
-	for (const auto& primitive : mesh.primitives)
+	const auto& gltf_mesh = model.meshes[node.mesh];
+	for (const auto& primitive : gltf_mesh.primitives)
 	{
 		Mesh mesh;
+		mesh.name = gltf_mesh.name;
 		load_gltf_mesh_attributes_non_interleaved(model, node, primitive, mesh);
 		sceneState.meshes.push_back(mesh);
 	}
@@ -2172,6 +2210,12 @@ int main() {
 		}
 		else {
 			std::wcout << "No GLTF path found!" << std::endl;
+		}
+		
+		std::cout << "Meshes loaded:" << std::endl;
+		for (const auto& mesh : app.sceneState.meshes)
+		{
+			std::cout << "\t" << mesh.name << std::endl;
 		}
 
 		app.run();
