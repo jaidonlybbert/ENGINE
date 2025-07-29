@@ -6,6 +6,6 @@ export VK_LAYER_PATH=$VULKAN_SDK/share/vulkan/explicit_layer.d
 cd build
 cmake -G "Ninja" -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang .. &
 wait
-cmake --build . --config Release &
+cmake --build . --config Debug &
 wait
 ./Engine

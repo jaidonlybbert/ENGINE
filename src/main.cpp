@@ -105,9 +105,12 @@ struct Vertex {
 
 
 struct Mesh {
-	std::string name;
+	std::string name{};
 	std::vector<Vertex> vertices{};
 	std::vector<uint32_t> indices{};
+
+	Mesh() {}
+	Mesh(std::string name, std::vector<Vertex> vertices, std::vector<uint32_t> indices) : name(name), vertices(vertices), indices(indices) {}
 
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription{};
@@ -1447,9 +1450,11 @@ private:
 		{
 			for (auto mesh_it = meshes.begin() + 1; mesh_it != meshes.end(); ++mesh_it)
 			{
+				std::cout << "Iterating meshes total length" << std::endl;
 				bufferSize += idx_size * mesh_it->indices.size();
 			}
 		}
+		std::cout << "buffer size: " << bufferSize << std::endl;
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -1465,7 +1470,6 @@ private:
 			memcpy(data, mesh.indices.data(), buffSize);
 			data = (char*) data + buffSize;
 		}
-		memcpy(data, indices.data(), (size_t) bufferSize);
 		vkUnmapMemory(device, stagingBufferMemory);
 
 		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
@@ -1954,7 +1958,9 @@ private:
 			}
 		}
 
-		sceneState.meshes.emplace_back("Room", vertices, indices);
+		const auto& meshName = std::string("Room");
+		const auto& mesh = Mesh(meshName, vertices, indices);
+		sceneState.meshes.push_back(mesh);
 	}
 
 	void initGui() {
