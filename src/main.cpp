@@ -96,53 +96,141 @@ const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
 };
 
+struct VertexPosNorTex {
+    glm::vec3 pos;
+    glm::vec3 normal;
+    glm::vec2 texCoord;
+};
 
-struct Vertex {
+struct VertexPosColTex {
     glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 texCoord;
 };
 
 
-struct Mesh {
-	std::string name{};
-	std::vector<Vertex> vertices{};
-	std::vector<uint32_t> indices{};
+template <typename T>
+class Mesh {
 
+public:
 	Mesh() {}
-	Mesh(std::string name, std::vector<Vertex> vertices, std::vector<uint32_t> indices) : name(name), vertices(vertices), indices(indices) {}
+	Mesh(std::string name, std::vector<T> vertices, std::vector<uint32_t> indices) : name(name), vertices(vertices), indices(indices) {}
+	Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
+
+	std::string name{};
+	std::vector<T> vertices{};
+	std::vector<uint32_t> indices{};
 
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription{};
 		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
+		bindingDescription.stride = sizeof(T);
 		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-		return attributeDescriptions;
-	}
+	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
 };
 
+template class Mesh<VertexPosColTex>;
+template class Mesh<VertexPosNorTex>;
+
+template<>
+Mesh<VertexPosColTex>::Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive) {
+	const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
+	const auto& col_acc = model.accessors[primitive.attributes.at("COLOR0")];
+	const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+	assert(primitive.indices >= 0);
+	const auto& ind_acc = model.accessors[primitive.indices];
+
+	const auto& pos_bv = model.bufferViews[pos_acc.bufferView];
+	const auto& col_bv = model.bufferViews[col_acc.bufferView];
+	const auto& tex_bv = model.bufferViews[tex_acc.bufferView];
+	const auto& ind_bv = model.bufferViews[ind_acc.bufferView];
+
+	const auto& pos_buff = model.buffers[pos_bv.buffer];
+	const auto& col_buff = model.buffers[col_bv.buffer];
+	const auto& tex_buff = model.buffers[tex_bv.buffer];
+	const auto& ind_buff = model.buffers[ind_bv.buffer];
+
+	size_t pos_size{get_size_bytes_from_tinygltf_accessor(pos_acc)};
+	size_t col_size{get_size_bytes_from_tinygltf_accessor(col_acc)};
+	size_t tex_size{get_size_bytes_from_tinygltf_accessor(tex_acc)};
+	size_t ind_size{get_size_bytes_from_tinygltf_accessor(ind_acc)};
+	assert(pos_size == 12);
+	assert(col_size == 12);
+	assert(tex_size == 8);
+	assert(ind_size == 4);
+
+	const size_t num_elements = pos_bv.byteLength / pos_size;
+	assert(num_elements == col_bv.byteLength / col_size);
+	assert(num_elements == tex_bv.byteLength / tex_size);
+	assert(num_elements == ind_bv.byteLength / ind_size);
+
+	Mesh<VertexPosColTex> mesh;
+	mesh.name = mesh_name;
+	mesh.vertices.resize(num_elements);
+	mesh.indices.resize(num_elements);
+	for (size_t i = 0; i < num_elements; ++i)
+	{
+		VertexPosColTex vert;
+		// Assumes data is not interleaved
+		assert(pos_bv.byteStride == 0);
+		assert(col_bv.byteStride == 0);
+		assert(tex_bv.byteStride == 0);
+		vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
+		vert.color = static_cast<glm::vec3>(col_buff.data[col_bv.byteOffset + i * col_size]);
+		vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
+
+		mesh.vertices[i] = vert;
+		mesh.indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
+	}
+}
+
+template<>
+std::array<VkVertexInputAttributeDescription, 3> Mesh<VertexPosColTex>::getAttributeDescriptions() {
+	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+
+	attributeDescriptions[0].binding = 0;
+	attributeDescriptions[0].location = 0;
+	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[0].offset = offsetof(VertexPosColTex, pos);
+
+	attributeDescriptions[1].binding = 0;
+	attributeDescriptions[1].location = 1;
+	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[1].offset = offsetof(VertexPosColTex, color);
+
+	attributeDescriptions[2].binding = 0;
+	attributeDescriptions[2].location = 2;
+	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attributeDescriptions[2].offset = offsetof(VertexPosColTex, texCoord);
+
+	return attributeDescriptions;
+}
+
+template<>
+std::array<VkVertexInputAttributeDescription, 3> Mesh<VertexPosNorTex>::getAttributeDescriptions() {
+	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+
+	attributeDescriptions[0].binding = 0;
+	attributeDescriptions[0].location = 0;
+	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[0].offset = offsetof(VertexPosNorTex, pos);
+
+	attributeDescriptions[1].binding = 0;
+	attributeDescriptions[1].location = 1;
+	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	attributeDescriptions[1].offset = offsetof(VertexPosNorTex, normal);
+
+	attributeDescriptions[2].binding = 0;
+	attributeDescriptions[2].location = 2;
+	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attributeDescriptions[2].offset = offsetof(VertexPosNorTex, texCoord);
+
+	return attributeDescriptions;
+}
 
 struct SceneState {
 	tinygltf::Model scene;
@@ -151,7 +239,8 @@ struct SceneState {
 
 	double cursor_x;
 	double cursor_y;
-	std::vector<Mesh> meshes;
+	std::vector<Mesh<VertexPosColTex>> posColTexMeshes;
+	std::vector<Mesh<VertexPosNorTex>> posNorTexMeshes;
 };
 
 
@@ -388,6 +477,14 @@ public:
 		return os;
 	}
 
+
+	void loadMeshesToVkBuffer(const SceneState& sceneState) {
+		loadModel();
+		createVertexBuffer(sceneState.posColTexMeshes, vertexBuffer, vertexBufferMemory);
+		createIndexBuffer(sceneState.posColTexMeshes, indexBuffer, indexBufferMemory);
+	}
+
+
 	SceneState sceneState;
 private:
 	GLFWwindow* window;
@@ -415,7 +512,7 @@ private:
 	std::vector<VkFence> inFlightFences;
 	bool framebufferResized = false;
 	uint32_t currentFrame = 0;
-	std::vector<Vertex> vertices;
+	std::vector<VertexPosColTex> vertices;
 	std::vector<uint32_t> indices;
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
@@ -462,6 +559,7 @@ private:
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
 		if (key == GLFW_KEY_E && action == GLFW_PRESS)
+		{
 			std::cout << "E key down" << std::endl;
 			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 			auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
@@ -473,6 +571,7 @@ private:
 			camera_rotation[1] = cam_quat.x;
 			camera_rotation[2] = cam_quat.y;
 			camera_rotation[3] = cam_quat.w;
+		}
 
 		if (key == GLFW_KEY_R && action == GLFW_PRESS)
 		{
@@ -517,9 +616,6 @@ private:
 		createTextureImage();
 		createTextureImageView();
 		createTextureSampler();
-		loadModel();
-		createVertexBuffers(sceneState.meshes);
-		createIndexBuffers(sceneState.meshes);
 		createUniformBuffers();
 		createDescriptorPool();
 		createDescriptorSets();
@@ -1090,8 +1186,8 @@ private:
 		dynamicState.pDynamicStates = dynamicStates.data();
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-		auto bindingDescription = Mesh::getBindingDescription();
-		auto attributeDescriptions = Mesh::getAttributeDescriptions();
+		auto bindingDescription = Mesh<VertexPosColTex>::getBindingDescription();
+		auto attributeDescriptions = Mesh<VertexPosColTex>::getAttributeDescriptions();
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
@@ -1406,7 +1502,8 @@ private:
 		}
 	}
 
-	void createVertexBuffers(const std::vector<Mesh> &meshes)
+	template <typename T>
+	void createVertexBuffer(const std::vector<Mesh<T>> &meshes, VkBuffer &vertexBuffer, VkDeviceMemory &vertexBufferMemory)
 	{
 		const auto vert_size = sizeof(meshes[0].vertices[0]);
 		VkDeviceSize bufferSize = vert_size * meshes[0].vertices.size();
@@ -1442,7 +1539,8 @@ private:
 		std::cout << "Vertex buffer created successfully" << std::endl;
 	}
 
-	void createIndexBuffers(const std::vector<Mesh> &meshes)
+	template <typename T>
+	void createIndexBuffer(const std::vector<Mesh<T>> &meshes, VkBuffer &indexBuffer, VkDeviceMemory &indexBufferMemory)
 	{
 		size_t idx_size = sizeof(meshes[0].indices[0]);
 		VkDeviceSize bufferSize = idx_size * meshes[0].indices.size();
@@ -1938,7 +2036,7 @@ private:
 
 		for (const auto& shape : shapes) {
 			for (const auto& index : shape.mesh.indices) {
-				Vertex vertex{};
+				VertexPosColTex vertex{};
 
 				vertex.pos = {
 					attrib.vertices[3 * index.vertex_index + 0],
@@ -1959,8 +2057,8 @@ private:
 		}
 
 		const auto& meshName = std::string("Room");
-		const auto& mesh = Mesh(meshName, vertices, indices);
-		sceneState.meshes.push_back(mesh);
+		const auto& mesh = Mesh<VertexPosColTex>(meshName, vertices, indices);
+		sceneState.posColTexMeshes.push_back(mesh);
 	}
 
 	void initGui() {
@@ -2081,10 +2179,11 @@ bool load_gltf_model(const boost::filesystem::path gltf_path, tinygltf::Model& m
 	return ret;
 }
 
-void load_gltf_mesh_attributes_non_interleaved(const tinygltf::Model& model,
-					       const tinygltf::Node& node,
-					       const tinygltf::Primitive& primitive,
-					       Mesh& mesh)
+void load_gltf_mesh_attributes(const std::string& mesh_name,
+			       const tinygltf::Model& model,
+			       const tinygltf::Node& node,
+			       const tinygltf::Primitive& primitive,
+			       SceneState& sceneState)
 {
 	std::optional<std::size_t> bufferIdx;
 	// Assumes vertex data is NOT interleaved in gltf buffer
@@ -2094,57 +2193,14 @@ void load_gltf_mesh_attributes_non_interleaved(const tinygltf::Model& model,
 	// guarantees unique binding index as long as less than 10 attributes
 	size_t bindingIdx{static_cast<size_t>(node.mesh) * 10};  
 	assert(primitive.attributes.size() < 10);
+
 	if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("COLOR0")
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
-		const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
-		const auto& col_acc = model.accessors[primitive.attributes.at("COLOR0")];
-		const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
-		assert(primitive.indices >= 0);
-		const auto& ind_acc = model.accessors[primitive.indices];
-
-		const auto& pos_bv = model.bufferViews[pos_acc.bufferView];
-		const auto& col_bv = model.bufferViews[col_acc.bufferView];
-		const auto& tex_bv = model.bufferViews[tex_acc.bufferView];
-		const auto& ind_bv = model.bufferViews[ind_acc.bufferView];
-
-		const auto& pos_buff = model.buffers[pos_bv.buffer];
-		const auto& col_buff = model.buffers[col_bv.buffer];
-		const auto& tex_buff = model.buffers[tex_bv.buffer];
-		const auto& ind_buff = model.buffers[ind_bv.buffer];
-
-		size_t pos_size{get_size_bytes_from_tinygltf_accessor(pos_acc)};
-		size_t col_size{get_size_bytes_from_tinygltf_accessor(col_acc)};
-		size_t tex_size{get_size_bytes_from_tinygltf_accessor(tex_acc)};
-		size_t ind_size{get_size_bytes_from_tinygltf_accessor(ind_acc)};
-		assert(pos_size == 12);
-		assert(col_size == 12);
-		assert(tex_size == 8);
-		assert(ind_size == 4);
-
-		const size_t num_elements = pos_bv.byteLength / pos_size;
-		assert(num_elements == col_bv.byteLength / col_size);
-		assert(num_elements == tex_bv.byteLength / tex_size);
-		assert(num_elements == ind_bv.byteLength / ind_size);
-
-		mesh.vertices.resize(num_elements);
-		mesh.indices.resize(num_elements);
-		for (size_t i = 0; i < num_elements; ++i)
-		{
-			Vertex vert = {};
-			// Assumes data is not interleaved
-			assert(pos_bv.byteStride == 0);
-			assert(col_bv.byteStride == 0);
-			assert(tex_bv.byteStride == 0);
-			vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
-			vert.color = static_cast<glm::vec3>(col_buff.data[col_bv.byteOffset + i * col_size]);
-			vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
-
-			mesh.vertices[i] = vert;
-			mesh.indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
-		}
+		sceneState.posColTexMeshes.push_back(Mesh<VertexPosColTex>(mesh_name, model, primitive));
 	}
 }
+
 
 void load_gltf_node(const tinygltf::Node& node, SceneState& sceneState) {
 	const auto& model = sceneState.scene;
@@ -2154,10 +2210,8 @@ void load_gltf_node(const tinygltf::Node& node, SceneState& sceneState) {
 	const auto& gltf_mesh = model.meshes[node.mesh];
 	for (const auto& primitive : gltf_mesh.primitives)
 	{
-		Mesh mesh;
-		mesh.name = gltf_mesh.name;
-		load_gltf_mesh_attributes_non_interleaved(model, node, primitive, mesh);
-		sceneState.meshes.push_back(mesh);
+		const auto& mesh_name = gltf_mesh.name;
+		load_gltf_mesh_attributes(mesh_name, model, node, primitive, sceneState);
 	}
 }
 
@@ -2218,11 +2272,20 @@ int main() {
 			std::wcout << "No GLTF path found!" << std::endl;
 		}
 		
-		std::cout << "Meshes loaded:" << std::endl;
-		for (const auto& mesh : app.sceneState.meshes)
+		app.loadMeshesToVkBuffer(app.sceneState);
+
+		std::cout << "PosColTex Meshes loaded:" << std::endl;
+		for (const auto& mesh : app.sceneState.posColTexMeshes)
 		{
 			std::cout << "\t" << mesh.name << std::endl;
 		}
+
+		std::cout << "PosNorTex Meshes loaded:" << std::endl;
+		for (const auto& mesh : app.sceneState.posNorTexMeshes)
+		{
+			std::cout << "\t" << mesh.name << std::endl;
+		}
+
 
 		app.run();
 
