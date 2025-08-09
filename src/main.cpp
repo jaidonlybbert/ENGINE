@@ -108,9 +108,62 @@ struct VertexPosColTex {
     glm::vec2 texCoord;
 };
 
+/* 
+ * Behavior of a free body
+ * - A free body has position, velocity, and acceleration
+ * - Is acted on by external systems to update position, velocity, and acceleration
+ *   + includes kinematic component
+ */
+
+/*
+ * A kinematic system
+ * - Position and velocity are calculated at a fixed timestep taking as inputs last position, acceleration, and velocity
+ */
+
+/*
+ *  A system for directed force field
+ *  - A vector-valued function defines the direction and magnitude of force in 3-d space
+ *  - The force on each free body is evaluated at the position of the free body and mutated
+ */
+
+/*
+ * A system for collisions
+ * - Collision detection based on intersection algorithms between collision boxes
+ */
+
+/*
+ * A system for rendering Mesh components
+ * - A mesh component has vertex attributes
+ * - The system loads the mesh attributes into GPU buffers
+ */
+
+class Component {
+	/*
+	 * Base class for components associated with Entities
+	 */
+};
+
+class Kinematic : Component {
+	glm::mat4 transform;
+	glm::vec3 velocity;
+	glm::vec3 acceleration;
+};
+
+class Node {
+	/*
+	 * Base class entities in a scene graph
+	 */
+
+public:
+	Node* parent;
+	std::vector<Node*> children;
+	std::optional<Component*> mesh;
+	std::optional<Component*> kinematic;
+};
+
 
 template <typename T>
-class Mesh {
+class Mesh : Component {
 
 public:
 	Mesh() {}
@@ -380,11 +433,21 @@ public:
 
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
-		vkDestroyBuffer(device, indexBuffer, nullptr);
-		vkFreeMemory(device, indexBufferMemory, nullptr);
+		for (auto& buffer : indexBuffer) {
+			vkDestroyBuffer(device, buffer, nullptr);
+		}
 
-		vkDestroyBuffer(device, vertexBuffer, nullptr);
-		vkFreeMemory(device, vertexBufferMemory, nullptr);
+		for (auto& bufferMemory : indexBufferMemory) {
+			vkFreeMemory(device, bufferMemory, nullptr);
+		}
+
+		for (auto& buffer : vertexBuffer) {
+			vkDestroyBuffer(device, buffer, nullptr);
+		}
+
+		for (auto& bufferMemory : vertexBufferMemory) {
+			vkFreeMemory(device, bufferMemory, nullptr);
+		}
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -480,8 +543,12 @@ public:
 
 	void loadMeshesToVkBuffer(const SceneState& sceneState) {
 		loadModel();
-		createVertexBuffer(sceneState.posColTexMeshes, vertexBuffer, vertexBufferMemory);
-		createIndexBuffer(sceneState.posColTexMeshes, indexBuffer, indexBufferMemory);
+		auto& posColTexVertexVkBuffer = vertexBuffer.emplace_back();
+		auto& posColTexVertexVkBufferMemory = vertexBufferMemory.emplace_back();
+		auto& posColNorIndexVkBuffer = indexBuffer.emplace_back();
+		auto& posColNorIndexVkBufferMemory = indexBufferMemory.emplace_back();
+		createVertexBuffer(sceneState.posColTexMeshes, posColTexVertexVkBuffer, posColTexVertexVkBufferMemory);
+		createIndexBuffer(sceneState.posColTexMeshes, posColNorIndexVkBuffer, posColNorIndexVkBufferMemory);
 	}
 
 
@@ -514,10 +581,10 @@ private:
 	uint32_t currentFrame = 0;
 	std::vector<VertexPosColTex> vertices;
 	std::vector<uint32_t> indices;
-	VkBuffer vertexBuffer;
-	VkDeviceMemory vertexBufferMemory;
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
+	std::vector<VkBuffer> vertexBuffer;
+	std::vector<VkDeviceMemory> vertexBufferMemory;
+	std::vector<VkBuffer> indexBuffer;
+	std::vector<VkDeviceMemory> indexBufferMemory;
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 	std::vector<void*> uniformBuffersMapped;
@@ -1387,11 +1454,11 @@ private:
 
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-		VkBuffer vertexBuffers[] = {vertexBuffer};
+		VkBuffer vertexBuffers[] = {vertexBuffer[0]};
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer[0], 0, VK_INDEX_TYPE_UINT32);
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
