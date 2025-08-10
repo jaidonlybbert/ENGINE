@@ -137,6 +137,10 @@ struct VertexPosColTex {
  * - The system loads the mesh attributes into GPU buffers
  */
 
+/*
+ * A system for operating on Camera components
+ */
+
 class Component {
 	/*
 	 * Base class for components associated with Entities
@@ -149,16 +153,32 @@ class Kinematic : Component {
 	glm::vec3 acceleration;
 };
 
+class Camera : Component {
+public:
+	Camera(const tinygltf::Camera& camera) {
+		fovy = static_cast<float>(camera.perspective.yfov);
+		aspect = static_cast<float>(camera.perspective.aspectRatio);
+		znear = static_cast<float>(camera.perspective.znear);
+		zfar = static_cast<float>(camera.perspective.zfar);
+	}
+	float fovy, aspect, znear, zfar;
+};
+
 class Node {
 	/*
 	 * Base class entities in a scene graph
 	 */
 
 public:
+	std::string name;
+	glm::vec3 translation;
+	glm::vec3 rotation;
+
 	Node* parent;
 	std::vector<Node*> children;
 	std::optional<Component*> mesh;
 	std::optional<Component*> kinematic;
+	std::optional<Component*> camera;
 };
 
 
@@ -214,17 +234,17 @@ Mesh<VertexPosColTex>::Mesh(const std::string& mesh_name, const tinygltf::Model&
 	assert(pos_size == 12);
 	assert(col_size == 12);
 	assert(tex_size == 8);
-	assert(ind_size == 4);
+	assert(ind_size == 2);
 
 	const size_t num_elements = pos_bv.byteLength / pos_size;
+	const size_t num_indices = ind_bv.byteLength / ind_size;
 	assert(num_elements == col_bv.byteLength / col_size);
 	assert(num_elements == tex_bv.byteLength / tex_size);
 	assert(num_elements == ind_bv.byteLength / ind_size);
 
-	Mesh<VertexPosColTex> mesh;
-	mesh.name = mesh_name;
-	mesh.vertices.resize(num_elements);
-	mesh.indices.resize(num_elements);
+	name = mesh_name;
+	vertices.resize(num_elements);
+	indices.resize(num_indices);
 	for (size_t i = 0; i < num_elements; ++i)
 	{
 		VertexPosColTex vert;
@@ -236,8 +256,65 @@ Mesh<VertexPosColTex>::Mesh(const std::string& mesh_name, const tinygltf::Model&
 		vert.color = static_cast<glm::vec3>(col_buff.data[col_bv.byteOffset + i * col_size]);
 		vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
 
-		mesh.vertices[i] = vert;
-		mesh.indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
+		vertices[i] = vert;
+	}
+	for (size_t i = 0; i < num_indices; ++i)
+	{
+		indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
+	}
+}
+
+template<>
+Mesh<VertexPosNorTex>::Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive) {
+	const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
+	const auto& nor_acc = model.accessors[primitive.attributes.at("NORMAL")];
+	const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
+	assert(primitive.indices >= 0);
+	const auto& ind_acc = model.accessors[primitive.indices];
+
+	const auto& pos_bv = model.bufferViews[pos_acc.bufferView];
+	const auto& nor_bv = model.bufferViews[nor_acc.bufferView];
+	const auto& tex_bv = model.bufferViews[tex_acc.bufferView];
+	const auto& ind_bv = model.bufferViews[ind_acc.bufferView];
+
+	const auto& pos_buff = model.buffers[pos_bv.buffer];
+	const auto& nor_buff = model.buffers[nor_bv.buffer];
+	const auto& tex_buff = model.buffers[tex_bv.buffer];
+	const auto& ind_buff = model.buffers[ind_bv.buffer];
+
+	size_t pos_size{get_size_bytes_from_tinygltf_accessor(pos_acc)};
+	size_t nor_size{get_size_bytes_from_tinygltf_accessor(nor_acc)};
+	size_t tex_size{get_size_bytes_from_tinygltf_accessor(tex_acc)};
+	size_t ind_size{get_size_bytes_from_tinygltf_accessor(ind_acc)};
+	assert(pos_size == 12);
+	assert(nor_size == 12);
+	assert(tex_size == 8);
+	assert(ind_size == 2);
+
+	const size_t num_elements = pos_bv.byteLength / pos_size;
+	const size_t num_indices = ind_bv.byteLength / ind_size;
+	assert(num_elements == nor_bv.byteLength / nor_size);
+	assert(num_elements == tex_bv.byteLength / tex_size);
+
+	name = mesh_name;
+	vertices.resize(num_elements);
+	indices.resize(num_indices);
+	for (size_t i = 0; i < num_elements; ++i)
+	{
+		VertexPosNorTex vert;
+		// Assumes data is not interleaved
+		assert(pos_bv.byteStride == 0);
+		assert(nor_bv.byteStride == 0);
+		assert(tex_bv.byteStride == 0);
+		vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
+		vert.normal = static_cast<glm::vec3>(nor_buff.data[nor_bv.byteOffset + i * nor_size]);
+		vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
+
+		vertices[i] = vert;
+	}
+	for (size_t i = 0; i < num_indices; ++i)
+	{
+		indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
 	}
 }
 
@@ -285,8 +362,33 @@ std::array<VkVertexInputAttributeDescription, 3> Mesh<VertexPosNorTex>::getAttri
 	return attributeDescriptions;
 }
 
+template <typename T>
+class Pool {
+	std::vector<T> elements;
+
+	Pool(const size_t& num_elements)
+	{
+		elements.reserve(num_elements);
+	}
+
+	T& allocate() {
+		elements.push_back();
+	};
+};
+
+struct NodePool {
+	std::vector<Node> nodes;
+};
+
+struct SceneGraph {
+	Node* root;
+	NodePool* nodes;
+	std::vector<size_t> marked_for_delete;
+};
+
 struct SceneState {
 	tinygltf::Model scene;
+	Node* graph;
 	size_t activeCameraNodeIdx;
 	glm::mat4 test_model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
@@ -396,7 +498,7 @@ public:
 #ifdef _WIN32
 			FrameMarkStart("run_frame");
 #endif
-			glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
+			//glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
 			glfwPollEvents();
 			drawGUI();
 			drawFrame();
@@ -651,6 +753,55 @@ private:
 		}
 	}
 
+	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+	{
+		auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
+
+		if (button == GLFW_MOUSE_BUTTON_MIDDLE)
+		{
+			if (action == GLFW_PRESS) // && initial_press)
+			{
+				glfwGetCursorPos(window, &sceneState->cursor_x, &sceneState->cursor_y);
+				std::cout << "Middle mouse initial press" << std::endl;
+			}
+			else // action is GLFW_RELEASE
+			{
+				std::cout << "Middle mouse released" << std::endl;
+			}
+		}
+	}
+
+	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos)
+	{
+		static double dx, dy = 0.f;
+		auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
+		const auto& middle_mouse_state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
+		if (middle_mouse_state == GLFW_PRESS)
+		{
+			std::cout << "Middle mouse down" << std::endl;
+			dx += xpos - sceneState->cursor_x;
+			dy += ypos - sceneState->cursor_y;
+			sceneState->cursor_x = xpos;
+			sceneState->cursor_y = ypos;
+
+			auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
+			auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
+			// rotate 3 degrees around x-axis when E is pressed
+			constexpr float sensitivity = 0.01f;
+			auto dx_radians = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.0f, 1.0f, 0.0f));
+			auto dy_radians = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(1.0f, 0.0f, 0.0f));
+			cam_quat = cam_quat * dx_radians;
+			camera_rotation[0] = cam_quat.z;
+			camera_rotation[1] = cam_quat.x;
+			camera_rotation[2] = cam_quat.y;
+			camera_rotation[3] = cam_quat.w;
+		}
+		else
+		{
+			dx, dy = 0.f;
+		}
+	}
+
 	void initWindow() {
 		glfwInit();
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -659,6 +810,8 @@ private:
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 		glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
 		glfwSetKeyCallback(window, key_callback);
+		glfwSetMouseButtonCallback(window, mouse_button_callback);
+		glfwSetCursorPosCallback(window, mouse_movement_callback);
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
@@ -1859,14 +2012,13 @@ private:
 		const auto& camera_node = sceneState.scene.nodes[sceneState.activeCameraNodeIdx];
 
 		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		/*
-		const auto& cam_rot = camera_node.rotation;
-		if (cam_rot.size() == 4)
-		{
-			auto quat1 = glm::quat(cam_rot[3], cam_rot[0], cam_rot[1], cam_rot[2]);
-			ubo.view = glm::mat4_cast(quat1);
-		}
-		*/
+
+		//const auto& cam_rot = camera_node.rotation;
+		//if (cam_rot.size() == 4)
+		//{
+		//	auto quat1 = glm::quat(cam_rot[3], cam_rot[0], cam_rot[1], cam_rot[2]);
+		//	ubo.view = glm::mat4_cast(quat1);
+		//}
 
 		const auto& camera = sceneState.scene.cameras[camera_node.camera];
 		const auto fovy = static_cast<float>(camera.perspective.yfov);
@@ -2265,6 +2417,11 @@ void load_gltf_mesh_attributes(const std::string& mesh_name,
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
 		sceneState.posColTexMeshes.push_back(Mesh<VertexPosColTex>(mesh_name, model, primitive));
+	}
+	else if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("NORMAL")
+		&& primitive.attributes.contains("TEXCOORD_0"))
+	{
+		sceneState.posNorTexMeshes.push_back(Mesh<VertexPosNorTex>(mesh_name, model, primitive));
 	}
 }
 
