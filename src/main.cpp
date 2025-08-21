@@ -798,7 +798,7 @@ private:
 		}
 		else
 		{
-			dx, dy = 0.f;
+			dx = 0.f, dy = 0.f;
 		}
 	}
 
