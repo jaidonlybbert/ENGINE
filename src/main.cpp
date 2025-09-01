@@ -1270,8 +1270,6 @@ private:
 		active_instance_extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_DISPLAY_KHR)
 		active_instance_extensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
-#else
-		std::cout << "Platform not supported!" << std::endl;
 #endif
 		return extensions;
 	}
