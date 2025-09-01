@@ -108,6 +108,11 @@ struct VertexPosColTex {
     glm::vec2 texCoord;
 };
 
+enum class ENG_SHADER_TYPE {
+	PosColTex = 0,
+	PosNorTex = 1
+};
+
 /* 
  * Behavior of a free body
  * - A free body has position, velocity, and acceleration
@@ -558,7 +563,10 @@ public:
 		}
 
 		vkDestroyCommandPool(device, commandPool, nullptr);
-		vkDestroyPipeline(device, graphicsPipeline, nullptr);
+		for (const auto& pipeline : graphicsPipelines)
+		{
+			vkDestroyPipeline(device, pipeline, nullptr);
+		}
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyRenderPass(device, renderPass, nullptr);
 		if (enableValidationLayers) {
@@ -645,12 +653,28 @@ public:
 
 	void loadMeshesToVkBuffer(const SceneState& sceneState) {
 		loadModel();
-		auto& posColTexVertexVkBuffer = vertexBuffer.emplace_back();
-		auto& posColTexVertexVkBufferMemory = vertexBufferMemory.emplace_back();
-		auto& posColNorIndexVkBuffer = indexBuffer.emplace_back();
-		auto& posColNorIndexVkBufferMemory = indexBufferMemory.emplace_back();
-		createVertexBuffer(sceneState.posColTexMeshes, posColTexVertexVkBuffer, posColTexVertexVkBufferMemory);
-		createIndexBuffer(sceneState.posColTexMeshes, posColNorIndexVkBuffer, posColNorIndexVkBufferMemory);
+
+		if (sceneState.posColTexMeshes.size() > 0)
+		{
+			std::cout << "Loading VkBuffers for posColTex meshes of size " << sceneState.posColTexMeshes.size() << std::endl;
+			auto& posColTexVertexVkBuffer = vertexBuffer.emplace_back();
+			auto& posColTexVertexVkBufferMemory = vertexBufferMemory.emplace_back();
+			auto& posColTexIndexVkBuffer = indexBuffer.emplace_back();
+			auto& posColTexIndexVkBufferMemory = indexBufferMemory.emplace_back();
+			createVertexBuffer(sceneState.posColTexMeshes, posColTexVertexVkBuffer, posColTexVertexVkBufferMemory);
+			createIndexBuffer(sceneState.posColTexMeshes, posColTexIndexVkBuffer, posColTexIndexVkBufferMemory);
+		}
+
+		if (sceneState.posNorTexMeshes.size() > 0)
+		{
+			std::cout << "Creating VkBuffers for posNorTex meshes of size " << sceneState.posColTexMeshes.size() << std::endl;
+			auto& posNorTexVertexVkBuffer = vertexBuffer.emplace_back();
+			auto& posNorTexVertexVkBufferMemory = vertexBufferMemory.emplace_back();
+			auto& posNorTexIndexVkBuffer = indexBuffer.emplace_back();
+			auto& posNorTexIndexVkBufferMemory = indexBufferMemory.emplace_back();
+			createVertexBuffer(sceneState.posNorTexMeshes, posNorTexVertexVkBuffer, posNorTexVertexVkBufferMemory);
+			createIndexBuffer(sceneState.posNorTexMeshes, posNorTexIndexVkBuffer, posNorTexIndexVkBufferMemory);
+		}
 	}
 
 
@@ -673,7 +697,7 @@ private:
 	VkRenderPass renderPass;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
-	VkPipeline graphicsPipeline;
+	std::vector<VkPipeline> graphicsPipelines;
 	VkCommandPool commandPool;
 	std::vector<VkCommandBuffer> commandBuffers;
 	std::vector<VkSemaphore> imageAvailableSemaphores;
@@ -771,6 +795,54 @@ private:
 		}
 	}
 
+	static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+	{
+		static double dx, dy = 0.f;
+		auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
+		// Print the scroll offsets
+		printf("Scroll Offset - X: %.2f, Y: %.2f\n", xoffset, yoffset);
+
+		const auto& shift_state = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT);
+		if (shift_state == GLFW_PRESS)
+		{
+			std::cout << "Shift down" << std::endl;
+			auto& camera = sceneState->scene.cameras[sceneState->scene.nodes[sceneState->activeCameraNodeIdx].camera];
+			auto& fovy = camera.perspective.yfov;
+			fovy += 0.1 * yoffset;
+			if (static_cast<float>(fovy) < 0.1) fovy = 0.1; // Prevent zooming too far out
+			printf("FOV: %.2f\n", fovy);
+		}
+		else
+		{
+			auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
+			auto& camera_position = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].translation;
+			assert(camera_position.size() == 3);
+			auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
+
+			// Default forward vector in world space
+			glm::vec3 forward(0.0f, 0.0f, -1.0f);
+
+			// Rotate the forward vector by the quaternion
+			glm::vec3 rotatedForward = cam_quat * forward;
+
+			// Output the result
+			std::cout << "Forward vector: ("
+				<< rotatedForward.x << ", "
+				<< rotatedForward.y << ", "
+				<< rotatedForward.z << ")" << std::endl;
+
+			// Move camera forward or backward
+			camera_position[0] += rotatedForward[0] * 0.1f;
+			camera_position[1] += rotatedForward[1] * 0.1f;
+			camera_position[2] += rotatedForward[2] * 0.1f;
+			std::cout << "Camera position: ("
+				<< camera_position[0] << ", "
+				<< camera_position[1] << ", "
+				<< camera_position[2] << ")" << std::endl;
+		}
+	}
+
+
 	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos)
 	{
 		static double dx, dy = 0.f;
@@ -809,6 +881,7 @@ private:
 		glfwSetWindowUserPointer(window, &sceneState);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 		glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
+		glfwSetScrollCallback(window, mouse_scroll_callback);
 		glfwSetKeyCallback(window, key_callback);
 		glfwSetMouseButtonCallback(window, mouse_button_callback);
 		glfwSetCursorPosCallback(window, mouse_movement_callback);
@@ -1198,7 +1271,7 @@ private:
 #elif defined(VK_USE_PLATFORM_DISPLAY_KHR)
 		active_instance_extensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
 #else
-#pragma error Platform not supported
+		std::cout << "Platform not supported!" << std::endl;
 #endif
 		return extensions;
 	}
@@ -1374,26 +1447,37 @@ private:
 
 	void createGraphicsPipeline() {
 		boost::filesystem::path p ("shaders/");
-		auto vertShaderCode = readFile("../shaders/triVert.vert.spv");
-		auto fragShaderCode = readFile("../shaders/triFrag.frag.spv");
 
-		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+		std::vector<VkShaderModule> vertShaderModules{ 2 };
+		std::vector<VkShaderModule> fragShaderModules{ 2 };
 
-		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertShaderStageInfo.module = vertShaderModule;
-		vertShaderStageInfo.pName = "main";
+		auto shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosColTex);
+		assert(shaderIdx < vertShaderModules.size() && shaderIdx < fragShaderModules.size());
+		vertShaderModules[shaderIdx] = createShaderModule(readFile("../shaders/posColTexVert.vert.spv"));
+		fragShaderModules[shaderIdx] = createShaderModule(readFile("../shaders/posColTexFrag.frag.spv"));
 
-		VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragShaderStageInfo.module = fragShaderModule;
-		fragShaderStageInfo.pName = "main";
+		shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosNorTex);
+		assert(shaderIdx < vertShaderModules.size() && shaderIdx < fragShaderModules.size());
+		vertShaderModules[shaderIdx] = createShaderModule(readFile("../shaders/posNorTexVert.vert.spv"));
+		fragShaderModules[shaderIdx] = createShaderModule(readFile("../shaders/posNorTexFrag.frag.spv"));
 
-		VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo,
-			fragShaderStageInfo};
+		std::vector<std::vector<VkPipelineShaderStageCreateInfo>> shaderStages;
+
+		for (const auto& idx : { static_cast<size_t>(ENG_SHADER_TYPE::PosColTex), static_cast<size_t>(ENG_SHADER_TYPE::PosNorTex) })
+		{
+			shaderStages.emplace_back();
+			shaderStages[idx].emplace_back();
+			shaderStages[idx][0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shaderStages[idx][0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+			shaderStages[idx][0].module = vertShaderModules[idx];
+			shaderStages[idx][0].pName = "main";
+
+			shaderStages[idx].emplace_back();
+			shaderStages[idx][1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shaderStages[idx][1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			shaderStages[idx][1].module = fragShaderModules[idx];
+			shaderStages[idx][1].pName = "main";
+		}
 
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
@@ -1405,14 +1489,28 @@ private:
 		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 		dynamicState.pDynamicStates = dynamicStates.data();
 
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-		auto bindingDescription = Mesh<VertexPosColTex>::getBindingDescription();
-		auto attributeDescriptions = Mesh<VertexPosColTex>::getAttributeDescriptions();
-		vertexInputInfo.vertexBindingDescriptionCount = 1;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		std::vector<VkPipelineVertexInputStateCreateInfo> vertexInputInfos{ 2 };
+		{
+			auto bindingDescription = Mesh<VertexPosColTex>::getBindingDescription();
+			auto attributeDescriptions = Mesh<VertexPosColTex>::getAttributeDescriptions();
+			shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosColTex);
+			vertexInputInfos[shaderIdx].vertexBindingDescriptionCount = 1;
+			vertexInputInfos[shaderIdx].vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+			vertexInputInfos[shaderIdx].pVertexBindingDescriptions = &bindingDescription;
+			vertexInputInfos[shaderIdx].pVertexAttributeDescriptions = attributeDescriptions.data();
+			vertexInputInfos[shaderIdx].sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		}
+
+		{
+			auto bindingDescription = Mesh<VertexPosNorTex>::getBindingDescription();
+			auto attributeDescriptions = Mesh<VertexPosNorTex>::getAttributeDescriptions();
+			shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosNorTex);
+			vertexInputInfos[shaderIdx].vertexBindingDescriptionCount = 1;
+			vertexInputInfos[shaderIdx].vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+			vertexInputInfos[shaderIdx].pVertexBindingDescriptions = &bindingDescription;
+			vertexInputInfos[shaderIdx].pVertexAttributeDescriptions = attributeDescriptions.data();
+			vertexInputInfos[shaderIdx].sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		}
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -1507,31 +1605,61 @@ private:
 		depthStencil.front = {}; // Optional
 		depthStencil.back = {}; // Optional
 
-		VkGraphicsPipelineCreateInfo pipelineInfo{};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = 2;
-		pipelineInfo.pStages = shaderStages;
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-		pipelineInfo.pInputAssemblyState = &inputAssembly;
-		pipelineInfo.pViewportState = &viewportState;
-		pipelineInfo.pRasterizationState = &rasterizer;
-		pipelineInfo.pMultisampleState = &multisampling;
-		pipelineInfo.pDepthStencilState = &depthStencil;
-		pipelineInfo.pColorBlendState = &colorBlending;
-		pipelineInfo.pDynamicState = &dynamicState;
-		pipelineInfo.layout = pipelineLayout;
-		pipelineInfo.renderPass = renderPass;
-		pipelineInfo.subpass = 0;
-		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-		pipelineInfo.basePipelineIndex = -1;
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo,
-					nullptr, &graphicsPipeline) != VK_SUCCESS) {
+		std::vector<VkGraphicsPipelineCreateInfo> pipelineCreateInfos{1};
+		shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosColTex);
+		assert(shaderIdx < pipelineCreateInfos.size());
+		pipelineCreateInfos[shaderIdx].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCreateInfos[shaderIdx].stageCount = 2;
+		pipelineCreateInfos[shaderIdx].pStages = shaderStages[shaderIdx].data();
+		pipelineCreateInfos[shaderIdx].pVertexInputState = &vertexInputInfos[shaderIdx];
+		pipelineCreateInfos[shaderIdx].pInputAssemblyState = &inputAssembly;
+		pipelineCreateInfos[shaderIdx].pViewportState = &viewportState;
+		pipelineCreateInfos[shaderIdx].pRasterizationState = &rasterizer;
+		pipelineCreateInfos[shaderIdx].pMultisampleState = &multisampling;
+		pipelineCreateInfos[shaderIdx].pDepthStencilState = &depthStencil;
+		pipelineCreateInfos[shaderIdx].pColorBlendState = &colorBlending;
+		pipelineCreateInfos[shaderIdx].pDynamicState = &dynamicState;
+		pipelineCreateInfos[shaderIdx].layout = pipelineLayout;
+		pipelineCreateInfos[shaderIdx].renderPass = renderPass;
+		pipelineCreateInfos[shaderIdx].subpass = 0;
+		pipelineCreateInfos[shaderIdx].basePipelineHandle = VK_NULL_HANDLE;
+		pipelineCreateInfos[shaderIdx].basePipelineIndex = -1;
+
+		//shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosNorTex);
+		//assert(shaderIdx < pipelineCreateInfos.size());
+		//pipelineCreateInfos[shaderIdx].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		//pipelineCreateInfos[shaderIdx].stageCount = 2;
+		//pipelineCreateInfos[shaderIdx].pStages = shaderStages[shaderIdx].data();
+		//pipelineCreateInfos[shaderIdx].pVertexInputState = &vertexInputInfos[shaderIdx];
+		//pipelineCreateInfos[shaderIdx].pInputAssemblyState = &inputAssembly;
+		//pipelineCreateInfos[shaderIdx].pViewportState = &viewportState;
+		//pipelineCreateInfos[shaderIdx].pRasterizationState = &rasterizer;
+		//pipelineCreateInfos[shaderIdx].pMultisampleState = &multisampling;
+		//pipelineCreateInfos[shaderIdx].pDepthStencilState = &depthStencil;
+		//pipelineCreateInfos[shaderIdx].pColorBlendState = &colorBlending;
+		//pipelineCreateInfos[shaderIdx].pDynamicState = &dynamicState;
+		//pipelineCreateInfos[shaderIdx].layout = pipelineLayout;
+		//pipelineCreateInfos[shaderIdx].renderPass = renderPass;
+		//pipelineCreateInfos[shaderIdx].subpass = 0;
+		//pipelineCreateInfos[shaderIdx].basePipelineHandle = VK_NULL_HANDLE;
+		//pipelineCreateInfos[shaderIdx].basePipelineIndex = -1;
+
+		// TODO: Graphics pipelines is more than 1!
+		graphicsPipelines.emplace_back();
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, pipelineCreateInfos.data(),
+					nullptr, graphicsPipelines.data()) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
 
-		vkDestroyShaderModule(device, fragShaderModule, nullptr);
-		vkDestroyShaderModule(device, vertShaderModule, nullptr);
+		for (const auto& module : fragShaderModules)
+		{
+			vkDestroyShaderModule(device, module, nullptr);
+		}
+		for (const auto& module : vertShaderModules)
+		{
+			vkDestroyShaderModule(device, module, nullptr);
+		}
 	}
 
 	void createFramebuffers() {
@@ -1605,13 +1733,9 @@ private:
 		renderPassInfo.pClearValues = clearValues.data();
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
-		VkBuffer vertexBuffers[] = {vertexBuffer[0]};
-		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer[0], 0, VK_INDEX_TYPE_UINT32);
+		auto shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosColTex);
+		assert(shaderIdx < graphicsPipelines.size());
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[shaderIdx]);
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
@@ -1629,8 +1753,14 @@ private:
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
+		VkBuffer vertexBuffers[] = {vertexBuffer[0]};
+		VkDeviceSize offsets[] = {0};
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer[0], 0, VK_INDEX_TYPE_UINT32);
+
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-		
+
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
 		vkCmdEndRenderPass(commandBuffer);
@@ -2008,16 +2138,22 @@ private:
 		UniformBufferObject ubo{};
 		// ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.model = sceneState.test_model;
+		glm::vec3 test_pos{ 2.f, 2.f, 2.f };
 
 		const auto& camera_node = sceneState.scene.nodes[sceneState.activeCameraNodeIdx];
+		const auto& camera_position = sceneState.scene.nodes[sceneState.activeCameraNodeIdx].translation;
+		const glm::vec3 glm_cam_pos = test_pos;  // { camera_position[0], camera_position[1], camera_position[2] };
 
-		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm_cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		//const auto& cam_rot = camera_node.rotation;
 		//if (cam_rot.size() == 4)
 		//{
 		//	auto quat1 = glm::quat(cam_rot[3], cam_rot[0], cam_rot[1], cam_rot[2]);
 		//	ubo.view = glm::mat4_cast(quat1);
+			//ubo.view[0][3] = glm_cam_pos.x;
+			//ubo.view[1][3] = glm_cam_pos.y;
+			//ubo.view[2][3] = glm_cam_pos.z;
 		//}
 
 		const auto& camera = sceneState.scene.cameras[camera_node.camera];
