@@ -22,13 +22,9 @@
 #include "EngineConfig.h"
 #include "boost/filesystem.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image.h>
-#include <stb_image_write.h>
-
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+#include<tiny_gltf.h>
+#include<tiny_obj_loader.h>
+#include<stb_image.h>
 
 #ifdef _WIN32
 #include "tracy/Tracy.hpp"
@@ -38,10 +34,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
-#define TINYGLTF_IMPLEMENTATION
-#define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
-#define TINYGLTF_NO_INCLUDE_STB_IMAGE
-#include "tiny_gltf.h"
+#include "primitives/mesh.hpp"
+#include "pipelines/pipeline_factory.hpp"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -59,15 +53,6 @@ const std::map<int, VkFormat> TINYGLTF_COMPONENT_TYPE_TO_VKFORMAT = {
 	{TINYGLTF_COMPONENT_TYPE_FLOAT, VK_FORMAT_R32_SFLOAT},
 	{TINYGLTF_COMPONENT_TYPE_DOUBLE, VK_FORMAT_R64_SFLOAT}
 };
-
-static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc)
-{
-	const auto& ctype = acc.componentType;
-	const auto& type = acc.type;
-	assert(ctype != -1);
-	assert(type != -1);
-	return tinygltf::GetNumComponentsInType(type) * tinygltf::GetComponentSizeInBytes(ctype);
-}
 
 static VkFormat get_vk_format_from_tinygltf_accessor(const tinygltf::Accessor& acc, size_t& size_bytes)
 {
@@ -94,68 +79,6 @@ static VkFormat get_vk_format_from_tinygltf_accessor(const tinygltf::Accessor& a
 
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
-};
-
-struct VertexPosNorTex {
-    glm::vec3 pos;
-    glm::vec3 normal;
-    glm::vec2 texCoord;
-};
-
-struct VertexPosColTex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-};
-
-enum class ENG_SHADER_TYPE {
-	PosColTex = 0,
-	PosNorTex = 1
-};
-
-/* 
- * Behavior of a free body
- * - A free body has position, velocity, and acceleration
- * - Is acted on by external systems to update position, velocity, and acceleration
- *   + includes kinematic component
- */
-
-/*
- * A kinematic system
- * - Position and velocity are calculated at a fixed timestep taking as inputs last position, acceleration, and velocity
- */
-
-/*
- *  A system for directed force field
- *  - A vector-valued function defines the direction and magnitude of force in 3-d space
- *  - The force on each free body is evaluated at the position of the free body and mutated
- */
-
-/*
- * A system for collisions
- * - Collision detection based on intersection algorithms between collision boxes
- */
-
-/*
- * A system for rendering Mesh components
- * - A mesh component has vertex attributes
- * - The system loads the mesh attributes into GPU buffers
- */
-
-/*
- * A system for operating on Camera components
- */
-
-class Component {
-	/*
-	 * Base class for components associated with Entities
-	 */
-};
-
-class Kinematic : Component {
-	glm::mat4 transform;
-	glm::vec3 velocity;
-	glm::vec3 acceleration;
 };
 
 class Camera : Component {
@@ -185,187 +108,6 @@ public:
 	std::optional<Component*> kinematic;
 	std::optional<Component*> camera;
 };
-
-
-template <typename T>
-class Mesh : Component {
-
-public:
-	Mesh() {}
-	Mesh(std::string name, std::vector<T> vertices, std::vector<uint32_t> indices) : name(name), vertices(vertices), indices(indices) {}
-	Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
-
-	std::string name{};
-	std::vector<T> vertices{};
-	std::vector<uint32_t> indices{};
-
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(T);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		return bindingDescription;
-	}
-
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
-};
-
-template class Mesh<VertexPosColTex>;
-template class Mesh<VertexPosNorTex>;
-
-template<>
-Mesh<VertexPosColTex>::Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive) {
-	const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
-	const auto& col_acc = model.accessors[primitive.attributes.at("COLOR0")];
-	const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
-	assert(primitive.indices >= 0);
-	const auto& ind_acc = model.accessors[primitive.indices];
-
-	const auto& pos_bv = model.bufferViews[pos_acc.bufferView];
-	const auto& col_bv = model.bufferViews[col_acc.bufferView];
-	const auto& tex_bv = model.bufferViews[tex_acc.bufferView];
-	const auto& ind_bv = model.bufferViews[ind_acc.bufferView];
-
-	const auto& pos_buff = model.buffers[pos_bv.buffer];
-	const auto& col_buff = model.buffers[col_bv.buffer];
-	const auto& tex_buff = model.buffers[tex_bv.buffer];
-	const auto& ind_buff = model.buffers[ind_bv.buffer];
-
-	size_t pos_size{get_size_bytes_from_tinygltf_accessor(pos_acc)};
-	size_t col_size{get_size_bytes_from_tinygltf_accessor(col_acc)};
-	size_t tex_size{get_size_bytes_from_tinygltf_accessor(tex_acc)};
-	size_t ind_size{get_size_bytes_from_tinygltf_accessor(ind_acc)};
-	assert(pos_size == 12);
-	assert(col_size == 12);
-	assert(tex_size == 8);
-	assert(ind_size == 2);
-
-	const size_t num_elements = pos_bv.byteLength / pos_size;
-	const size_t num_indices = ind_bv.byteLength / ind_size;
-	assert(num_elements == col_bv.byteLength / col_size);
-	assert(num_elements == tex_bv.byteLength / tex_size);
-	assert(num_elements == ind_bv.byteLength / ind_size);
-
-	name = mesh_name;
-	vertices.resize(num_elements);
-	indices.resize(num_indices);
-	for (size_t i = 0; i < num_elements; ++i)
-	{
-		VertexPosColTex vert;
-		// Assumes data is not interleaved
-		assert(pos_bv.byteStride == 0);
-		assert(col_bv.byteStride == 0);
-		assert(tex_bv.byteStride == 0);
-		vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
-		vert.color = static_cast<glm::vec3>(col_buff.data[col_bv.byteOffset + i * col_size]);
-		vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
-
-		vertices[i] = vert;
-	}
-	for (size_t i = 0; i < num_indices; ++i)
-	{
-		indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
-	}
-}
-
-template<>
-Mesh<VertexPosNorTex>::Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive) {
-	const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
-	const auto& nor_acc = model.accessors[primitive.attributes.at("NORMAL")];
-	const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
-	assert(primitive.indices >= 0);
-	const auto& ind_acc = model.accessors[primitive.indices];
-
-	const auto& pos_bv = model.bufferViews[pos_acc.bufferView];
-	const auto& nor_bv = model.bufferViews[nor_acc.bufferView];
-	const auto& tex_bv = model.bufferViews[tex_acc.bufferView];
-	const auto& ind_bv = model.bufferViews[ind_acc.bufferView];
-
-	const auto& pos_buff = model.buffers[pos_bv.buffer];
-	const auto& nor_buff = model.buffers[nor_bv.buffer];
-	const auto& tex_buff = model.buffers[tex_bv.buffer];
-	const auto& ind_buff = model.buffers[ind_bv.buffer];
-
-	size_t pos_size{get_size_bytes_from_tinygltf_accessor(pos_acc)};
-	size_t nor_size{get_size_bytes_from_tinygltf_accessor(nor_acc)};
-	size_t tex_size{get_size_bytes_from_tinygltf_accessor(tex_acc)};
-	size_t ind_size{get_size_bytes_from_tinygltf_accessor(ind_acc)};
-	assert(pos_size == 12);
-	assert(nor_size == 12);
-	assert(tex_size == 8);
-	assert(ind_size == 2);
-
-	const size_t num_elements = pos_bv.byteLength / pos_size;
-	const size_t num_indices = ind_bv.byteLength / ind_size;
-	assert(num_elements == nor_bv.byteLength / nor_size);
-	assert(num_elements == tex_bv.byteLength / tex_size);
-
-	name = mesh_name;
-	vertices.resize(num_elements);
-	indices.resize(num_indices);
-	for (size_t i = 0; i < num_elements; ++i)
-	{
-		VertexPosNorTex vert;
-		// Assumes data is not interleaved
-		assert(pos_bv.byteStride == 0);
-		assert(nor_bv.byteStride == 0);
-		assert(tex_bv.byteStride == 0);
-		vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
-		vert.normal = static_cast<glm::vec3>(nor_buff.data[nor_bv.byteOffset + i * nor_size]);
-		vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
-
-		vertices[i] = vert;
-	}
-	for (size_t i = 0; i < num_indices; ++i)
-	{
-		indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
-	}
-}
-
-template<>
-std::array<VkVertexInputAttributeDescription, 3> Mesh<VertexPosColTex>::getAttributeDescriptions() {
-	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-	attributeDescriptions[0].binding = 0;
-	attributeDescriptions[0].location = 0;
-	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[0].offset = offsetof(VertexPosColTex, pos);
-
-	attributeDescriptions[1].binding = 0;
-	attributeDescriptions[1].location = 1;
-	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[1].offset = offsetof(VertexPosColTex, color);
-
-	attributeDescriptions[2].binding = 0;
-	attributeDescriptions[2].location = 2;
-	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-	attributeDescriptions[2].offset = offsetof(VertexPosColTex, texCoord);
-
-	return attributeDescriptions;
-}
-
-template<>
-std::array<VkVertexInputAttributeDescription, 3> Mesh<VertexPosNorTex>::getAttributeDescriptions() {
-	std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-	attributeDescriptions[0].binding = 0;
-	attributeDescriptions[0].location = 0;
-	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[0].offset = offsetof(VertexPosNorTex, pos);
-
-	attributeDescriptions[1].binding = 0;
-	attributeDescriptions[1].location = 1;
-	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[1].offset = offsetof(VertexPosNorTex, normal);
-
-	attributeDescriptions[2].binding = 0;
-	attributeDescriptions[2].location = 2;
-	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-	attributeDescriptions[2].offset = offsetof(VertexPosNorTex, texCoord);
-
-	return attributeDescriptions;
-}
 
 template <typename T>
 class Pool {
@@ -538,8 +280,6 @@ public:
 
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
-		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-
 		for (auto& buffer : indexBuffer) {
 			vkDestroyBuffer(device, buffer, nullptr);
 		}
@@ -568,11 +308,9 @@ public:
 			vkDestroyPipeline(device, pipeline, nullptr);
 		}
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-		vkDestroyRenderPass(device, renderPass, nullptr);
 		if (enableValidationLayers) {
 			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 		}
-
 
 		vkDestroySurfaceKHR(instance, surface, nullptr);
 		vkDestroyDevice(device, nullptr);
@@ -724,6 +462,7 @@ private:
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
+	std::unique_ptr<ENG::PipelineFactory> pipelineFactory;
 
 	const std::vector<const char*> deviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -900,9 +639,10 @@ private:
 		createLogicalDevice();
 		createSwapChain();
 		createImageViews();
-		createRenderPass();
-		createDescriptorSetLayout();
-		createGraphicsPipeline();
+
+		pipelineFactory = std::make_unique<ENG::PipelineFactory>(device, swapChainImageFormat, findDepthFormat());
+		renderPass = pipelineFactory->getEngPipelines().at(0).getRenderPass();
+		descriptorSetLayout = pipelineFactory->getEngPipelines().at(0).getDescriptorSetLayout();
 		createCommandPool();
 		createDepthResources();
 		createFramebuffers();
@@ -1384,282 +1124,6 @@ private:
 		}
 	}
 
-	void createRenderPass() {
-		VkAttachmentDescription colorAttachment{};
-		colorAttachment.format = swapChainImageFormat;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-		VkAttachmentReference colorAttachmentRef{};
-		colorAttachmentRef.attachment = 0;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentDescription depthAttachment{};
-		depthAttachment.format = findDepthFormat();
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthAttachmentRef{};
-		depthAttachmentRef.attachment = 1;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpass{};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &colorAttachmentRef;
-		subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-		VkSubpassDependency dependency{};
-		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependency.dstSubpass = 0;
-		dependency.srcAccessMask = 0;
-		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-		std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-		VkRenderPassCreateInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		renderPassInfo.pAttachments = attachments.data();
-		renderPassInfo.subpassCount = 1;
-		renderPassInfo.pSubpasses = &subpass;
-		renderPassInfo.dependencyCount = 1;
-		renderPassInfo.pDependencies = &dependency;
-
-		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass)
-				!= VK_SUCCESS) {
-			throw std::runtime_error("failed to create render pass!");
-		}
-	}
-
-	void createGraphicsPipeline() {
-		boost::filesystem::path p ("shaders/");
-
-		std::vector<VkShaderModule> vertShaderModules{ 2 };
-		std::vector<VkShaderModule> fragShaderModules{ 2 };
-
-		auto shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosColTex);
-		assert(shaderIdx < vertShaderModules.size() && shaderIdx < fragShaderModules.size());
-		vertShaderModules[shaderIdx] = createShaderModule(readFile("../shaders/posColTexVert.vert.spv"));
-		fragShaderModules[shaderIdx] = createShaderModule(readFile("../shaders/posColTexFrag.frag.spv"));
-
-		shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosNorTex);
-		assert(shaderIdx < vertShaderModules.size() && shaderIdx < fragShaderModules.size());
-		vertShaderModules[shaderIdx] = createShaderModule(readFile("../shaders/posNorTexVert.vert.spv"));
-		fragShaderModules[shaderIdx] = createShaderModule(readFile("../shaders/posNorTexFrag.frag.spv"));
-
-		std::vector<std::vector<VkPipelineShaderStageCreateInfo>> shaderStages;
-
-		for (const auto& idx : { static_cast<size_t>(ENG_SHADER_TYPE::PosColTex), static_cast<size_t>(ENG_SHADER_TYPE::PosNorTex) })
-		{
-			shaderStages.emplace_back();
-			shaderStages[idx].emplace_back();
-			shaderStages[idx][0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			shaderStages[idx][0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-			shaderStages[idx][0].module = vertShaderModules[idx];
-			shaderStages[idx][0].pName = "main";
-
-			shaderStages[idx].emplace_back();
-			shaderStages[idx][1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			shaderStages[idx][1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			shaderStages[idx][1].module = fragShaderModules[idx];
-			shaderStages[idx][1].pName = "main";
-		}
-
-		std::vector<VkDynamicState> dynamicStates = {
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicState{};
-		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-		dynamicState.pDynamicStates = dynamicStates.data();
-
-		std::vector<VkPipelineVertexInputStateCreateInfo> vertexInputInfos{ 2 };
-		{
-			auto bindingDescription = Mesh<VertexPosColTex>::getBindingDescription();
-			auto attributeDescriptions = Mesh<VertexPosColTex>::getAttributeDescriptions();
-			shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosColTex);
-			vertexInputInfos[shaderIdx].vertexBindingDescriptionCount = 1;
-			vertexInputInfos[shaderIdx].vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-			vertexInputInfos[shaderIdx].pVertexBindingDescriptions = &bindingDescription;
-			vertexInputInfos[shaderIdx].pVertexAttributeDescriptions = attributeDescriptions.data();
-			vertexInputInfos[shaderIdx].sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		}
-
-		{
-			auto bindingDescription = Mesh<VertexPosNorTex>::getBindingDescription();
-			auto attributeDescriptions = Mesh<VertexPosNorTex>::getAttributeDescriptions();
-			shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosNorTex);
-			vertexInputInfos[shaderIdx].vertexBindingDescriptionCount = 1;
-			vertexInputInfos[shaderIdx].vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-			vertexInputInfos[shaderIdx].pVertexBindingDescriptions = &bindingDescription;
-			vertexInputInfos[shaderIdx].pVertexAttributeDescriptions = attributeDescriptions.data();
-			vertexInputInfos[shaderIdx].sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		}
-
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-/* unused because viewport & scissor is set as dynamic state		
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = (float) swapChainExtent.width;
-		viewport.height = (float) swapChainExtent.height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		VkRect2D scissor{};
-		scissor.offset = {0, 0};
-		scissor.extent = swapChainExtent;
-*/
-		VkPipelineViewportStateCreateInfo viewportState{};
-		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportState.viewportCount = 1;
-//		viewportState.pViewports = &viewport;
-		viewportState.scissorCount = 1;
-//		viewportState.pScissors = &scissor;
-		
-		VkPipelineRasterizationStateCreateInfo rasterizer{};
-		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizer.depthClampEnable = VK_FALSE;
-		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		rasterizer.depthBiasEnable = VK_FALSE;
-		rasterizer.depthBiasConstantFactor = 0.0f;
-		rasterizer.depthBiasClamp = 0.0f;
-		rasterizer.depthBiasSlopeFactor = 0.0f;
-
-		VkPipelineMultisampleStateCreateInfo multisampling{};
-		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampling.sampleShadingEnable = VK_FALSE;
-		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		multisampling.minSampleShading = 1.0f;
-		multisampling.pSampleMask = nullptr;
-		multisampling.alphaToCoverageEnable = VK_FALSE;
-		multisampling.alphaToOneEnable = VK_FALSE;
-
-		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-			VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-			VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;
-		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-		VkPipelineColorBlendStateCreateInfo colorBlending{};
-		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlending.logicOpEnable = VK_FALSE;
-		colorBlending.logicOp = VK_LOGIC_OP_COPY;
-		colorBlending.attachmentCount = 1;
-		colorBlending.pAttachments = &colorBlendAttachment;
-		colorBlending.blendConstants[0] = 0.0f;
-		colorBlending.blendConstants[1] = 0.0f;
-		colorBlending.blendConstants[2] = 0.0f;
-		colorBlending.blendConstants[3] = 0.0f;
-
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-		pipelineLayoutInfo.pushConstantRangeCount = 0;
-		pipelineLayoutInfo.pPushConstantRanges = nullptr;
-
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, 
-					&pipelineLayout) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create pipeline layout!");
-		}
-
-		VkPipelineDepthStencilStateCreateInfo depthStencil{};
-		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencil.depthTestEnable = VK_TRUE;
-		depthStencil.depthWriteEnable = VK_TRUE;
-		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-		depthStencil.depthBoundsTestEnable = VK_FALSE;
-		depthStencil.minDepthBounds = 0.0f; // Optional
-		depthStencil.maxDepthBounds = 1.0f; // Optional
-		depthStencil.stencilTestEnable = VK_FALSE;
-		depthStencil.front = {}; // Optional
-		depthStencil.back = {}; // Optional
-
-
-		std::vector<VkGraphicsPipelineCreateInfo> pipelineCreateInfos{1};
-		shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosColTex);
-		assert(shaderIdx < pipelineCreateInfos.size());
-		pipelineCreateInfos[shaderIdx].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineCreateInfos[shaderIdx].stageCount = 2;
-		pipelineCreateInfos[shaderIdx].pStages = shaderStages[shaderIdx].data();
-		pipelineCreateInfos[shaderIdx].pVertexInputState = &vertexInputInfos[shaderIdx];
-		pipelineCreateInfos[shaderIdx].pInputAssemblyState = &inputAssembly;
-		pipelineCreateInfos[shaderIdx].pViewportState = &viewportState;
-		pipelineCreateInfos[shaderIdx].pRasterizationState = &rasterizer;
-		pipelineCreateInfos[shaderIdx].pMultisampleState = &multisampling;
-		pipelineCreateInfos[shaderIdx].pDepthStencilState = &depthStencil;
-		pipelineCreateInfos[shaderIdx].pColorBlendState = &colorBlending;
-		pipelineCreateInfos[shaderIdx].pDynamicState = &dynamicState;
-		pipelineCreateInfos[shaderIdx].layout = pipelineLayout;
-		pipelineCreateInfos[shaderIdx].renderPass = renderPass;
-		pipelineCreateInfos[shaderIdx].subpass = 0;
-		pipelineCreateInfos[shaderIdx].basePipelineHandle = VK_NULL_HANDLE;
-		pipelineCreateInfos[shaderIdx].basePipelineIndex = -1;
-
-		//shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosNorTex);
-		//assert(shaderIdx < pipelineCreateInfos.size());
-		//pipelineCreateInfos[shaderIdx].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		//pipelineCreateInfos[shaderIdx].stageCount = 2;
-		//pipelineCreateInfos[shaderIdx].pStages = shaderStages[shaderIdx].data();
-		//pipelineCreateInfos[shaderIdx].pVertexInputState = &vertexInputInfos[shaderIdx];
-		//pipelineCreateInfos[shaderIdx].pInputAssemblyState = &inputAssembly;
-		//pipelineCreateInfos[shaderIdx].pViewportState = &viewportState;
-		//pipelineCreateInfos[shaderIdx].pRasterizationState = &rasterizer;
-		//pipelineCreateInfos[shaderIdx].pMultisampleState = &multisampling;
-		//pipelineCreateInfos[shaderIdx].pDepthStencilState = &depthStencil;
-		//pipelineCreateInfos[shaderIdx].pColorBlendState = &colorBlending;
-		//pipelineCreateInfos[shaderIdx].pDynamicState = &dynamicState;
-		//pipelineCreateInfos[shaderIdx].layout = pipelineLayout;
-		//pipelineCreateInfos[shaderIdx].renderPass = renderPass;
-		//pipelineCreateInfos[shaderIdx].subpass = 0;
-		//pipelineCreateInfos[shaderIdx].basePipelineHandle = VK_NULL_HANDLE;
-		//pipelineCreateInfos[shaderIdx].basePipelineIndex = -1;
-
-		// TODO: Graphics pipelines is more than 1!
-		graphicsPipelines.emplace_back();
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, pipelineCreateInfos.data(),
-					nullptr, graphicsPipelines.data()) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create graphics pipeline!");
-		}
-
-		for (const auto& module : fragShaderModules)
-		{
-			vkDestroyShaderModule(device, module, nullptr);
-		}
-		for (const auto& module : vertShaderModules)
-		{
-			vkDestroyShaderModule(device, module, nullptr);
-		}
-	}
-
 	void createFramebuffers() {
 		swapChainFramebuffers.resize(swapChainImageViews.size());
 		for (size_t i = 0; i < swapChainImageViews.size(); i++) {
@@ -1731,9 +1195,7 @@ private:
 		renderPassInfo.pClearValues = clearValues.data();
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		auto shaderIdx = static_cast<size_t>(ENG_SHADER_TYPE::PosColTex);
-		assert(shaderIdx < graphicsPipelines.size());
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[shaderIdx]);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines.at(0));
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
@@ -2092,31 +1554,6 @@ private:
 		endSingleTimeCommands(commandBuffer);
 	}
 
-	void createDescriptorSetLayout() {
-		VkDescriptorSetLayoutBinding uboLayoutBinding{};
-		uboLayoutBinding.binding = 0;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-		samplerLayoutBinding.binding = 1;
-		samplerLayoutBinding.descriptorCount = 1;
-		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerLayoutBinding.pImmutableSamplers = nullptr;
-		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
-		VkDescriptorSetLayoutCreateInfo layoutInfo{};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-		layoutInfo.pBindings = bindings.data();
-
-		if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create descriptor set layout!");
-		}
-	}
 
 	void createUniformBuffers() {
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);

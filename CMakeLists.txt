@@ -71,14 +71,15 @@ add_custom_target(shader_compile ALL DEPENDS ${shader_outputs} VERBATIM)
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 
 file(GLOB IMGUI_SOURCES "${PROJECT_SOURCE_DIR}/third_party/imgui/*.cpp")
-add_executable(Engine ${PROJECT_SOURCE_DIR}/src/main.cpp ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
+file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
+add_executable(Engine ${SOURCE_FILES} ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem)
 find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
+find_package(nlohmann_json 3.12 CONFIG REQUIRED)
 
 if (WIN32)
 	# Tracy profiler doesn't build on ARM64 MacOS, the client does build however,
@@ -104,6 +105,7 @@ target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui/backends")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/tinygltf")
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/include/pipelines" "${PROJECT_SOURCE_DIR}/include/primitives")
 
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
