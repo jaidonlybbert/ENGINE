@@ -1,3 +1,4 @@
+#include<array>
 #include "pipelines/shader_factory.hpp"
 #include "pipelines/ENG_Pipeline.hpp"
 #include "primitives/mesh.hpp"
@@ -6,7 +7,7 @@ namespace ENG {
 Pipeline::Pipeline(const VkDevice& device, const VkFormat& swapChainImageFormat, const VkFormat& depthFormat,
 		   const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo> &pipelineCreateInfos) : device(device)
 {
-	const auto& shader_stages = shader_fac.get_shader_stages(ENG_SHADER::PosColTex);
+	shader_stages = shader_fac.get_shader_stages(ENG_SHADER::PosColTex);
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 
@@ -33,6 +34,7 @@ Pipeline::Pipeline(const VkDevice& device, const VkFormat& swapChainImageFormat,
 }
 
 Pipeline::~Pipeline() {
+	vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 	vkDestroyRenderPass(device, renderPass, nullptr);
 }
@@ -43,6 +45,10 @@ const VkRenderPass& Pipeline::getRenderPass() const {
 
 const VkDescriptorSetLayout& Pipeline::getDescriptorSetLayout() const {
 	return descriptorSetLayout;
+}
+
+const VkPipelineLayout& Pipeline::getPipelineLayout() const {
+	return pipelineLayout;
 }
 
 void Pipeline::createDynamicStateInfo() {
@@ -239,6 +245,7 @@ void Pipeline::createRenderPass(const VkDevice& device, const VkFormat& swapChai
 void Pipeline::createPipelineInfo(VkGraphicsPipelineCreateInfo& create_info) {
 	create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	create_info.stageCount = shader_stages.size();
+	assert(shader_stages.size() >= 1);
 	create_info.pStages = shader_stages.at(0);
 	create_info.pVertexInputState = &vertexInputInfo;
 	create_info.pInputAssemblyState = &inputAssembly;

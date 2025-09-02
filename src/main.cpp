@@ -303,11 +303,10 @@ public:
 		}
 
 		vkDestroyCommandPool(device, commandPool, nullptr);
-		for (const auto& pipeline : graphicsPipelines)
-		{
-			vkDestroyPipeline(device, pipeline, nullptr);
-		}
-		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+
+		// Calls destructors for pipelines/shaders
+		pipelineFactory.reset();
+
 		if (enableValidationLayers) {
 			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 		}
@@ -643,6 +642,8 @@ private:
 		pipelineFactory = std::make_unique<ENG::PipelineFactory>(device, swapChainImageFormat, findDepthFormat());
 		renderPass = pipelineFactory->getEngPipelines().at(0).getRenderPass();
 		descriptorSetLayout = pipelineFactory->getEngPipelines().at(0).getDescriptorSetLayout();
+		graphicsPipelines = pipelineFactory->getVkPipelines();
+		pipelineLayout = pipelineFactory->getEngPipelines().at(0).getPipelineLayout();
 		createCommandPool();
 		createDepthResources();
 		createFramebuffers();

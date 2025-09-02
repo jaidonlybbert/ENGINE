@@ -2,6 +2,7 @@
 #define ENG_UTILS_DEF
 #include "vulkan/vulkan_core.h"
 #include<vector>
+#include<string>
 
 namespace ENG {
 static std::vector<char> readFile(const std::string& filename);

@@ -27,7 +27,7 @@ private:
 	std::map<ENG_SHADER, std::vector<VkPipelineShaderStageCreateInfo*>> stage_map;
 
 public:
-	explicit ShaderFactory(const VkDevice& device);
+	ShaderFactory(const VkDevice& device);
 	~ShaderFactory();
 
 	const std::vector<VkShaderModule*>& get_shader_modules(const ENG_SHADER& shader) const;

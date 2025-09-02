@@ -8,11 +8,13 @@ class PipelineFactory {
 
 public:
 	PipelineFactory(const VkDevice& device, const VkFormat& swapChainImageFormat, const VkFormat& depthFormat);
+	~PipelineFactory();
 	const std::vector<VkPipeline>& getVkPipelines() const;
 	const std::vector<ENG::Pipeline>& getEngPipelines() const;
 private:
 	std::vector<VkPipeline> graphicsPipelines;
 	std::vector<ENG::Pipeline> eng_pipelines;
+	const VkDevice& device;
 
 	PipelineFactory() = delete;
 	PipelineFactory(const PipelineFactory&) = delete;

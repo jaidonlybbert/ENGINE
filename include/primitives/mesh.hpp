@@ -2,6 +2,7 @@
 #define ENG_MESH_DEF
 
 #include<vector>
+#include<string>
 #include "vulkan/vulkan_core.h"
 #include "glm/glm.hpp"
 

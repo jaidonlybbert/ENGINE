@@ -5,7 +5,8 @@
 #include "pipelines/ENG_Pipeline.hpp"
 
 namespace ENG {
-PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapChainImageFormat, const VkFormat& depthFormat) {
+PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapChainImageFormat,
+								 const VkFormat& depthFormat) : device(device) {
 	std::vector<VkGraphicsPipelineCreateInfo> pipelineCreateInfos;
 	const ShaderFactory& shader_factory{device};
 
@@ -14,9 +15,20 @@ PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapCha
 	// TODO: Graphics pipelines is more than 1!
 	assert(pipelineCreateInfos.size() == 1);
 	graphicsPipelines.emplace_back();
-	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, pipelineCreateInfos.data(),
-				nullptr, graphicsPipelines.data()) != VK_SUCCESS) {
+	assert(graphicsPipelines.data() && pipelineCreateInfos.data());
+	const auto* pCreateInfos = pipelineCreateInfos.data();
+	auto* pPipelines = graphicsPipelines.data();
+	const auto success = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, pCreateInfos, nullptr, pPipelines);
+	if (success != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
+	}
+}
+
+PipelineFactory::~PipelineFactory()
+{
+	for (const auto& pipeline : graphicsPipelines)
+	{
+		vkDestroyPipeline(device, pipeline, nullptr);
 	}
 }
 

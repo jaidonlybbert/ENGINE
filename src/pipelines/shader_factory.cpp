@@ -36,7 +36,7 @@ VkShaderModule createShaderModule(const VkDevice& device, const std::vector<char
 
 VkPipelineShaderStageCreateInfo createDefaultStage(const VkShaderModule* module, const VkShaderStageFlagBits& stage_enum) {
 	assert(module);
-	VkPipelineShaderStageCreateInfo info;
+	VkPipelineShaderStageCreateInfo info{};
 	info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	info.stage = stage_enum;
 	info.module = *module;

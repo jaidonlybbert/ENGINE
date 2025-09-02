@@ -13,26 +13,27 @@ public:
 	virtual ~Pipeline();
 	const VkRenderPass& getRenderPass() const;
 	const VkDescriptorSetLayout& getDescriptorSetLayout() const;
+	const VkPipelineLayout& getPipelineLayout() const;
 
 private:
 	const VkDevice& device;
 	std::vector<VkPipelineShaderStageCreateInfo*> shader_stages;
 	std::vector<VkDynamicState> dynamicStates;
-	VkPipelineDynamicStateCreateInfo dynamicState;
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo;
-	VkVertexInputBindingDescription bindingDescription;
-	VkPipelineInputAssemblyStateCreateInfo inputAssembly;
-	VkPipelineViewportStateCreateInfo viewportState;
+	VkPipelineDynamicStateCreateInfo dynamicState{};
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+	VkVertexInputBindingDescription bindingDescription{};
+	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+	VkPipelineViewportStateCreateInfo viewportState{};
 	std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-	VkPipelineRasterizationStateCreateInfo rasterizer;
-	VkPipelineMultisampleStateCreateInfo multisampling;
-	VkPipelineColorBlendAttachmentState colorBlendAttachment;
-	VkPipelineColorBlendStateCreateInfo colorBlending;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo;
-	VkPipelineLayout pipelineLayout;
-	VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
-	VkRenderPass renderPass;
+	VkPipelineRasterizationStateCreateInfo rasterizer{};
+	VkPipelineMultisampleStateCreateInfo multisampling{};
+	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+	VkPipelineColorBlendStateCreateInfo colorBlending{};
+	VkDescriptorSetLayout descriptorSetLayout{};
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+	VkPipelineLayout pipelineLayout{};
+	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
+	VkRenderPass renderPass{};
 
 	virtual void createDynamicStateInfo();
 	virtual void createVertexInputInfo();
