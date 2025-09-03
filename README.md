@@ -1,3 +1,4 @@
+[![Ubuntu-GCC](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml)
 # VulkanTemplateApp
 Basic setup for a Vulkan application
 
@@ -61,3 +62,4 @@ cmake ..
 cmake --build . --config Release
 cpack --config .\CPackConfig.cmake
 ```
+
