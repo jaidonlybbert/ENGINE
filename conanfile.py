@@ -1,6 +1,7 @@
 from conan import ConanFile
 from conan.tools.cmake import CMakeDeps, CMakeToolchain, cmake_layout
 
+
 class EngineRecipe(ConanFile):
     name = "engine"
     version = "1.0"
@@ -13,7 +14,6 @@ class EngineRecipe(ConanFile):
         "tinyobjloader/2.0.0-rc10",
         "nlohmann_json/3.12.0"
     )
-    generators = "CMakeDeps", "CMakeToolchain"
 
     def layout(self):
         cmake_layout(self)
@@ -24,4 +24,3 @@ class EngineRecipe(ConanFile):
     def generate(self):
         CMakeToolchain(self).generate()
         CMakeDeps(self).generate()
-
