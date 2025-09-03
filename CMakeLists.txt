@@ -10,14 +10,9 @@ set(ENG_PROJECT_NAME "ENGINE")
 set(ENG_PROJECT_VERSION "0.0.1")
 
 cmake_minimum_required(VERSION 3.22)
-if (APPLE)
-	set(VCPKG_TARGET_TRIPLET "arm64-osx")
-elseif (WIN32)
-	set(VCPKG_TARGET_TRIPLET "x64-windows")
-endif()
 
-set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-  CACHE STRING "Vcpkg toolchain file")
+set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/build/generators/conan_toolchain.cmake"
+	CACHE STRING "Conan toolchain file")
 
 project(Engine VERSION 0.0.1)
 set(PROJECT_NAME_AND_VERSION "${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_VERSION}")
