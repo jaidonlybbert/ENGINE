@@ -12,11 +12,14 @@ class EngineRecipe(ConanFile):
         "glm/1.0.1",
         "stb/cci.20240531",
         "tinyobjloader/2.0.0-rc10",
-        "nlohmann_json/3.12.0"
+        "nlohmann_json/3.12.0",
+        "winreg/6.2.0"
     )
 
     def layout(self):
-        cmake_layout(self)
+        self.folders.build = "build"
+        self.folders.generators = "build/generators"
+        self.folders.source = "."
 
     def build_requirements(self):
         pass  # Optional: add build tools here
