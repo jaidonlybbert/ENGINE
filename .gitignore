@@ -3,3 +3,4 @@ build
 .vs
 CMakeUserPresets.json
 imgui.ini
+*.swp
