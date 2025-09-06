@@ -26,13 +26,14 @@ def main():
 
     # Install dependencies using conanfile.py
     run_command(["conan", "install", source_dir,
-                 "--build", "missing"], cwd=source_dir)
+                 "--build", "missing", "--settings=build_type=Release",
+                 "--settings=compiler.cppstd=20"], cwd=source_dir)
 
     # Configure with CMake using the generated toolchain
-    run_command(["cmake", "--preset", "release"], cwd=source_dir)
+    run_command(["cmake", "--preset", "release", "-A", "x64", "-T", "v143"], cwd=source_dir)
 
     # Build the project
-    run_command(["cmake", "--preset", "build-release"], cwd=build_dir)
+    run_command(["cmake", "--build", "--preset", "build-release"], cwd=source_dir)
 
     # Run the executable
     exe_path = os.path.join(build_dir, "Release", "Engine.exe")

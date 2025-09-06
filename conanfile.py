@@ -8,7 +8,6 @@ class EngineRecipe(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     requires = (
         "glfw/3.4",
-        "boost/1.88.0",
         "glm/1.0.1",
         "stb/cci.20240531",
         "tinyobjloader/2.0.0-rc10",

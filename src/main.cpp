@@ -11,6 +11,7 @@
 #include<limits>
 #include<cstdint>
 #include<fstream>
+#include<filesystem>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -20,7 +21,6 @@
 #include "vulkan/vulkan.hpp"
 #include "GLFW/glfw3.h"
 #include "EngineConfig.h"
-#include "boost/filesystem.hpp"
 
 #include<tiny_gltf.h>
 #include<tiny_obj_loader.h>
@@ -40,8 +40,10 @@
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-const std::string MODEL_PATH = "../models/viking_room.obj";
-const std::string TEXTURE_PATH = "../textures/viking_room.png";
+const std::filesystem::path& install_dir{Engine_INSTALL_DIR};
+const std::filesystem::path& MODEL_PATH{install_dir / "models" / "viking_room.obj"};
+const std::filesystem::path& TEXTURE_PATH{install_dir / "textures" / "viking_room.png"};
+const std::filesystem::path& gltf_dir{ install_dir / "gltf" / "suzanne" / "suzanne.gltf" };
 
 const std::map<int, VkFormat> TINYGLTF_COMPONENT_TYPE_TO_VKFORMAT = {
 	{TINYGLTF_COMPONENT_TYPE_BYTE, VK_FORMAT_R8_UINT},
@@ -158,31 +160,6 @@ struct UniformBufferObject {
 	const bool enableValidationLayers = true;
 #endif
 
-#ifdef __linux__
-	throw std::runtime_error("Linux support for finding InstallDir not implemented!");
-#elif __APPLE__ 
-std::optional<std::wstring> get_install_directory() {
-	std::wstring s = L".";
-	return s;
-}
-#elif _WIN32
-	// #define NOMINMAX
-	// #include "winreg/winreg.hpp"
-
-std::optional<std::wstring> get_install_directory() {
-	// winreg::RegKey key{ HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\ENGINE_PUBLISHER\\Engine 0.0.1" };
-	// std::wstring s = key.GetStringValue(L"InstallDir");
-	
-	return L".";
-}
-
-#else
-std::optional<std::wstring> get_install_directory() {
-	throw std::runtime_error("No supported OS for finding InstallDir found!");
-	return Null
-}
-#endif
-
 static void check_vk_result(VkResult err)
 {
     if (err == VK_SUCCESS)
@@ -213,23 +190,6 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
 	if (func != nullptr) {
 		func(instance, debugMessenger, pAllocator);
 	}
-}
-
-static std::vector<char> readFile(const std::string& filename) {
-	std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-	if (!file.is_open()) {
-		throw std::runtime_error("failed to open file!");
-	}
-
-	size_t fileSize = (size_t) file.tellg();
-	std::vector<char> buffer(fileSize);
-	file.seekg(0);
-	file.read(buffer.data(), fileSize);
-
-	file.close();
-	
-	return buffer;
 }
 
 class VulkanTemplateApp {
@@ -1669,7 +1629,7 @@ private:
 
 	void createTextureImage() {
 		int texWidth, texHeight, texChannels;
-		stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load(TEXTURE_PATH.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 		if (!pixels) {
@@ -1821,7 +1781,7 @@ private:
 		std::vector<tinyobj::material_t> materials;
 		std::string warn, err;
 
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.string().c_str())) {
 			throw std::runtime_error(warn + err);
 		}
 
@@ -1946,7 +1906,7 @@ const std::map<std::string, int> GLTF_ATTRIBUTE_NAME_TO_VK_VERTEX_ATTR_LOCATION 
 	{"TEXCOORD_1", 7}
 };
 
-bool load_gltf_model(const boost::filesystem::path gltf_path, tinygltf::Model& model) {
+bool load_gltf_model(const std::filesystem::path gltf_path, tinygltf::Model& model) {
 	auto loader = tinygltf::TinyGLTF();
 	std::string err;
 	std::string warn;
@@ -2011,7 +1971,7 @@ void load_gltf_node(const tinygltf::Node& node, SceneState& sceneState) {
 	}
 }
 
-bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) {
+bool load_gltf(const std::filesystem::path gltf_path, VulkanTemplateApp& app) {
 	auto& model = app.sceneState.scene;
 	if (!load_gltf_model(gltf_path, model)) {
 		return false;
@@ -2033,40 +1993,17 @@ bool load_gltf(const boost::filesystem::path gltf_path, VulkanTemplateApp& app) 
 }
 
 
-std::optional<std::wstring> get_gltf_directory() {
-	return L"../gltf/suzanne/suzanne.gltf";
-}
-
-
 int main() {
 	
 	try {
 		printf("Starting app\n");
-		std::optional<std::wstring> install_dir = get_install_directory();
-		std::optional<std::wstring> gltf_dir = get_gltf_directory();
-		boost::filesystem::path p;
-		if (install_dir.has_value()) {
-			std::wcout << "Application path: " << install_dir.value() <<
-				std::endl;
-			p = boost::filesystem::path(install_dir.value());
-			std::wcout << p.make_preferred().wstring() << std::endl;
-
-		} else {
-			std::cout << "No InstallDir found!" << std::endl;
-		}
+		std::wcout << "Application path: " << install_dir.native() << std::endl;
 
 		VulkanTemplateApp app;
 		std::cout << app;
 
-		if (gltf_dir.has_value()) {
-			std::wcout << "GLTF path: " << gltf_dir.value() << std::endl;
-			p = boost::filesystem::path(gltf_dir.value());
-			std::wcout << p.make_preferred().wstring() << std::endl;
-			load_gltf(p, app);
-		}
-		else {
-			std::wcout << "No GLTF path found!" << std::endl;
-		}
+		std::wcout << "GLTF path: " << gltf_dir.native() << std::endl;
+		load_gltf(gltf_dir, app);
 		
 		app.loadMeshesToVkBuffer(app.sceneState);
 

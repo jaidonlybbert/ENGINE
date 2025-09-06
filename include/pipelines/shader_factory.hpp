@@ -2,24 +2,27 @@
 #define ENG_SHADER_FACTORY_DEF
 #include "pipelines/utils.hpp"
 #include "vulkan/vulkan_core.h"
-#include "boost/filesystem/path.hpp"
+#include "EngineConfig.h"
 #include<map>
 #include<vector>
 #include<assert.h>
+#include<filesystem>
 
 enum class ENG_SHADER {
 	PosColTex,
 	PosNorTex
 };
 
+static const std::filesystem::path& install_dir{Engine_INSTALL_DIR};
+
 class ShaderFactory {
 private:
 	const VkDevice& device;
-	static inline const std::vector<boost::filesystem::path> filepaths = {
-		boost::filesystem::path("../shaders/posColTexVert.vert.spv"),
-		boost::filesystem::path("../shaders/posColTexFrag.frag.spv"),
-		boost::filesystem::path("../shaders/posNorTexVert.vert.spv"),
-		boost::filesystem::path("../shaders/posNorTexFrag.frag.spv")
+	static inline const std::vector<std::filesystem::path> filepaths = {
+		install_dir / "shaders" / "posColTexVert.vert.spv",
+		install_dir / "shaders" / "posColTexFrag.frag.spv",
+		install_dir / "shaders" / "posNorTexVert.vert.spv",
+		install_dir / "shaders" / "posNorTexFrag.frag.spv"
 	};
 	std::vector<VkShaderModule> modules;
 	std::vector<VkPipelineShaderStageCreateInfo> stages;

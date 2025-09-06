@@ -1,9 +1,6 @@
 include(CMakePrintHelpers)
 include(FetchContent)
 
-# Create a "compile_commands.json" file to inform LSP about build configuration
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 # Modify these!
 set(ENG_PUBLISHER "ENGINE_PUBLISHER")
 set(ENG_PROJECT_NAME "ENGINE")
@@ -16,9 +13,6 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/build/generators/conan_too
 
 project(Engine VERSION 0.0.1)
 set(PROJECT_NAME_AND_VERSION "${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_VERSION}")
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if (NOT "$ENV{VULKAN_SDK}" STREQUAL "")
 	set(VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE INTERNAL "Copied from environment variable")
@@ -47,6 +41,7 @@ else()
     message(FATAL_ERROR "glslc not found. Make sure Vulkan SDK is installed and VULKAN_SDK is set.")
 endif()
 
+set(Engine_INSTALL_DIR ${CMAKE_HOME_DIRECTORY})
 set(shader_path ${CMAKE_HOME_DIRECTORY}/shaders/)
 file(GLOB shaders RELATIVE ${CMAKE_SOURCE_DIR} "${shader_path}*.vert"
 	"${shader_path}*.frag")
@@ -70,10 +65,9 @@ file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 add_executable(Engine ${SOURCE_FILES} ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
 
 find_package(glfw3 CONFIG REQUIRED)
-find_package(Boost REQUIRED COMPONENTS filesystem)
 find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
-find_package(tinyobjloader CONFIG REQUIRED)
+find_package(tinyobjloader REQUIRED)
 find_package(nlohmann_json 3.12 CONFIG REQUIRED)
 
 if (WIN32)
@@ -105,7 +99,7 @@ target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include" "${PRO
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
 target_link_libraries(Engine PRIVATE tinyobjloader::tinyobjloader)
-target_link_libraries(Engine PUBLIC glfw Boost::filesystem glm::glm)
+target_link_libraries(Engine PUBLIC glfw glm::glm)
 target_link_libraries(Engine PRIVATE nlohmann_json::nlohmann_json)
 if (WIN32)
 	target_link_libraries(Engine PUBLIC "${VULKAN_SDK}/Lib/vulkan-1.lib")
@@ -119,6 +113,7 @@ cmake_print_variables(PROJECT_SOURCE_DIR)
 cmake_print_variables(VULKAN_SDK)
 cmake_print_variables(shader_outputs)
 cmake_print_variables(output_spv)
+cmake_print_variables(Engine_INSTALL_DIR)
 
 # Set Install Target
 if (WIN32)

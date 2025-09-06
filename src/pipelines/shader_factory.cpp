@@ -1,9 +1,9 @@
 #include "pipelines/shader_factory.hpp"
-#include "boost/filesystem/path.hpp"
 #include<fstream>
+#include<filesystem>
 
 
-static std::vector<char> readFile(const boost::filesystem::path& filepath) {
+static std::vector<char> readFile(const std::filesystem::path& filepath) {
 	std::ifstream file(filepath.native(), std::ios::ate | std::ios::binary);
 
 	if (!file.is_open()) {
