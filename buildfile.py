@@ -1,6 +1,7 @@
 import os
 import platform
 import subprocess
+import argparse
 
 
 env = os.environ.copy()
@@ -19,6 +20,15 @@ def run_command(cmd, cwd=None):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="ENGINE build script")
+    parser.add_argument("--buildtype", type=str, help="One of [Release, Debug, RelWithDebInfo, MinSizeRel]")
+
+    args = parser.parse_args()
+    if (args.buildtype):
+        buildtype = args.buildtype
+    else:
+        buildtype = "Release"
+
     source_dir = os.path.abspath(".")
     build_dir = os.path.join(source_dir, "build")
 
@@ -26,17 +36,17 @@ def main():
 
     # Install dependencies using conanfile.py
     run_command(["conan", "install", source_dir,
-                 "--build", "missing", "--settings=build_type=Release",
+                 "--build", "missing", "--settings=build_type=" + buildtype,
                  "--settings=compiler.cppstd=20"], cwd=source_dir)
 
     # Configure with CMake using the generated toolchain
-    run_command(["cmake", "--preset", "release", "-A", "x64", "-T", "v143"], cwd=source_dir)
+    run_command(["cmake", "--preset", buildtype, "-A", "x64", "-T", "v143"], cwd=source_dir)
 
     # Build the project
-    run_command(["cmake", "--build", "--preset", "build-release"], cwd=source_dir)
+    run_command(["cmake", "--build", "--preset", "build-" + buildtype], cwd=source_dir)
 
     # Run the executable
-    exe_path = os.path.join(build_dir, "Release", "Engine.exe")
+    exe_path = os.path.join(build_dir, buildtype, "Engine.exe")
     if os.path.exists(exe_path):
         run_command([exe_path])
     else:
