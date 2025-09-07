@@ -31,7 +31,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: Engine
-          environment-file: ${{github.workspace}}/environment.yml
+          environment-file: environment.yml
           python-version: 3.13
           auto-activate-base: false
 
