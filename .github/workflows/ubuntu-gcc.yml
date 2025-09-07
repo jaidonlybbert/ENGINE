@@ -46,7 +46,7 @@ jobs:
         run: echo "PKG_CONFIG_PATH=" >> $GITHUB_ENV
 
       - name: Install deps (Conan)
-        run: conan install . -pr ubuntu-GCC-x86_64 --output-folder ${{github.workspace}}/build --build=missing
+        run: conan install . -pr Ubuntu-GCC-x86_64 --output-folder ${{github.workspace}}/build --build=missing
 
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
