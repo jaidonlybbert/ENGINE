@@ -26,7 +26,7 @@ jobs:
       - name: Install GCC
         uses: egor-tensin/setup-gcc@v1
         with:
-          version: 13   # Or specify like "13"
+          version: 15.2   # Or specify like "13"
           platform: x64     # Use "x86" for 32-bit builds
 
       - name: Set up Python
