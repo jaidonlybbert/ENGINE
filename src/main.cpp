@@ -36,15 +36,11 @@
 
 #include "primitives/mesh.hpp"
 #include "pipelines/pipeline_factory.hpp"
+#include "interfaces/FilesystemInterface.hpp"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-const std::filesystem::path& install_dir{Engine_INSTALL_DIR};
-const std::filesystem::path& MODEL_PATH{install_dir / "models" / "viking_room.obj"};
-const std::filesystem::path& TEXTURE_PATH{install_dir / "textures" / "viking_room.png"};
-const std::filesystem::path& gltf_dir{ install_dir / "gltf" / "suzanne" / "suzanne.gltf" };
-
 const std::map<int, VkFormat> TINYGLTF_COMPONENT_TYPE_TO_VKFORMAT = {
 	{TINYGLTF_COMPONENT_TYPE_BYTE, VK_FORMAT_R8_UINT},
 	{TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, VK_FORMAT_R8_UINT},
@@ -1629,7 +1625,7 @@ private:
 
 	void createTextureImage() {
 		int texWidth, texHeight, texChannels;
-		stbi_uc* pixels = stbi_load(TEXTURE_PATH.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load(get_tex_path().string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 		if (!pixels) {
@@ -1781,7 +1777,7 @@ private:
 		std::vector<tinyobj::material_t> materials;
 		std::string warn, err;
 
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.string().c_str())) {
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, get_model_dir().string().c_str())) {
 			throw std::runtime_error(warn + err);
 		}
 
@@ -1997,13 +1993,13 @@ int main() {
 	
 	try {
 		printf("Starting app\n");
-		std::wcout << "Application path: " << install_dir.native() << std::endl;
+		// std::cout << "Application path: " << install_dir.native().c_str() << std::endl;
 
 		VulkanTemplateApp app;
 		std::cout << app;
 
-		std::wcout << "GLTF path: " << gltf_dir.native() << std::endl;
-		load_gltf(gltf_dir, app);
+		// std::cout << "GLTF path: " << gltf_dir.native().c_str() << std::endl;
+		load_gltf(get_gltf_dir(), app);
 		
 		app.loadMeshesToVkBuffer(app.sceneState);
 

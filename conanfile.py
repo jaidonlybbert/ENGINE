@@ -1,5 +1,6 @@
+import platform
 from conan import ConanFile
-from conan.tools.cmake import CMakeDeps, CMakeToolchain, cmake_layout
+from conan.tools.cmake import CMakeDeps, CMakeToolchain
 
 
 class EngineRecipe(ConanFile):
@@ -12,8 +13,10 @@ class EngineRecipe(ConanFile):
         "stb/cci.20240531",
         "tinyobjloader/2.0.0-rc10",
         "nlohmann_json/3.12.0",
-        "winreg/6.2.0"
     )
+
+    if platform.platform() == "Windows":
+        requires = requires + ("winreg/6.2.0",)
 
     def layout(self):
         self.folders.build = "build"

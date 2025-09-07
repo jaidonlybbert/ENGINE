@@ -1,7 +1,7 @@
 #include "pipelines/shader_factory.hpp"
 #include<fstream>
 #include<filesystem>
-
+#include "interfaces/FilesystemInterface.hpp"
 
 static std::vector<char> readFile(const std::filesystem::path& filepath) {
 	std::ifstream file(filepath.native(), std::ios::ate | std::ios::binary);
@@ -45,7 +45,20 @@ VkPipelineShaderStageCreateInfo createDefaultStage(const VkShaderModule* module,
 	return info;
 }
 
+
+void ShaderFactory::get_filepaths() {
+	filepaths = {
+		get_install_dir() / "shaders" / "posColTexVert.vert.spv",
+		get_install_dir() / "shaders" / "posColTexFrag.frag.spv",
+		get_install_dir() / "shaders" / "posNorTexVert.vert.spv",
+		get_install_dir() / "shaders" / "posNorTexFrag.frag.spv"
+	};
+}
+
+
 ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
+	get_filepaths();
+
 	for (size_t i = 0; i < filepaths.size(); ++i) {
 		modules.push_back(createShaderModule(device, readFile(filepaths.at(i))));
 	}

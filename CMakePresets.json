@@ -1,9 +1,9 @@
 {
-  "version": 4,
+  "version": 10,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 21,
-    "patch": 0
+    "minor": 29,
+    "patch": 5
   },
   "include": [
     "build/generators/CMakePresets.json"
@@ -18,67 +18,13 @@
 	"CMAKE_CXX_STANDARD": "20",
 	"CMAKE_CXX_STANDARD_REQUIRED": "True"
       }
-    },
-    {
-      "name": "Debug",
-      "inherits": "default",
-      "description": "Debug build",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
-      "name": "Release",
-      "inherits": "default",
-      "description": "Release build",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
-    },
-    {
-      "name": "RelWithDebInfo",
-      "inherits": "default",
-      "description": "RelWithDebInfo build",
-      "cacheVariables": {
-	"CMAKE_BUILD_TYPE": "RelWithDebInfo"
-      }
-    },
-    {
-      "name": "MinSizeRel",
-      "inherits": "default",
-      "description": "MinSizeRel build",
-      "cacheVariables": {
-	"CMAKE_BUILD_TYPE": "MinSizeRel"
-      }
     }
   ],
   "buildPresets": [
     {
-      "name": "build-Debug",
-      "configurePreset": "Debug",
-      "description": "Build using Debug preset",
-      "configuration": "Debug",
-      "jobs": 8
-    },
-    {
-      "name": "build-Release",
-      "configurePreset": "Release",
-      "description": "Build using Release preset",
-      "configuration": "Release",
-      "jobs": 8
-    },
-    {
-      "name": "build-RelWithDebInfo",
-      "configurePreset": "RelWithDebInfo",
-      "description": "Build using RelWithDebInfo preset",
-      "configuration": "RelWithDebInfo",
-      "jobs": 8
-    },
-    {
-      "name": "build-MinSizeRel",
-      "configurePreset": "MinSizeRel",
-      "description": "Build using MinSizeRel preset",
-      "configuration": "MinSizeRel",
+      "name": "default",
+      "configurePreset": "default",
+      "description": "Build using default preset",
       "jobs": 8
     }
   ]

@@ -13,17 +13,11 @@ enum class ENG_SHADER {
 	PosNorTex
 };
 
-static const std::filesystem::path& install_dir{Engine_INSTALL_DIR};
-
 class ShaderFactory {
 private:
 	const VkDevice& device;
-	static inline const std::vector<std::filesystem::path> filepaths = {
-		install_dir / "shaders" / "posColTexVert.vert.spv",
-		install_dir / "shaders" / "posColTexFrag.frag.spv",
-		install_dir / "shaders" / "posNorTexVert.vert.spv",
-		install_dir / "shaders" / "posNorTexFrag.frag.spv"
-	};
+	std::vector<std::filesystem::path> filepaths;
+	void get_filepaths();
 	std::vector<VkShaderModule> modules;
 	std::vector<VkPipelineShaderStageCreateInfo> stages;
 	std::map<ENG_SHADER, std::vector<VkShaderModule*>> module_map;

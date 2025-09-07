@@ -13,6 +13,10 @@ set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/build/generators/conan_too
 
 project(Engine VERSION 0.0.1)
 set(PROJECT_NAME_AND_VERSION "${CMAKE_PROJECT_NAME} ${CMAKE_PROJECT_VERSION}")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_HOME_DIRECTORY}/build/Debug)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_HOME_DIRECTORY}/build/Release)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_HOME_DIRECTORY}/build/MinSizeRel)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_HOME_DIRECTORY}/build/RelWithDebInfo)
 
 if (NOT "$ENV{VULKAN_SDK}" STREQUAL "")
 	set(VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE INTERNAL "Copied from environment variable")
@@ -116,16 +120,16 @@ cmake_print_variables(output_spv)
 cmake_print_variables(Engine_INSTALL_DIR)
 
 # Set Install Target
-if (WIN32)
-	install(TARGETS Engine
-	    COMPONENT Engine
-	    RUNTIME_DEPENDENCIES
-	    PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
-	    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
-	    DIRECTORIES $<TARGET_FILE_DIR:Engine>)
-elseif (APPLE)
-	install(TARGETS Engine
-	    RUNTIME ARCHIVE LIBRARY RUNTIME 
-	    FRAMEWORK DESTINATION ./frameworks
-	    BUNDLE PUBLIC_HEADER RESOURCE)
-endif()
+# if (WIN32)
+# 	install(TARGETS Engine
+# 	    COMPONENT Engine
+# 	    RUNTIME_DEPENDENCIES
+# 	    PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
+# 	    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
+# 	    DIRECTORIES $<TARGET_FILE_DIR:Engine>)
+# elseif (APPLE)
+# 	install(TARGETS Engine
+# 	    RUNTIME ARCHIVE LIBRARY RUNTIME 
+# 	    FRAMEWORK DESTINATION ./frameworks
+# 	    BUNDLE PUBLIC_HEADER RESOURCE)
+# endif()
