@@ -1,6 +1,6 @@
 [![Ubuntu-GCC](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml)
 # ENGINE
-Cross-platform real-time 3D rendering *application template* based on Vulkan
+Cross-platform real-time 3D rendering application template based on Vulkan
 
 # What is it?
 Minimal application to load some gltf data, and render it, with some light abstraction and code organization
@@ -78,9 +78,42 @@ xcode-select --install
 ```
 
 ### Create a CMake preset pointing to the Vulkan SDK (and MoltenVK)
-In the project root (same level as CMakeLists.txt)
-Create a file named "CMakeUserPresets.txt" and paste the following:
-....
+In the project root (same level as CMakeLists.txt), create a file named "CMakeUserPresets.json" and paste the following, but change the VULKAN_SDK variable to point to your SDK installation path
+```json
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 1,
+    "patch": 1
+  },
+  "include": [
+    "CMakePresets.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "mac-default",
+      "inherits": "default",
+      "generator": "Ninja",
+      "environment" : {
+        "VULKAN_SDK": "$env{HOME}/VulkanSDK/1.3.283.0/macOS",
+        "PATH": "$env{VULKAN_SDK}/bin:$penv{PATH}",
+        "DYLD_LIBRARY_PATH": "$env{VULKAN_SDK}/lib",
+        "VK_ICD_FILENAMES": "$env{VULKAN_SDK}/share/vulkan/icd.d/MoltenVK_icd.json",
+        "VK_LAYER_PATH": "$env{VULKAN_SDK}/share/vulkan/explicit_layer.d"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "mac-default",
+      "configurePreset": "mac-default",
+      "description": "Build using mac-default preset",
+      "jobs": 8
+    }  
+  ]
+}
+```
 
 ### Execute the buildfile.py script
 ```bash
