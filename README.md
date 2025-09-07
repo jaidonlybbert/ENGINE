@@ -28,6 +28,13 @@ This code is for my own benefit to use as a baseline for application development
 There are many ways you can build this, at the end of the day it's a CMake project. I've chosen to use conda, python, and conan to manage dependencies for cross-platform support.
 If everything works, a window should pop up with a render of a default .obj mesh
 
+After you have installed all the system dependencies there are three things you need to do to compile the code for any new build type (Release, Debug, RelWithDebInfo, MinSizeRel)
+1. conan install
+2. cmake configure
+3. cmake build
+
+To make it easier to run those commands, I wrote a `buildfile.py` script that takes two optional arguments: `preset` and `buildtype` which correspond to CMake presets and buildtypes. By default, the CMake preset used is defined in the CMakePresets.json file, you will notice that it inherits from the conan-default preset that is generated when you run `conan install`. To run with other compilers, you will need to define your own preset in a CMakeUserPresets.json file to override the default, and pass that preset into the `buildfile.py` script as`--preset=<your_preset>`
+
 ## All platforms (macOS, Windows, Ubuntu)
 ### Install the Vulkan SDK
 https://www.lunarg.com/vulkan-sdk/
@@ -41,7 +48,7 @@ or (Windows)
 echo %VULKAN_SDK%
 ```
 
-You can create a CMakeUserPresets.json at the project root to set this variable, or define it another way. The environment variables are copied to the python buildfile.py script, so it has to be defined in the environment where you call that script.
+If it's not defined after installation, you can create a [CMakeUserPresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) at the project root to set this variable, or define it another way. The environment variables are copied to the python buildfile.py script, so it has to be defined in the environment where you call that script.
 
 ### Install miniconda
 https://www.anaconda.com/docs/getting-started/miniconda/install
@@ -58,11 +65,11 @@ https://visualstudio.microsoft.com/vs/community/
 
 ### Execute the buildfile.py script
 ```bash
-python buildfile.py --preset=mac-default --buildtype=Debug
+python buildfile.py
 ```
 
 ### Open the Visual Studio solution and run
-The solution file (.sln) should be located in the "build" folder. In the "solution explorer" right-click on the "Engine" project and "Set as Startup Project" - then hit the big green play button. 
+The solution file (.sln) should be located in the "build" folder. After it opens, in the "solution explorer" right-click on the "Engine" project and "Set as Startup Project" - then hit the big green play button. 
 
 ## macOS specific
 ### Install Xcode command-line tools
