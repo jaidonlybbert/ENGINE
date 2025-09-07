@@ -23,6 +23,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install GCC
+        uses: egor-tensin/setup-gcc@v1
+        with:
+          version: 13   # Or specify like "13"
+          platform: x64     # Use "x86" for 32-bit builds
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -31,10 +37,8 @@ jobs:
       - name: Install Conan
         uses: conan-io/setup-conan@v1.2.0
 
-      - name: Create Conan profile (optional)
-        run: |
-          conan profile detect --force
-          conan profile update settings.compiler=gcc settings.compiler.version=11 settings.build_type=Release default
+      - name: Install Conan profile
+        run: conan config install ./profiles/ubuntu-GCC-x86_64 --type=profile
 
       # Fixes conflict between python-setup and conan-setup
       - name: Clear PKG_CONFIG_PATH
@@ -42,7 +46,7 @@ jobs:
         run: echo "PKG_CONFIG_PATH=" >> $GITHUB_ENV
 
       - name: Install deps (Conan)
-        run: conan install . --output-folder ${{github.workspace}}/build --build=missing
+        run: conan install . -pr ubuntu-GCC-x86_64 --output-folder ${{github.workspace}}/build --build=missing
 
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
