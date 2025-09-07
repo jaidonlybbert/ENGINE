@@ -19,23 +19,25 @@ jobs:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        shell: bash -el {0} 
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install GCC
-        uses: egor-tensin/setup-gcc@v1
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          version: 15.1   # Or specify like "13"
-          platform: x64     # Use "x86" for 32-bit builds
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.13"
-
-      - name: Install Conan
-        uses: conan-io/setup-conan@v1.2.0
+          activate-environment: Engine
+          environment-file: ${{github.workspace}}/environment.yml
+          python-version: 3.13
+          auto-activate-base: false
+        run: |
+          conda info
+          conda list
+          conda install gcc=15.1.0 -c conda-forge
 
       - name: Install Conan profile
         run: conan config install ${{github.workspace}}/profiles/Ubuntu-GCC-x86_64 --type=file --target-folder=profiles

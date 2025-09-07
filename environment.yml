@@ -1,0 +1,8 @@
+name: Engine
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cmake=4.1.1
+  - conan=2.20.1
+  - python=3.13.7
