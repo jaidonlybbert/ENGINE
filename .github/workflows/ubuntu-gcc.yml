@@ -20,21 +20,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
       - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install Conan
-        run: pip install conan==2.*
+        uses: conan-io/setup-conan@v1
+        with:
+          version: 2.x # Specify the desired Conan version
+
+      - name: Create Conan profile (optional)
+        run: |
+          conan profile detect --force
+          conan profile update settings.compiler=gcc settings.compiler.version=11 settings.build_type=Release default
 
       - name: Install deps (Conan)
         run: conan install . --output-folder ${{github.workspace}}/build --build=missing
         
-      - name: Configure CMake
-        run: cmake --preset conan-release
-
-      - name: Build
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      - name: Run build script
+        run: python ${{github.workspace}}/buildfile.py --buildtype=Release
