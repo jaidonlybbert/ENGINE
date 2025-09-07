@@ -36,6 +36,12 @@ After you have installed all the system dependencies there are three things you 
 To make it easier to run those commands, I wrote a `buildfile.py` script that takes two optional arguments: `preset` and `buildtype` which correspond to CMake presets and buildtypes. By default, the CMake preset used is defined in the CMakePresets.json file, you will notice that it inherits from the conan-default preset that is generated when you run `conan install`. To run with other compilers, you will need to define your own preset in a CMakeUserPresets.json file to override the default, and pass that preset into the `buildfile.py` script as`--preset=<your_preset>`
 
 ## All platforms (macOS, Windows, Ubuntu)
+### Clone this repo
+```bash
+git clone --recurse-submodules https://github.com/jaidonlybbert/ENGINE.git
+cd Engine
+```
+
 ### Install the Vulkan SDK
 https://www.lunarg.com/vulkan-sdk/
 
