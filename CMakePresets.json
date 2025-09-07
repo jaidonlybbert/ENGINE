@@ -1,9 +1,9 @@
 {
   "version": 10,
   "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 29,
-    "patch": 5
+    "major": 4,
+    "minor": 1,
+    "patch": 1
   },
   "include": [
     "build/generators/CMakePresets.json"
@@ -11,7 +11,6 @@
   "configurePresets": [
     {
       "name": "default",
-      "hidden": true,
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",

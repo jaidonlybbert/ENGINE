@@ -1,65 +1,70 @@
 [![Ubuntu-GCC](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml)
-# VulkanTemplateApp
-Basic setup for a Vulkan application
+# ENGINE
+Cross-platform real-time 3D rendering *application template* based on Vulkan
 
 # What is it?
-Minimal code required to build a cross-platform graphics application for the supported platforms using the listed dependencies.
-
-This is NOT an engine or a framework, it has NO API. It is essentially a CMakeLists file to build the [Vulkan-Tutorial](https://vulkan-tutorial.com) for any major platform. The scope is intentionally *very small* so it can be *understood* and *extended*. I will only add features if they are so obvious and necessary that I can't stand re-implementing the same thing over and over across multiple projects. And in that case I will try to keep it as simple as possible and avoid any abstractions.
+Minimal application to load some gltf data, and render it, with some light abstraction and code organization
 
 # Motivation
-This code is for my own benefit to use as a baseline for (closed-source for-profit) application development, which may include games, simulations, or data visualization, without having to start from scratch each time. There are many other Vulkan projects out there that attempt to do something similar. I'm making this open-source so I can copy it on behalf of any entity without worrying about licensing issues, not because I want to be an open-source maintainer.
+This code is for my own benefit to use as a baseline for application development
 
 # Similar/Related Projects
-* [Vulkan-Samples](https://github.com/KhronosGroup/Vulkan-Samples) includes a framework for Vulkan application development. My experience with this framework was that it was easy to get started, but extremely difficult to navigate all the undocumented abstractions and interactions across directories in order to add any functionality. The heavy use of git subprojects and compilation of all dependencies was also cumbersome IMO.
-* [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraph) is the brain-child of Robert Osfield who is responsible for about 99.4% of the commited code. My experience with this project was that the abstractions weren't documented well enough for me to avoid reading source code to determine behavior. Since the project is distributed as a compiled library, it didn't play nice with my LSP, since the headers didn't include (good) docstrings with the declarations and I couldn't jump to definitions. It could be skill issues on my part, but it just didn't feel good, and I frankly don't have a lot of trust in such an ambitious project effectively maintained by a single person.
-* [VulkanTutorial](https://github.com/Overv/VulkanTutorial) is where the bulk of the code in **this** repo comes from. The tutorial code implements the bare essentials for a Vulkan app without many abstractions, and is very well documented since the associated guide explains the code line-by-line. In *this* repo, I have basically lifted the code from the last chapter of *that* repo and made it easy to build as a standalone cross-platform application without the rest of the stuff in that repo.
+* [Vulkan-Samples](https://github.com/KhronosGroup/Vulkan-Samples) 
+* [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraph) 
+* [VulkanTutorial](https://github.com/Overv/VulkanTutorial) 
 
 # Features
-- Builds an application that opens a window, loads a textured OBJ, and renders it
+- GLTF loading
+- PBR rendering
+- Scene graph
+- KB+M Input
+- ImGUI integration
 
 # Supported Platforms
 - arm64-osx
 - x64-windows
 
-# Build Instructions
-## Pre-requisites
-- CMAKE 3.22 or newer
-- Ninja
-- Clang
-- Vulkan SDK
+# Recommended Build Instructions
+There are many ways you can build this, at the end of the day it's a CMake project. I've chosen to use conda, python, and conan to manage dependencies for cross-platform support.
+If everything works, a window should pop up with a render of a default .obj mesh
 
-# Additional Dependencies for MacOS
-- pkg-config
+### All platforms (macOS, Windows, Ubuntu)
+## Install the Vulkan SDK
+https://www.lunarg.com/vulkan-sdk/
 
-## Windows
+Check that the environment variable VULKAN_SDK is defined and points to the SDK directory
+echo ${VULKAN_SDK}
 
-Install the Vulkan SDK https://www.lunarg.com/vulkan-sdk/
+You can create a CMakeUserPresets.json at the project root to set this variable, or define it another way. The current environment variables are copied to the python buildfile.py script, so it has to be defined in the environment where you call that script.
 
-Clone project, including VCPKG manager submodule.
-```
-git --recurse-submodules clone git@github.com:jaidonlybbert/ENGINE.git
-```
+## Install miniconda
+https://www.anaconda.com/docs/getting-started/miniconda/install
 
-Use VCPKG manager to install dependencies.
+## Create a new conda environment with the system dependencies, and activate it
+conda create -n Engine cmake conan -c conda-forge
+conda activate Engine
 
-From the /Engine/vcpkg directory run
+### Windows specific
+## Install Microsoft Visual Studio 17 Community 2022
+https://visualstudio.microsoft.com/vs/community/
 
-```
-./bootstrap-vpkg.bat
+## Execute the buildfile.py script
+python buildfile.py --preset=mac-default --buildtype=Debug
 
-./vcpkg.exe install glfw3 winreg boost-filesystem glm stb tinyobjloader
-```
+## Open the Visual Studio solution and run
+The solution file (.sln) should be located in the "build" folder. In the "solution explorer" right-click on the "Engine" project and "Set as Startup Project" - then hit the big green play button. 
 
-Build installation wizard and executables for the template application.
+### macOS specific
+## Install Xcode command-line tools
+xcode-select --install
 
-From /Engine/ run
+## Create a CMake preset pointing to the Vulkan SDK (and MoltenVK)
+In the project root (same level as CMakeLists.txt)
+Create a file named "CMakeUserPresets.txt" and paste the following:
+....
 
-```
-mkdir build
-cd build
-cmake ..
-cmake --build . --config Release
-cpack --config .\CPackConfig.cmake
-```
+## Execute the buildfile.py script
+python buildfile.py --preset=mac-default --buildtype=Debug
 
+## Run the executable
+./build/Debug/Engine
