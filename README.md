@@ -59,6 +59,11 @@ conda create -n Engine cmake conan -c conda-forge
 conda activate Engine
 ```
 
+### Generate a default conan profile for your system
+```bash
+conan profile detect --force
+```
+
 ## Windows specific
 ### Install Microsoft Visual Studio 17 Community 2022
 https://visualstudio.microsoft.com/vs/community/
