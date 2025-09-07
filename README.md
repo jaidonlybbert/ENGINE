@@ -33,9 +33,15 @@ If everything works, a window should pop up with a render of a default .obj mesh
 https://www.lunarg.com/vulkan-sdk/
 
 Check that the environment variable VULKAN_SDK is defined and points to the SDK directory
+```bash
 echo ${VULKAN_SDK}
+```
+or (Windows)
+```CMD
+echo %VULKAN_SDK%
+```
 
-You can create a CMakeUserPresets.json at the project root to set this variable, or define it another way. The current environment variables are copied to the python buildfile.py script, so it has to be defined in the environment where you call that script.
+You can create a CMakeUserPresets.json at the project root to set this variable, or define it another way. The environment variables are copied to the python buildfile.py script, so it has to be defined in the environment where you call that script.
 
 ### Install miniconda
 https://www.anaconda.com/docs/getting-started/miniconda/install
