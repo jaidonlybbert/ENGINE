@@ -38,7 +38,7 @@ jobs:
         uses: conan-io/setup-conan@v1.2.0
 
       - name: Install Conan profile
-        run: conan config install ${{github.workspace}}/profiles/ubuntu-GCC-x86_64 --type=file
+        run: conan config install ${{github.workspace}}/profiles/Ubuntu-GCC-x86_64.yml --type=file
 
       # Fixes conflict between python-setup and conan-setup
       - name: Clear PKG_CONFIG_PATH
