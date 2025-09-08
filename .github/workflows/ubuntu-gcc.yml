@@ -68,4 +68,4 @@ jobs:
           cache: true # Optional: Cache the downloaded installer for faster subsequent builds
         
       - name: Run build script
-        run: python ${{github.workspace}}/buildfile.py --buildtype=Release
+        run: python ${{github.workspace}}/buildfile.py --buildtype=Release --profile=Ubuntu-GCC-x86_64

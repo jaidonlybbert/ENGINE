@@ -20,7 +20,9 @@ def main():
     parser.add_argument(
         "--preset", type=str, default="default",
         help="Preset defined in CMakeUserPresets.txt or CMakePresets.txt")
-
+    parser.add_argument(
+        "--profile", type=str, default="default",
+        help="Conan profile")
     args = parser.parse_args()
     source_dir = os.path.abspath(".")
     build_dir = os.path.join(source_dir, "build")
@@ -31,18 +33,18 @@ def main():
 
     # Install dependencies using conanfile.py
     run_command(
-        ["conan", "install", source_dir,
+            ["conan", "install", source_dir, f"-pr:a={args.profile}",
          "--build", "missing", "--settings=build_type=" + args.buildtype,
          "--settings=compiler.cppstd=20"], cwd=source_dir, env=env)
 
     # Configure with CMake using the generated toolchain
     run_command(
-        ["cmake", "--preset", args.preset,
+            ["cmake", "--preset", args.preset,
          f"-DCMAKE_BUILD_TYPE={args.buildtype}"], cwd=source_dir, env=env)
 
     # Build the project
     run_command(
-        ["cmake", "--build", "--preset", args.preset], cwd=source_dir, env=env)
+            ["cmake", "--build", "--preset", args.preset], cwd=source_dir, env=env)
 
     # Run the executable
     executable = "Engine.exe" if "Windows" in platform.platform() else "Engine"
