@@ -40,7 +40,7 @@ jobs:
         run: |
           conda info
           conda list
-          conda install gcc=15.1.0 -c conda-forge
+          conda install gcc=15.1.0 xorg-libx11 -c conda-forge
       - name: Install dependencies (apt)
         if: runner.os == 'Linux'
         run: |
