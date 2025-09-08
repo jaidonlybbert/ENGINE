@@ -31,8 +31,9 @@ jobs:
       - name: Install dependencies (apt)
         if: runner.os == 'Linux'
         run: |
+          sudo add-apt-repository universe
           sudo apt-get update
-          sudo apt-get install org-dev gcc-15 cmake
+          sudo apt-get install xorg-dev gcc-15 cmake
 
       - name: Install python
         uses: actions/setup-python@v1
