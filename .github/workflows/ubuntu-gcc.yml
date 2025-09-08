@@ -11,6 +11,7 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  DISPLAY: ':99.0'
 
 jobs:
   build:
@@ -40,6 +41,16 @@ jobs:
           conda info
           conda list
           conda install gcc=15.1.0 -c conda-forge
+      - name: Install dependencies (apt)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install libgl-dev libglx-dev libx11-dev libxau-dev libxcb1-dev libxdmcp-dev x11proto-dev xorg-sgml-doctools xtrans-dev libpthread-stubs0-dev
+
+      - name: Virtual X server
+        if: runner.os == 'Linux'
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
       - name: Install Conan profile
         run: conan config install ${{github.workspace}}/profiles/Ubuntu-GCC-x86_64 --type=file --target-folder=profiles
