@@ -32,6 +32,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo add-apt-repository universe
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
           sudo apt-get update
           sudo apt-get install xorg-dev gcc-15 cmake
 
