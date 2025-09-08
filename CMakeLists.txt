@@ -93,7 +93,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/tinygltf")
 
 target_include_directories(Engine PUBLIC 
 			   "${PROJECT_BINARY_DIR}"
-			   "${VULKAN_SDK}/Include")
+			   "${VULKAN_SDK}/include")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui/backends")
