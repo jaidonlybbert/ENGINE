@@ -68,6 +68,8 @@ jobs:
         with:
           version: 1.3.283.0 # Specify a desired SDK version, or "latest" to use the most recent
           cache: true # Optional: Cache the downloaded installer for faster subsequent builds
+      - name: verify vulkan
+        run: ls ${VULKAN_SDK}
         
       - name: CMake Configure
         run: |
