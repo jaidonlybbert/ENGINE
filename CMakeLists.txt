@@ -73,6 +73,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(tinyobjloader REQUIRED)
 find_package(nlohmann_json 3.12 CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
 
 if (WIN32)
 	# Tracy profiler doesn't build on ARM64 MacOS, the client does build however,
@@ -91,9 +92,7 @@ set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/tinygltf")
 
-target_include_directories(Engine PUBLIC 
-			   "${PROJECT_BINARY_DIR}"
-			   "${VULKAN_SDK}/include")
+target_include_directories(Engine PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui/backends")
@@ -105,14 +104,10 @@ cmake_print_variables(DYLD_LIBRARY_PATH)
 target_link_libraries(Engine PRIVATE tinyobjloader::tinyobjloader)
 target_link_libraries(Engine PUBLIC glfw glm::glm)
 target_link_libraries(Engine PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(Engine PRIVATE Vulkan::Vulkan)
+
 if (WIN32)
-	target_link_libraries(Engine PUBLIC "${VULKAN_SDK}/Lib/vulkan-1.lib")
 	target_link_libraries(Engine PUBLIC Tracy::TracyClient)
-elseif (APPLE)
-	target_link_libraries(Engine PUBLIC "${DYLD_LIBRARY_PATH}/libvulkan.1.dylib")
-elseif (UNIX)     
-	find_package(Vulkan REQUIRED)
-    	target_link_libraries(Engine PUBLIC Vulkan::Vulkan)
 endif()
 
 cmake_print_variables(PROJECT_BINARY_DIR)
