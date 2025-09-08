@@ -6,7 +6,7 @@ set(ENG_PUBLISHER "ENGINE_PUBLISHER")
 set(ENG_PROJECT_NAME "ENGINE")
 set(ENG_PROJECT_VERSION "0.0.1")
 
-cmake_minimum_required(VERSION 4.1.1)
+cmake_minimum_required(VERSION 3.28.3)
 
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/build/generators/conan_toolchain.cmake"
 	CACHE STRING "Conan toolchain file")
