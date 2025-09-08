@@ -34,7 +34,7 @@ jobs:
           sudo add-apt-repository universe
           sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
           sudo apt-get update
-          sudo apt-get install xorg-dev gcc-15 cmake
+          sudo apt-get install xorg-dev gcc-14 cmake
 
       - name: Install python
         uses: actions/setup-python@v1
