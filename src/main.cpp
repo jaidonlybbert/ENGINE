@@ -597,7 +597,7 @@ private:
 		createImageViews();
 
 		pipelineFactory = std::make_unique<ENG::PipelineFactory>(device, swapChainImageFormat, findDepthFormat());
-		renderPass = pipelineFactory->getRenderPass(ENG_SHADER::PosColTex);
+		renderPass = pipelineFactory->getRenderPass();
 		descriptorSetLayout = pipelineFactory->getDescriptorSetLayout(ENG_SHADER::PosColTex);
 		graphicsPipelines = pipelineFactory->getVkPipelines();
 		pipelineLayout = pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosColTex);
@@ -1153,7 +1153,7 @@ private:
 		renderPassInfo.pClearValues = clearValues.data();
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines.at(static_cast<size_t>(ENG_SHADER::PosColTex)));
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(ENG_SHADER::PosColTex));
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;

@@ -6,10 +6,10 @@
 
 namespace ENG {
 
-Pipeline_PosColTex::Pipeline_PosColTex(const VkDevice& device, const VkFormat& swapChainImageFormat, const VkFormat& depthFormat,
+Pipeline_PosColTex::Pipeline_PosColTex(const VkDevice& device, const VkRenderPass& renderPass,
 	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
 {
-	Initialize(swapChainImageFormat, depthFormat, shader_fac, pipelineCreateInfos);
+	Initialize(renderPass, shader_fac, pipelineCreateInfos);
 }
 
 void Pipeline_PosColTex::createShaderStages(const ShaderFactory& shader_fac) {
@@ -33,10 +33,10 @@ void Pipeline_PosColTex::createVertexInputInfo() {
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 }
 
-Pipeline_PosNorTex::Pipeline_PosNorTex(const VkDevice& device, const VkFormat& swapChainImageFormat, const VkFormat& depthFormat,
+Pipeline_PosNorTex::Pipeline_PosNorTex(const VkDevice& device, const VkRenderPass& renderPass,
 	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
 {
-	Initialize(swapChainImageFormat, depthFormat, shader_fac, pipelineCreateInfos);
+	Initialize(renderPass, shader_fac, pipelineCreateInfos);
 }
 
 void Pipeline_PosNorTex::createShaderStages(const ShaderFactory& shader_fac) {

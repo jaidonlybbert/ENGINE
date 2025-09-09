@@ -9,9 +9,8 @@ class Pipeline {
 public:
 	explicit Pipeline(const VkDevice& device);
 	virtual ~Pipeline();
-	void Initialize(const VkFormat& swapChainImageFormat, const VkFormat& depthFormat,
+	void Initialize(const VkRenderPass& renderPass,
 		const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos);
-	const VkRenderPass& getRenderPass() const;
 	const VkDescriptorSetLayout& getDescriptorSetLayout() const;
 	const VkPipelineLayout& getPipelineLayout() const;
 
@@ -46,8 +45,7 @@ public:
 	virtual void createDescriptorSetLayout(const VkDevice& device);
 	virtual void createPipelineLayoutInfo();
 	virtual void createDepthStencilInfo();
-	virtual void createRenderPass(const VkDevice& device, const VkFormat& swapChainImageFormat, const VkFormat& depthFormat);
-	virtual void createPipelineInfo(VkGraphicsPipelineCreateInfo& create_info);
+	virtual void createPipelineInfo(VkGraphicsPipelineCreateInfo& create_info, const VkRenderPass& renderPass);
 }; // End class
 } // end namespace
 #endif
