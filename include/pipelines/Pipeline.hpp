@@ -7,15 +7,14 @@ class ShaderFactory;
 namespace ENG {
 class Pipeline {
 public:
-	explicit Pipeline(const VkDevice& device, const VkFormat& swapChainImageFormat,
-		   const VkFormat& depthFormat, const ShaderFactory& shader_fac,
-		   std::vector<VkGraphicsPipelineCreateInfo> &pipelineCreateInfos);
+	explicit Pipeline(const VkDevice& device);
 	virtual ~Pipeline();
+	void Initialize(const VkFormat& swapChainImageFormat, const VkFormat& depthFormat,
+		const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos);
 	const VkRenderPass& getRenderPass() const;
 	const VkDescriptorSetLayout& getDescriptorSetLayout() const;
 	const VkPipelineLayout& getPipelineLayout() const;
 
-private:
 	const VkDevice& device;
 	std::vector<VkPipelineShaderStageCreateInfo*> shader_stages;
 	std::vector<VkDynamicState> dynamicStates;
@@ -35,6 +34,7 @@ private:
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
 	VkRenderPass renderPass{};
 
+	virtual void createShaderStages(const ShaderFactory &shader_fac);
 	virtual void createDynamicStateInfo();
 	virtual void createVertexInputInfo();
 	virtual void createInputAssemblyInfo();

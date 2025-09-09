@@ -35,6 +35,7 @@
 #include "imgui_impl_vulkan.h"
 
 #include "primitives/mesh.hpp"
+#include "pipelines/shader_factory.hpp"
 #include "pipelines/pipeline_factory.hpp"
 #include "interfaces/FilesystemInterface.hpp"
 
@@ -596,10 +597,10 @@ private:
 		createImageViews();
 
 		pipelineFactory = std::make_unique<ENG::PipelineFactory>(device, swapChainImageFormat, findDepthFormat());
-		renderPass = pipelineFactory->getEngPipelines().at(0).getRenderPass();
-		descriptorSetLayout = pipelineFactory->getEngPipelines().at(0).getDescriptorSetLayout();
+		renderPass = pipelineFactory->getRenderPass(ENG_SHADER::PosColTex);
+		descriptorSetLayout = pipelineFactory->getDescriptorSetLayout(ENG_SHADER::PosColTex);
 		graphicsPipelines = pipelineFactory->getVkPipelines();
-		pipelineLayout = pipelineFactory->getEngPipelines().at(0).getPipelineLayout();
+		pipelineLayout = pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosColTex);
 		createCommandPool();
 		createDepthResources();
 		createFramebuffers();
@@ -1152,7 +1153,7 @@ private:
 		renderPassInfo.pClearValues = clearValues.data();
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines.at(0));
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines.at(static_cast<size_t>(ENG_SHADER::PosColTex)));
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
@@ -1177,6 +1178,9 @@ private:
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer[0], 0, VK_INDEX_TYPE_UINT32);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+
+		//assert(graphicsPipelines.size() >= 2);
+		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines.at(1));
 
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 

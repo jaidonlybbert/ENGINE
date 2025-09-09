@@ -6,7 +6,7 @@ set(ENG_PUBLISHER "ENGINE_PUBLISHER")
 set(ENG_PROJECT_NAME "ENGINE")
 set(ENG_PROJECT_VERSION "0.0.1")
 
-cmake_minimum_required(VERSION 3.28.3)
+cmake_minimum_required(VERSION 3.25.1)
 
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_CURRENT_SOURCE_DIR}/build/generators/conan_toolchain.cmake"
 	CACHE STRING "Conan toolchain file")
@@ -66,7 +66,7 @@ configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
 
 file(GLOB IMGUI_SOURCES "${PROJECT_SOURCE_DIR}/third_party/imgui/*.cpp")
 file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
-add_executable(Engine ${SOURCE_FILES} ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
+add_executable(Engine ${SOURCE_FILES} ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp "src/pipelines/Pipeline_PosColTex.cpp" "include/pipelines/Pipeline_PosColTex.hpp")
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)

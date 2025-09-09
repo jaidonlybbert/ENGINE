@@ -1,9 +1,9 @@
 {
-  "version": 10,
+  "version": 5,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 28,
-    "patch": 3
+    "minor": 25,
+    "patch": 1
   },
   "include": [
     "build/generators/CMakePresets.json"
