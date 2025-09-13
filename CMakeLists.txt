@@ -97,7 +97,7 @@ target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui/backends")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/tinygltf")
-target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/include/pipelines" "${PROJECT_SOURCE_DIR}/include/primitives")
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/include/pipelines" "${PROJECT_SOURCE_DIR}/include/primitives" "${PROJECT_SOURCE_DIR}/include/interfaces")
 
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
