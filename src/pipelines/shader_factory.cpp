@@ -48,10 +48,10 @@ VkPipelineShaderStageCreateInfo createDefaultStage(const VkShaderModule* module,
 
 void ShaderFactory::get_filepaths() {
 	filepaths = {
-		get_install_dir() / "shaders" / "posColTexVert.vert.spv",
-		get_install_dir() / "shaders" / "posColTexFrag.frag.spv",
-		get_install_dir() / "shaders" / "posNorTexVert.vert.spv",
-		get_install_dir() / "shaders" / "posNorTexFrag.frag.spv"
+		ENG::get_install_dir() / "shaders" / "posColTexVert.vert.spv",
+		ENG::get_install_dir() / "shaders" / "posColTexFrag.frag.spv",
+		ENG::get_install_dir() / "shaders" / "posNorTexVert.vert.spv",
+		ENG::get_install_dir() / "shaders" / "posNorTexFrag.frag.spv"
 	};
 }
 

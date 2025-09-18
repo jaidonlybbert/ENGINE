@@ -7,3 +7,7 @@
 #define PROJECT_NAME_AND_VERSION "@PROJECT_NAME_AND_VERSION@"
 #define WIN_REGISTRY_INSTALL_DIR "SOFTWARE\\@ENG_PUBLISHER@\\@PROJECT_NAME_AND_VERSION@"
 #define Engine_INSTALL_DIR "@Engine_INSTALL_DIR@"
+#define MAX_FRAMES_IN_FLIGHT static_cast<uint32_t>(2)
+#define WIDTH static_cast<uint32_t>(800)
+#define HEIGHT static_cast<uint32_t>(600)
+#define ENABLE_VALIDATION_LAYERS true

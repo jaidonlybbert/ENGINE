@@ -2,6 +2,9 @@
 #include "interfaces/FilesystemInterface.hpp"
 #include "EngineConfig.h"
 
+namespace ENG
+{
+
 const std::filesystem::path& get_install_dir() {
 	static const std::filesystem::path& install_dir{Engine_INSTALL_DIR};
 	return install_dir;
@@ -22,3 +25,4 @@ const std::filesystem::path& get_gltf_dir() {
 	return gltf_dir;
 }
 
+}
