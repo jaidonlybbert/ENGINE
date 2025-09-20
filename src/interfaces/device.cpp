@@ -1,4 +1,5 @@
 #include<set>
+#include<stdexcept>
 #include "interfaces/device.h"
 #include "interfaces/PhysicalDevice.h"
 

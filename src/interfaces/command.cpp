@@ -1,3 +1,4 @@
+#include<stdexcept>
 #include "interfaces/command.h"
 #include "interfaces/PhysicalDevice.h"
 
