@@ -1,3 +1,4 @@
+#include<set>
 #include "interfaces/device.h"
 #include "interfaces/PhysicalDevice.h"
 
@@ -9,8 +10,7 @@ void Device::createLogicalDevice(const VkSurfaceKHR &surface, const VkPhysicalDe
 	QueueFamilyIndices indices = PhysicalDevice::findQueueFamilies(physicalDevice, surface);
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(),
-		indices.presentFamily.value()};
+	std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
 	float queuePriority = 1.0f;
 	for (uint32_t queueFamily : uniqueQueueFamilies) {
