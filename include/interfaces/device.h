@@ -2,6 +2,7 @@
 #define ENG_DEVICE
 #include<vulkan/vulkan.h>
 #include<vector>
+#include<stdexcept>
 
 #include "EngineConfig.h"
 

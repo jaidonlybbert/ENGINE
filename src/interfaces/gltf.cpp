@@ -51,7 +51,11 @@ bool load_gltf_model(const std::filesystem::path gltf_path, tinygltf::Model& mod
 	return ret;
 }
 
-void load_gltf_mesh_attributes(const std::string& mesh_name,
+void load_gltf_mesh_attributes(const VkDevice &device, 
+			       const VkPhysicalDevice &physicalDevice,
+			       const VkQueue &graphicsQueue,
+			       ENG::Command* const commands,
+			       const std::string& mesh_name,
 			       const tinygltf::Model& model,
 			       const tinygltf::Node& node,
 			       const tinygltf::Primitive& primitive,
@@ -69,17 +73,25 @@ void load_gltf_mesh_attributes(const std::string& mesh_name,
 	if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("COLOR0")
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
-		sceneState.posColTexMeshes.push_back(Mesh<VertexPosColTex>(mesh_name, model, primitive));
+		sceneState.posColTexMeshes.push_back(Mesh<VertexPosColTex>(device, physicalDevice, commands,  mesh_name,  model,
+						      primitive, graphicsQueue));
 	}
 	else if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("NORMAL")
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
-		sceneState.posNorTexMeshes.push_back(Mesh<VertexPosNorTex>(mesh_name, model, primitive));
+		std::cout << "posnortex debug: " << mesh_name << std::endl;
+		sceneState.posNorTexMeshes.push_back(Mesh<VertexPosNorTex>(device, physicalDevice, commands,  mesh_name,  model,
+						      primitive, graphicsQueue));
 	}
 }
 
-
-void load_gltf_node(const tinygltf::Node& node, SceneState& sceneState) {
+void load_gltf_node(const VkDevice &device,
+		    const VkPhysicalDevice &physicalDevice,
+		    const VkQueue &graphicsQueue,
+		    ENG::Command* const commands, 
+		    const tinygltf::Node& node, 
+		    SceneState& sceneState)
+{
 	const auto& model = sceneState.scene;
 
 	if (node.mesh < 0) return;
@@ -88,11 +100,17 @@ void load_gltf_node(const tinygltf::Node& node, SceneState& sceneState) {
 	for (const auto& primitive : gltf_mesh.primitives)
 	{
 		const auto& mesh_name = gltf_mesh.name;
-		load_gltf_mesh_attributes(mesh_name, model, node, primitive, sceneState);
+		load_gltf_mesh_attributes(device, physicalDevice, graphicsQueue, commands, mesh_name, model, node, primitive, sceneState);
 	}
 }
 
-bool load_gltf(const std::filesystem::path gltf_path, SceneState& sceneState) {
+bool load_gltf(const VkDevice &device,
+	       const VkPhysicalDevice &physicalDevice,
+	       const VkQueue &graphicsQueue, 
+	       ENG::Command* const commands, 
+	       const std::filesystem::path gltf_path, 
+	       SceneState& sceneState) 
+{
 	auto& model = sceneState.scene;
 	if (!load_gltf_model(gltf_path, model)) {
 		return false;
@@ -106,7 +124,7 @@ bool load_gltf(const std::filesystem::path gltf_path, SceneState& sceneState) {
 			sceneState.activeCameraNodeIdx = idx;
 			std::cout << "Camera node set" << std::endl;
 		}
-		load_gltf_node(node, sceneState);
+		load_gltf_node(device, physicalDevice, graphicsQueue, commands, node, sceneState);
 		++idx;
 	}
 

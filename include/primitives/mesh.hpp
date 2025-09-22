@@ -3,8 +3,13 @@
 
 #include<vector>
 #include<string>
+#include<iostream>
+#include<memory>
+#include<cstring>
 #include "vulkan/vulkan_core.h"
 #include "glm/glm.hpp"
+#include "interfaces/buffer.h"
+#include "interfaces/command.h"
 
 namespace tinygltf {
 class Accessor;
@@ -36,31 +41,90 @@ template <typename T>
 class Mesh : Component {
 
 public:
-	Mesh() {}
-	Mesh(std::string name, std::vector<T> vertices, std::vector<uint32_t> indices) : name(name), vertices(vertices), indices(indices) {}
-	Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
+Mesh() {}
+Mesh(const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands,
+      std::string name, std::vector<T> vertices, std::vector<uint32_t> indices, const VkQueue &graphicsQueue
+      ) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue) {}
 
-	std::string name{};
-	std::vector<T> vertices{};
-	std::vector<uint32_t> indices{};
+Mesh(const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands, const std::string& mesh_name, const tinygltf::Model& model,
+     const tinygltf::Primitive& primitive, const VkQueue &graphicsQueue) : name(mesh_name), device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {}
 
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(T);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+std::string name{};
+std::vector<T> vertices{};
+std::vector<uint32_t> indices{};
+std::unique_ptr<ENG::Buffer> vertexBuffer;
+std::unique_ptr<ENG::Buffer> indexBuffer;
+const VkDevice& device;
+const VkPhysicalDevice& physicalDevice;
+ENG::Command* const commands;
+const VkQueue& graphicsQueue;
 
-		return bindingDescription;
+static VkVertexInputBindingDescription getBindingDescription() {
+	VkVertexInputBindingDescription bindingDescription{};
+	bindingDescription.binding = 0;
+	bindingDescription.stride = sizeof(T);
+	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	return bindingDescription;
+}
+
+static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+
+void createVertexBuffer(const VkQueue &graphicsQueue)
+{
+	std::cout << "Entering create vertex buffer" << std::endl;
+	const auto vert_size = sizeof(vertices[0]);
+	const VkDeviceSize bufferSize = vert_size * vertices.size();
+
+	const ENG::Buffer stagingBuffer{device, physicalDevice, bufferSize,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
+
+	void* data;
+	vkMapMemory(device, stagingBuffer.bufferMemory, 0, bufferSize, 0, &data);
+	char* last_byte = (char*) data + bufferSize;
+	size_t buffSize = (size_t) vert_size * vertices.size();
+	assert((char*)data + buffSize <= last_byte);
+	memcpy(data, vertices.data(), buffSize);
+	data = (char*) data + buffSize;
+	vkUnmapMemory(device, stagingBuffer.bufferMemory);
+
+	vertexBuffer = std::make_unique<ENG::Buffer>(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	if (commands == nullptr)
+	{
+		std::cout << "mesh.hpp - commands is nullptr!" << std::endl;
+		return;
 	}
+	commands->copyBuffer(graphicsQueue, stagingBuffer.buffer, vertexBuffer->buffer, bufferSize);
+	std::cout << "Vertex buffer created successfully" << std::endl;
+}
 
-	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
+void createIndexBuffer(const VkQueue &graphicsQueue)
+{
+	size_t idx_size = sizeof(indices[0]);
+	VkDeviceSize bufferSize = idx_size * indices.size();
+	std::cout << "buffer size: " << bufferSize << std::endl;
+
+	const ENG::Buffer stagingBuffer{device, physicalDevice, bufferSize,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
+
+	void* data;
+	vkMapMemory(device, stagingBuffer.bufferMemory, 0, bufferSize, 0, &data);
+	char* last_byte = (char*) data + bufferSize;
+	size_t buffSize = (size_t) idx_size * indices.size();
+	assert((char*)data + buffSize <= last_byte);
+	memcpy(data, indices.data(), buffSize);
+	data = (char*) data + buffSize;
+	vkUnmapMemory(device, stagingBuffer.bufferMemory);
+
+	indexBuffer = std::make_unique<ENG::Buffer>(device, physicalDevice, bufferSize,
+				      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	commands->copyBuffer(graphicsQueue, stagingBuffer.buffer, indexBuffer->buffer, bufferSize);
+
+	std::cout << "idx buffer created successfully" << std::endl;
+}
 };
 
-// template class Mesh<VertexPosColTex>;
-// template class Mesh<VertexPosNorTex>;
-// template<> Mesh<VertexPosColTex>::Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
-// template<> Mesh<VertexPosNorTex>::Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
-// template<> std::vector<VkVertexInputAttributeDescription> Mesh<VertexPosColTex>::getAttributeDescriptions();
-// template<> std::vector<VkVertexInputAttributeDescription> Mesh<VertexPosNorTex>::getAttributeDescriptions();
 
 #endif

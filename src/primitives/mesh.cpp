@@ -12,11 +12,15 @@ static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& ac
 	return tinygltf::GetNumComponentsInType(type) * tinygltf::GetComponentSizeInBytes(ctype);
 }
 
-template class Mesh<VertexPosColTex>;
-template class Mesh<VertexPosNorTex>;
-
 template<>
-Mesh<VertexPosColTex>::Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive) {
+Mesh<VertexPosColTex>::Mesh(const VkDevice& device, 
+			    const VkPhysicalDevice &physicalDevice, 
+			    ENG::Command* const commands,
+			    const std::string& mesh_name, 
+			    const tinygltf::Model& model,
+			    const tinygltf::Primitive& primitive, 
+			    const VkQueue &graphicsQueue) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {
+	std::cout << "debug PosColTex mesh entry" << std::endl;
 	const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
 	const auto& col_acc = model.accessors[primitive.attributes.at("COLOR0")];
 	const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
@@ -48,6 +52,7 @@ Mesh<VertexPosColTex>::Mesh(const std::string& mesh_name, const tinygltf::Model&
 	assert(num_elements == tex_bv.byteLength / tex_size);
 	assert(num_elements == ind_bv.byteLength / ind_size);
 
+	std::cout << "Debug posCoTex pos1 " << std::endl;
 	name = mesh_name;
 	vertices.resize(num_elements);
 	indices.resize(num_indices);
@@ -68,10 +73,22 @@ Mesh<VertexPosColTex>::Mesh(const std::string& mesh_name, const tinygltf::Model&
 	{
 		indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
 	}
+	
+	std::cout << "Debug posCoTex pos2" << std::endl;
+
+	createVertexBuffer(graphicsQueue);
+	createIndexBuffer(graphicsQueue);
+
 }
 
 template<>
-Mesh<VertexPosNorTex>::Mesh(const std::string& mesh_name, const tinygltf::Model& model, const tinygltf::Primitive& primitive) {
+Mesh<VertexPosNorTex>::Mesh(const VkDevice& device, 
+			    const VkPhysicalDevice &physicalDevice, 
+			    ENG::Command* const commands,
+			    const std::string& mesh_name, 
+			    const tinygltf::Model& model,
+			    const tinygltf::Primitive& primitive, 
+			    const VkQueue &graphicsQueue) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {
 	const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
 	const auto& nor_acc = model.accessors[primitive.attributes.at("NORMAL")];
 	const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
@@ -122,6 +139,9 @@ Mesh<VertexPosNorTex>::Mesh(const std::string& mesh_name, const tinygltf::Model&
 	{
 		indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
 	}
+
+	createVertexBuffer(graphicsQueue);
+	createIndexBuffer(graphicsQueue);
 }
 
 template<>

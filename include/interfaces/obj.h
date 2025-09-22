@@ -1,5 +1,11 @@
+#include<filesystem>
+#include "vulkan/vulkan_core.h"
+#include "interfaces/command.h"
+
 namespace ENG
 {
 struct SceneState;
-void loadModel(SceneState &sceneState);
+void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands,
+      std::string name, const VkQueue &graphicsQueue,
+      const std::filesystem::path &filepath, SceneState &sceneState);
 } // end namespace

@@ -8,7 +8,9 @@
 namespace ENG
 {
 
-void loadModel(SceneState &sceneState) {
+void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands,
+      std::string name, const VkQueue &graphicsQueue,
+      const std::filesystem::path &filepath, SceneState &sceneState) {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
@@ -16,7 +18,7 @@ void loadModel(SceneState &sceneState) {
 	std::vector<VertexPosColTex> vertices;
 	std::vector<uint32_t> indices;
 
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, get_model_dir().string().c_str())) {
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.string().c_str())) {
 		throw std::runtime_error(warn + err);
 	}
 
@@ -42,9 +44,7 @@ void loadModel(SceneState &sceneState) {
 		}
 	}
 
-	const auto& meshName = std::string("Room");
-	const auto& mesh = Mesh<VertexPosColTex>(meshName, vertices, indices);
-	sceneState.posColTexMeshes.push_back(mesh);
+	sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, name, vertices, indices, graphicsQueue);
 }
 
 } // end namespace

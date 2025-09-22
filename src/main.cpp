@@ -47,6 +47,7 @@
 #include "interfaces/scene.h"
 #include "interfaces/gltf.h"
 #include "interfaces/Instance.h"
+#include "interfaces/buffer.h"
 
 using namespace ENG;
 
@@ -117,29 +118,7 @@ public:
 		vkDestroyImageView(device, textureImageView, nullptr);
 		vkDestroyImage(device, textureImage, nullptr);
 		vkFreeMemory(device, textureImageMemory, nullptr);
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vkDestroyBuffer(device, uniformBuffers[i], nullptr);
-			vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
-		}
-
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-
-		for (auto& buffer : indexBuffer) {
-			vkDestroyBuffer(device, buffer, nullptr);
-		}
-
-		for (auto& bufferMemory : indexBufferMemory) {
-			vkFreeMemory(device, bufferMemory, nullptr);
-		}
-
-		for (auto& buffer : vertexBuffer) {
-			vkDestroyBuffer(device, buffer, nullptr);
-		}
-
-		for (auto& bufferMemory : vertexBufferMemory) {
-			vkFreeMemory(device, bufferMemory, nullptr);
-		}
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -147,9 +126,7 @@ public:
 			vkDestroyFence(device, inFlightFences[i], nullptr);
 		}
 
-		vkDestroyCommandPool(device, commands->commandPool, nullptr);
-
-		// Calls destructors for pipelines/shaders
+		commands.reset();
 		pipelineFactory.reset();
 
 		if (enableValidationLayers) {
@@ -201,34 +178,7 @@ public:
 	}
 
 
-	void loadMeshesToVkBuffer(SceneState& sceneState) {
-		ENG::loadModel(sceneState);
-
-		if (sceneState.posColTexMeshes.size() > 0)
-		{
-			std::cout << "Loading VkBuffers for posColTex meshes of size " << sceneState.posColTexMeshes.size() << std::endl;
-			auto& posColTexVertexVkBuffer = vertexBuffer.emplace_back();
-			auto& posColTexVertexVkBufferMemory = vertexBufferMemory.emplace_back();
-			auto& posColTexIndexVkBuffer = indexBuffer.emplace_back();
-			auto& posColTexIndexVkBufferMemory = indexBufferMemory.emplace_back();
-			createVertexBuffer(sceneState.posColTexMeshes, posColTexVertexVkBuffer, posColTexVertexVkBufferMemory);
-			createIndexBuffer(sceneState.posColTexMeshes, posColTexIndexVkBuffer, posColTexIndexVkBufferMemory);
-		}
-
-		if (sceneState.posNorTexMeshes.size() > 0)
-		{
-			std::cout << "Creating VkBuffers for posNorTex meshes of size " << sceneState.posColTexMeshes.size() << std::endl;
-			auto& posNorTexVertexVkBuffer = vertexBuffer.emplace_back();
-			auto& posNorTexVertexVkBufferMemory = vertexBufferMemory.emplace_back();
-			auto& posNorTexIndexVkBuffer = indexBuffer.emplace_back();
-			auto& posNorTexIndexVkBufferMemory = indexBufferMemory.emplace_back();
-			createVertexBuffer(sceneState.posNorTexMeshes, posNorTexVertexVkBuffer, posNorTexVertexVkBufferMemory);
-			createIndexBuffer(sceneState.posNorTexMeshes, posNorTexIndexVkBuffer, posNorTexIndexVkBufferMemory);
-		}
-	}
-
 	SceneState sceneState;
-private:
 	GLFWwindow* window;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device;
@@ -241,12 +191,7 @@ private:
 	std::vector<VkFence> inFlightFences;
 	bool framebufferResized = false;
 	uint32_t currentFrame = 0;
-	std::vector<VkBuffer> vertexBuffer;
-	std::vector<VkDeviceMemory> vertexBufferMemory;
-	std::vector<VkBuffer> indexBuffer;
-	std::vector<VkDeviceMemory> indexBufferMemory;
-	std::vector<VkBuffer> uniformBuffers;
-	std::vector<VkDeviceMemory> uniformBuffersMemory;
+	std::vector<ENG::Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorPool imguiPool;
@@ -492,11 +437,11 @@ private:
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosColTex),
 			  0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
-		VkBuffer vertexBuffers[] = {vertexBuffer[0]};
+		VkBuffer vertexBuffers[] = {mesh.vertexBuffer->buffer};
 		VkDeviceSize offsets[] = {0};
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-		vkCmdBindIndexBuffer(commandBuffer, indexBuffer[0], 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
 
 		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
 
@@ -594,211 +539,16 @@ private:
 		}
 	}
 
-	template <typename T>
-	void createVertexBuffer(const std::vector<Mesh<T>> &meshes, VkBuffer &vertexBuffer, VkDeviceMemory &vertexBufferMemory)
-	{
-		const auto vert_size = sizeof(meshes[0].vertices[0]);
-		VkDeviceSize bufferSize = vert_size * meshes[0].vertices.size();
-		if (meshes.size() > 1)
-		{
-			for (auto mesh_it = meshes.begin() + 1; mesh_it != meshes.end(); ++mesh_it)
-			{
-				bufferSize += vert_size * mesh_it->vertices.size();
-			}
-		}
-
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-		void* data;
-		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		char* last_byte = (char*) data + bufferSize;
-		for (const auto& mesh : meshes)
-		{
-			size_t buffSize = (size_t) vert_size * mesh.vertices.size();
-			assert((char*)data + buffSize <= last_byte);
-			memcpy(data, mesh.vertices.data(), buffSize);
-			data = (char*) data + buffSize;
-		}
-		vkUnmapMemory(device, stagingBufferMemory);
-
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-		copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
-		std::cout << "Vertex buffer created successfully" << std::endl;
-	}
-
-	template <typename T>
-	void createIndexBuffer(const std::vector<Mesh<T>> &meshes, VkBuffer &indexBuffer, VkDeviceMemory &indexBufferMemory)
-	{
-		size_t idx_size = sizeof(meshes[0].indices[0]);
-		VkDeviceSize bufferSize = idx_size * meshes[0].indices.size();
-		if (meshes.size() > 1)
-		{
-			for (auto mesh_it = meshes.begin() + 1; mesh_it != meshes.end(); ++mesh_it)
-			{
-				std::cout << "Iterating meshes total length" << std::endl;
-				bufferSize += idx_size * mesh_it->indices.size();
-			}
-		}
-		std::cout << "buffer size: " << bufferSize << std::endl;
-
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-		void* data;
-		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		char* last_byte = (char*) data + bufferSize;
-		for (const auto& mesh : meshes)
-		{
-			size_t buffSize = (size_t) idx_size * mesh.indices.size();
-			assert((char*)data + buffSize <= last_byte);
-			memcpy(data, mesh.indices.data(), buffSize);
-			data = (char*) data + buffSize;
-		}
-		vkUnmapMemory(device, stagingBufferMemory);
-
-		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-		copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
-		std::cout << "idx buffer created successfully" << std::endl;
-	}
-
-
-	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
-		VkBufferCreateInfo bufferInfo{};
-		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferInfo.size = size;
-		bufferInfo.usage = usage;
-		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create buffer!");
-		}
-
-		VkMemoryRequirements memRequirements;
-		vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
-
-		VkMemoryAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		allocInfo.allocationSize = memRequirements.size;
-		allocInfo.memoryTypeIndex = Device::findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
-
-		if (vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-			throw std::runtime_error("failed to allocate buffer memory!");
-		}
-
-		vkBindBufferMemory(device, buffer, bufferMemory, 0);
-	}
-
-	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-		VkCommandBuffer commandBuffer = commands->beginSingleTimeCommands(device);
-
-		VkBufferCopy copyRegion{};
-		copyRegion.size = size;
-		vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-		commands->endSingleTimeCommands(device, graphicsQueue, commandBuffer);
-	}
-
-	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-		VkCommandBuffer commandBuffer = commands->beginSingleTimeCommands(device);
-
-		VkBufferImageCopy region{};
-		region.bufferOffset = 0;
-		region.bufferRowLength = 0;
-		region.bufferImageHeight = 0;
-
-		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.imageSubresource.mipLevel = 0;
-		region.imageSubresource.baseArrayLayer = 0;
-		region.imageSubresource.layerCount = 1;
-
-		region.imageOffset = {0, 0, 0};
-		region.imageExtent = {
-			width,
-			height,
-			1
-		};
-
-		vkCmdCopyBufferToImage(
-			commandBuffer,
-			buffer,
-			image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			1,
-			&region
-		);
-
-		commands->endSingleTimeCommands(device, graphicsQueue, commandBuffer);
-	}
-
-	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
-		VkCommandBuffer commandBuffer = commands->beginSingleTimeCommands(device);
-
-		VkImageMemoryBarrier barrier{};
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.oldLayout = oldLayout;
-		barrier.newLayout = newLayout;
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image = image;
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
-
-		VkPipelineStageFlags sourceStage;
-		VkPipelineStageFlags destinationStage;
-
-		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-			barrier.srcAccessMask = 0;
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		} else {
-			throw std::invalid_argument("unsupported layout transition!");
-		}
-
-		vkCmdPipelineBarrier(
-			commandBuffer,
-			sourceStage, destinationStage,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier
-		);
-
-		commands->endSingleTimeCommands(device, graphicsQueue, commandBuffer);
-	}
-
-
 	void createUniformBuffers() {
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-		uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-		uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
 		uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+			uniformBuffers.emplace_back(device, physicalDevice, bufferSize,
+			       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-			vkMapMemory(device, uniformBuffersMemory[i], 0, bufferSize, 0, &uniformBuffersMapped[i]);
+			vkMapMemory(device, uniformBuffers[i].bufferMemory, 0, bufferSize, 0, &uniformBuffersMapped[i]);
 		}
 	}
 
@@ -868,7 +618,7 @@ private:
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = uniformBuffers[i];
+			bufferInfo.buffer = uniformBuffers[i].buffer;
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -908,14 +658,13 @@ private:
 			throw std::runtime_error("failed to load texture image!");
 		}
 
-		VkBuffer stagingBuffer;
-		VkDeviceMemory stagingBufferMemory;
-		createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+		const ENG::Buffer stagingBuffer(device, physicalDevice, imageSize, 
+				  VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		void* data;
-		vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+		vkMapMemory(device, stagingBuffer.bufferMemory, 0, imageSize, 0, &data);
 		memcpy(data, pixels, static_cast<size_t>(imageSize));
-		vkUnmapMemory(device, stagingBufferMemory);
+		vkUnmapMemory(device, stagingBuffer.bufferMemory);
 
 		stbi_image_free(pixels);
 
@@ -931,12 +680,9 @@ private:
 			textureImage, 
 			textureImageMemory);
 
-		transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-		transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		vkDestroyBuffer(device, stagingBuffer, nullptr);
-		vkFreeMemory(device, stagingBufferMemory, nullptr);
+		commands->transitionImageLayout(graphicsQueue, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		commands->copyBufferToImage(graphicsQueue, stagingBuffer.buffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+		commands->transitionImageLayout(graphicsQueue, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
 
 	void createTextureImageView() {
@@ -1064,9 +810,9 @@ int main() {
 		std::cout << app;
 
 		// std::cout << "GLTF path: " << gltf_dir.native().c_str() << std::endl;
-		load_gltf(get_gltf_dir(), app.sceneState);
-		
-		app.loadMeshesToVkBuffer(app.sceneState);
+		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState);
+		const auto& meshName = std::string("Room");
+		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState);
 
 		std::cout << "PosColTex Meshes loaded:" << std::endl;
 		for (const auto& mesh : app.sceneState.posColTexMeshes)
