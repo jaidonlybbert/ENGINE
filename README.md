@@ -20,9 +20,11 @@ This code is for my own benefit to use as a baseline for application development
 - KB+M Input
 - ImGUI integration
 
-# Supported Platforms
-- arm64-osx
-- x64-windows
+# Tested Compilers & Platforms
+These are the platforms I routinely build on and actively maintain
+- arm64-appleclang-osx
+- x86_64-msvc-windows
+- x86_64-gcc-ubuntu
 
 # Recommended Build Instructions
 There are many ways you can build this, at the end of the day it's a CMake project. I've chosen to use conda, python, and conan to manage dependencies for cross-platform support.

@@ -443,15 +443,11 @@ private:
 	}
 
 
-	
-
 	void createSurface() {
 		if (glfwCreateWindowSurface(instanceFactory->instance, window, nullptr, &surface) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create window surface!");
 		}
 	}
-
-
 
 
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh<VertexPosColTex> &mesh) {
