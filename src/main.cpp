@@ -153,12 +153,12 @@ public:
 		pipelineFactory.reset();
 
 		if (enableValidationLayers) {
-			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+			ENG::InstanceFactory::DestroyDebugUtilsMessengerEXT(instanceFactory->instance, instanceFactory->debugMessenger, nullptr);
 		}
 
-		vkDestroySurfaceKHR(instance, surface, nullptr);
+		vkDestroySurfaceKHR(instanceFactory->instance, surface, nullptr);
 		vkDestroyDevice(device, nullptr);
-		vkDestroyInstance(instance, nullptr);
+		vkDestroyInstance(instanceFactory->instance, nullptr);
 		glfwDestroyWindow(window);
 		glfwTerminate();
 	}
@@ -191,7 +191,7 @@ public:
 		}
 
 		// Print used extensions
-		auto enabledExtensions = app.getRequiredExtensions();
+		auto enabledExtensions = app.instanceFactory->getRequiredExtensions();
 
 		std::cout << "Enabled Vulkan Extensions:" << std::endl;
 		for (auto extension : enabledExtensions) {
