@@ -18,7 +18,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <chrono>
-#include "vulkan/vulkan.hpp"
+#include "vulkan/vulkan_core.h"
 #include "GLFW/glfw3.h"
 #include "EngineConfig.h"
 
@@ -46,12 +46,9 @@
 #include "interfaces/obj.h"
 #include "interfaces/scene.h"
 #include "interfaces/gltf.h"
+#include "interfaces/Instance.h"
 
 using namespace ENG;
-
-const std::vector<const char*> validationLayers = {
-	"VK_LAYER_KHRONOS_validation"
-};
 
 class Camera : Component {
 public:
@@ -71,12 +68,6 @@ struct UniformBufferObject {
     glm::mat4 proj;
 };
 
-#ifdef NDEBUG
-	const bool enableValidationLayers = false;
-#else
-	const bool enableValidationLayers = true;
-#endif
-
 static void check_vk_result(VkResult err)
 {
     if (err == VK_SUCCESS)
@@ -84,29 +75,6 @@ static void check_vk_result(VkResult err)
     fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
     if (err < 0)
         abort();
-}
-
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 
-		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
-		const VkAllocationCallbacks* pAllocator, 
-		VkDebugUtilsMessengerEXT* pDebugMessenger) {
-	auto func = (PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, 
-			"vkCreateDebugUtilsMessengerEXT");
-	if (func != nullptr) {
-		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-	} else {
-		return VK_ERROR_EXTENSION_NOT_PRESENT;
-	}
-}
-
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, 
-		VkDebugUtilsMessengerEXT debugMessenger, 
-		const VkAllocationCallbacks* pAllocator) {
-	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
-			"vkDestroyDebugUtilsMessengerEXT");
-	if (func != nullptr) {
-		func(instance, debugMessenger, pAllocator);
-	}
 }
 
 class VulkanTemplateApp {
@@ -262,17 +230,12 @@ public:
 	SceneState sceneState;
 private:
 	GLFWwindow* window;
-	VkInstance instance;
-	VkDebugUtilsMessengerEXT debugMessenger;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device;
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 	VkSurfaceKHR surface;
 	VkRenderPass renderPass;
-	VkDescriptorSetLayout descriptorSetLayout;
-	VkPipelineLayout pipelineLayout;
-	std::vector<VkPipeline> graphicsPipelines;
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
@@ -292,6 +255,7 @@ private:
 	VkDeviceMemory textureImageMemory;
 	VkImageView textureImageView;
 	VkSampler textureSampler;
+	std::unique_ptr<ENG::InstanceFactory> instanceFactory;
 	std::unique_ptr<ENG::PipelineFactory> pipelineFactory;
 	std::unique_ptr<ENG::Command> commands;
 	std::unique_ptr<ENG::Swapchain> swapchain;
@@ -441,17 +405,15 @@ private:
 	}
 
 	void initVulkan() {
-		createInstance();
-		setupDebugMessenger();
+		instanceFactory = std::make_unique<ENG::InstanceFactory>();
+		instanceFactory->createInstance();
+		instanceFactory->setupDebugMessenger();
 		createSurface();
-		ENG::PhysicalDevice::pickPhysicalDevice(instance, physicalDevice, surface);
+		ENG::PhysicalDevice::pickPhysicalDevice(instanceFactory->instance, physicalDevice, surface);
 		ENG::Device::createLogicalDevice(surface, physicalDevice, validationLayers, graphicsQueue, presentQueue, device);
 		swapchain = std::make_unique<Swapchain>(physicalDevice, surface, device, *window);
 		pipelineFactory = std::make_unique<ENG::PipelineFactory>(device, swapchain->swapChainImageFormat, findDepthFormat(physicalDevice));
 		renderPass = pipelineFactory->getRenderPass();
-		descriptorSetLayout = pipelineFactory->getDescriptorSetLayout(ENG_SHADER::PosColTex);
-		graphicsPipelines = pipelineFactory->getVkPipelines();
-		pipelineLayout = pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosColTex);
 		commands = std::make_unique<Command>(physicalDevice, device, surface); // creates command pool
 		createDepthResources(device, physicalDevice, swapchain->swapChainExtent, swapchain->depthImage, swapchain->depthImageMemory, swapchain->depthImageView);
 		swapchain->createFramebuffers(renderPass, device);
@@ -484,162 +446,11 @@ private:
 	
 
 	void createSurface() {
-		if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+		if (glfwCreateWindowSurface(instanceFactory->instance, window, nullptr, &surface) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create window surface!");
 		}
 	}
 
-	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
-		createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
-			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-		createInfo.pfnUserCallback = debugCallback;
-		createInfo.pUserData = nullptr;
-	}
-
-	void setupDebugMessenger() {
-		if (!enableValidationLayers) return;
-
-		VkDebugUtilsMessengerCreateInfoEXT createInfo;
-		populateDebugMessengerCreateInfo(createInfo);
-		if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != 
-				VK_SUCCESS) {
-			throw std::runtime_error("failed to setup debug messenger!");
-		}
-	}
-
-	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		void* pUserData) {
-
-		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
-		return VK_FALSE;
-	}
-
-	void createInstance() {
-
-		if (enableValidationLayers && !checkValidationLayerSupport()) {
-			throw std::runtime_error("validation layers requested, but not available!");
-		}
-		
-		// Vulkan App Info
-		VkApplicationInfo appInfo{};
-		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pApplicationName = "Vulkan Template";
-		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = Engine_NAME;
-		appInfo.engineVersion = VK_MAKE_VERSION(Engine_VERSION_MAJOR, 
-				Engine_VERSION_MINOR, Engine_VERSION_PATCH);
-		appInfo.apiVersion = VK_API_VERSION_1_0;
-
-		// Vulkan Instance Info
-		VkInstanceCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		createInfo.pApplicationInfo = &appInfo;
-
-		// Add Vulkan extensions required to Instance info
-		auto extensions = getRequiredExtensions();
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-		createInfo.ppEnabledExtensionNames = extensions.data();
-
-		// Add validation layers to instance info
-		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-		if (enableValidationLayers) {
-			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			createInfo.ppEnabledLayerNames = validationLayers.data();
-			populateDebugMessengerCreateInfo(debugCreateInfo);
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
-		} else {
-			createInfo.enabledLayerCount = 0;
-			createInfo.pNext = nullptr;
-		}
-
-#if (defined(__APPLE__))
-		// Added to support MoltenVK for macOS
-		createInfo.flags = createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif
-		
-		// Create instance
-		if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create instance!");
-		}
-		
-	}
-
-	std::vector<const char*> getRequiredExtensions() {
-		uint32_t glfwExtensionCount = 0;
-		const char** glfwExtensions;
-		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-		std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-		
-		if (enableValidationLayers) {
-			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		}
-
-
-#if (defined(__APPLE__))
-		extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-		extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-#endif
-
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)
-		active_instance_extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_WIN32_KHR)
-		active_instance_extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_METAL_EXT)
-		active_instance_extensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-		active_instance_extensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_XLIB_KHR)
-		active_instance_extensions.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-		active_instance_extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_DISPLAY_KHR)
-		active_instance_extensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
-#endif
-		return extensions;
-	}
-
-	bool checkValidationLayerSupport() {
-		uint32_t layerCount;
-		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-		std::vector<VkLayerProperties> availableLayers(layerCount);
-		vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-		std::cout << "Available layers: " << std::endl;
-		for (const auto& layerProperties: availableLayers)
-		{
-			std::cout << layerProperties.layerName << std::endl;
-		}
-
-		for (const char* layerName : validationLayers) {
-			bool layerFound = false;
-			for (const auto& layerProperties: availableLayers) {
-				if (strcmp(layerName, layerProperties.layerName) == 0) {
-					std::cout << "Layer found: " << layerName << std::endl;
-					layerFound = true;
-					break;
-				}
-			}
-
-			if (!layerFound) {
-				std::cout << "Layer not found: " << layerName << std::endl;
-				return false;
-			}
-		}
-	
-		return true;
-	}
 
 
 
@@ -682,7 +493,8 @@ private:
 		scissor.extent = swapchain->swapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosColTex),
+			  0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
 		VkBuffer vertexBuffers[] = {vertexBuffer[0]};
 		VkDeviceSize offsets[] = {0};
@@ -1046,7 +858,7 @@ private:
 	}
 
 	void createDescriptorSets() {
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory->getDescriptorSetLayout(ENG_SHADER::PosColTex));
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = descriptorPool;
@@ -1206,7 +1018,7 @@ private:
 		// Setup Platform/Renderer backends
 		ImGui_ImplGlfw_InitForVulkan(window, true);
 		ImGui_ImplVulkan_InitInfo init_info = {};
-		init_info.Instance = instance;
+		init_info.Instance = instanceFactory->instance;
 		init_info.PhysicalDevice = physicalDevice;
 		init_info.Device = device;
 		init_info.QueueFamily = indices.graphicsFamily.value();
