@@ -73,14 +73,14 @@ void load_gltf_mesh_attributes(const VkDevice &device,
 	if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("COLOR0")
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
-		sceneState.posColTexMeshes.push_back(Mesh<VertexPosColTex>(device, physicalDevice, commands,  mesh_name,  model,
+		sceneState.posColTexMeshes.emplace_back(Mesh<VertexPosColTex>(device, physicalDevice, commands,  mesh_name,  model,
 						      primitive, graphicsQueue));
 	}
 	else if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("NORMAL")
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
 		std::cout << "posnortex debug: " << mesh_name << std::endl;
-		sceneState.posNorTexMeshes.push_back(Mesh<VertexPosNorTex>(device, physicalDevice, commands,  mesh_name,  model,
+		sceneState.posNorTexMeshes.emplace_back(Mesh<VertexPosNorTex>(device, physicalDevice, commands,  mesh_name,  model,
 						      primitive, graphicsQueue));
 	}
 }

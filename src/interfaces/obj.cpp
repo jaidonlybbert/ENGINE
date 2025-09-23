@@ -44,7 +44,7 @@ void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, E
 		}
 	}
 
-	sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, name, vertices, indices, graphicsQueue);
+	sceneState.posColTexMeshes.emplace_back(Mesh<VertexPosColTex>(device, physicalDevice, commands, name, vertices, indices, graphicsQueue));
 }
 
 } // end namespace

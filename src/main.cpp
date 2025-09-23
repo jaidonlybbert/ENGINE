@@ -105,6 +105,8 @@ public:
 	}
 
 	~VulkanTemplateApp() {
+		sceneState.posColTexMeshes.clear();
+		sceneState.posNorTexMeshes.clear();
 
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
@@ -119,6 +121,7 @@ public:
 		vkDestroyImage(device, textureImage, nullptr);
 		vkFreeMemory(device, textureImageMemory, nullptr);
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+		uniformBuffers.clear();
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -543,6 +546,7 @@ public:
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
 		uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+		uniformBuffers.reserve(2);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			uniformBuffers.emplace_back(device, physicalDevice, bufferSize,
@@ -644,6 +648,7 @@ public:
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pImageInfo = &imageInfo;
+			std::cout << "attempt update descriptorsets" << std::endl;
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -808,6 +813,8 @@ int main() {
 
 		VulkanTemplateApp app;
 		std::cout << app;
+		app.sceneState.posColTexMeshes.reserve(10);
+		app.sceneState.posNorTexMeshes.reserve(10);
 
 		// std::cout << "GLTF path: " << gltf_dir.native().c_str() << std::endl;
 		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState);

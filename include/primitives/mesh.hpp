@@ -42,12 +42,11 @@ class Mesh : Component {
 
 public:
 Mesh() {}
-Mesh(const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands,
-      std::string name, std::vector<T> vertices, std::vector<uint32_t> indices, const VkQueue &graphicsQueue
-      ) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue) {}
+explicit Mesh(const VkDevice& device, const VkPhysicalDevice& physicalDevice, ENG::Command* const commands,
+	std::string name, std::vector<T> vertices, std::vector<uint32_t> indices, const VkQueue& graphicsQueue);
 
-Mesh(const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands, const std::string& mesh_name, const tinygltf::Model& model,
-     const tinygltf::Primitive& primitive, const VkQueue &graphicsQueue) : name(mesh_name), device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {}
+explicit Mesh(const VkDevice& device, const VkPhysicalDevice& physicalDevice, ENG::Command* const commands, const std::string& mesh_name, const tinygltf::Model& model,
+	const tinygltf::Primitive& primitive, const VkQueue& graphicsQueue);
 
 std::string name{};
 std::vector<T> vertices{};

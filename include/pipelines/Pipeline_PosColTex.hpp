@@ -1,3 +1,5 @@
+#ifndef ENG_PIPELINE_POSCOLTEX
+#define ENG_PIPELINE_POSCOLTEX
 #include "pipelines/Pipeline.hpp"
 
 class ShaderFactory;
@@ -21,3 +23,4 @@ public:
 };
 
 } // end namespace
+#endif

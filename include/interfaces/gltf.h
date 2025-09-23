@@ -1,3 +1,5 @@
+#ifndef ENG_GLTF
+#define ENG_GLTF
 #include<filesystem>
 #include "tiny_gltf.h"
 #include "primitives/mesh.hpp"
@@ -53,3 +55,4 @@ bool load_gltf(const VkDevice &device,
 	       SceneState& sceneState);
 
 } // end namespace
+#endif

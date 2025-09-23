@@ -13,6 +13,21 @@ static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& ac
 }
 
 template<>
+Mesh<VertexPosColTex>::Mesh(
+	const VkDevice& device, 
+	const VkPhysicalDevice& physicalDevice, 
+	ENG::Command* const commands,
+	std::string name, 
+	std::vector<VertexPosColTex> vertices, 
+	std::vector<uint32_t> indices, 
+	const VkQueue& graphicsQueue
+) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue) 
+{
+	createVertexBuffer(graphicsQueue);
+	createIndexBuffer(graphicsQueue);
+}
+
+template<>
 Mesh<VertexPosColTex>::Mesh(const VkDevice& device, 
 			    const VkPhysicalDevice &physicalDevice, 
 			    ENG::Command* const commands,

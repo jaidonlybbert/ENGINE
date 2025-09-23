@@ -1,3 +1,5 @@
+#ifndef ENG_OBJ
+#define ENG_OBJ
 #include<filesystem>
 #include "vulkan/vulkan_core.h"
 #include "interfaces/command.h"
@@ -9,3 +11,4 @@ void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, E
       std::string name, const VkQueue &graphicsQueue,
       const std::filesystem::path &filepath, SceneState &sceneState);
 } // end namespace
+#endif

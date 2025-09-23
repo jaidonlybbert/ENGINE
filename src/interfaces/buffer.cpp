@@ -1,4 +1,5 @@
 #include<stdexcept>
+#include<iostream>
 #include "vulkan/vulkan_core.h"
 #include "interfaces/device.h"
 #include "interfaces/buffer.h"
@@ -14,6 +15,7 @@ Buffer::Buffer(const VkDevice &device, const VkPhysicalDevice &physicalDevice, c
 
 Buffer::~Buffer()
 {
+	std::cout << "Buffer destruction! at address " << &buffer << std::endl;
 	vkDestroyBuffer(device, buffer, nullptr);
 	vkFreeMemory(device, bufferMemory, nullptr);
 }
@@ -42,6 +44,8 @@ void Buffer::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
 		throw std::runtime_error("failed to allocate buffer memory!");
 	}
 
-	vkBindBufferMemory(device, buffer, bufferMemory, 0);
+	if (vkBindBufferMemory(device, buffer, bufferMemory, 0) != VK_SUCCESS) {
+		throw std::runtime_error("failed to bind memory!");
+	}
 }
 } // end namespace
