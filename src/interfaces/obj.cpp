@@ -10,7 +10,14 @@ namespace ENG
 
 void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands,
       std::string name, const VkQueue &graphicsQueue,
-      const std::filesystem::path &filepath, SceneState &sceneState) {
+      const std::filesystem::path &filepath, SceneState &sceneState, Node& attachmentPoint) {
+
+	auto& newNode = sceneState.graph.nodes.emplace_back();
+	newNode.name = name;
+	newNode.shaderId = ENG_SHADER::PosColTex;
+	newNode.parent = &attachmentPoint;
+	attachmentPoint.children.push_back(&newNode);
+		
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
@@ -44,7 +51,9 @@ void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, E
 		}
 	}
 
-	sceneState.posColTexMeshes.emplace_back(Mesh<VertexPosColTex>(device, physicalDevice, commands, name, vertices, indices, graphicsQueue));
+	auto& mesh = sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, name, vertices, indices, graphicsQueue);
+	auto* meshPtr = dynamic_cast<Component*>(&mesh);
+	newNode.mesh.emplace(meshPtr);
 }
 
 } // end namespace

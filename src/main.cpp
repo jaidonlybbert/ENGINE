@@ -49,7 +49,47 @@
 #include "interfaces/Instance.h"
 #include "interfaces/buffer.h"
 
+
+namespace ENG
+{
+	template <typename T>
+	class Pool {
+	public:
+		Pool(const size_t capacity)
+		{
+			data.reserve(capacity);
+		}
+
+		std::pair<size_t, T&> emplace_back()
+		{
+			if (handle.capacity() < id_counter)
+			{
+				throw std::runtime_error("Pool capacity exceeded!");
+			}
+			T& ref = handle.emplace_back();
+			auto id = id_counter;
+			id_counter++;
+			return { id, ref };
+		}
+
+		T& get(const size_t id)
+		{
+			return handle.at(id);
+		}
+
+	private:
+		std::vector<T> data;
+		std::vector<T>& handle = data;
+		inline static unsigned long long id_counter = 0;
+		Pool() = delete;
+		Pool(const Pool& other) = delete;
+		Pool& operator=(const Pool& other) = delete;
+	};
+}
+
 using namespace ENG;
+
+template class Pool<VkDescriptorSet>;
 
 class Camera : Component {
 public:
@@ -198,7 +238,7 @@ public:
 	std::vector<void*> uniformBuffersMapped;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorPool imguiPool;
-	std::vector<VkDescriptorSet> descriptorSets;
+	Pool<VkDescriptorSet> descriptorSets{ 10 };
 	VkImage textureImage;
 	VkDeviceMemory textureImageMemory;
 	VkImageView textureImageView;
@@ -370,7 +410,6 @@ public:
 		createTextureSampler();
 		createUniformBuffers();
 		createDescriptorPool();
-		createDescriptorSets();
 		commands->createCommandBuffers(device);
 		createSyncObjects();
 	}
@@ -435,37 +474,44 @@ public:
 		scissor.extent = swapchain->swapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-		// Draw PosColTex meshes
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(ENG_SHADER::PosColTex));
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosColTex),
-			  0, 1, &descriptorSets[currentFrame], 0, nullptr);
-		for (const auto& mesh : sceneState.posColTexMeshes)
+		for (const auto& node : sceneState.graph.nodes)
 		{
-			VkBuffer vertexBuffers[] = {mesh.vertexBuffer->buffer};
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+			if (!node.shaderId.has_value())
+			{
+				continue;
+			}
 
-			vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
+			if (!node.mesh.has_value())
+			{
+				continue;
+			}
+			// Draw PosColTex meshes
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(node.shaderId.value()));
 
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(node.shaderId.value()),
+				  0, 1, &descriptorSets.get(node.descriptorSetIds.at(currentFrame)), 0, nullptr);
+
+
+			auto* meshPtr = node.mesh.value();
+			if (dynamic_cast<ENG::Mesh<ENG::VertexPosColTex>*>(meshPtr))
+			{
+				auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosColTex>*>(meshPtr);
+				VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
+				VkDeviceSize offsets[] = {0};
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+				vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
+			}
+			else if (dynamic_cast<ENG::Mesh<ENG::VertexPosNorTex>*>(meshPtr))
+			{
+				auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosNorTex>*>(meshPtr);
+				VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
+				VkDeviceSize offsets[] = {0};
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+				vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
+			}
 		}
-
-		// Draw PosNorTex meshes
-		//assert(pipelineFactory->getVkPipelines().size() >= 2);
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(ENG_SHADER::PosNorTex));
-		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosNorTex),
-		//	  0, 1, &descriptorSets[currentFrame], 0, nullptr);
-		//for (const auto& mesh : sceneState.posNorTexMeshes)
-		//{
-		//	VkBuffer vertexBuffers[] = {mesh.vertexBuffer->buffer};
-		//	VkDeviceSize offsets[] = {0};
-		//	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
-		//	vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-
-		//	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
-		//}
 
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
@@ -608,31 +654,43 @@ public:
 	void createDescriptorPool() {
 		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+		poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
 
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create descriptor pool!");
 		}
 	}
 
-	void createDescriptorSets() {
-		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory->getDescriptorSetLayout(ENG_SHADER::PosColTex));
+	void createDescriptorSets(ENG::Node& node) {
+		if (!node.shaderId.has_value())
+		{
+			return;
+		}
+		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory->getDescriptorSetLayout(node.shaderId.value()));
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = descriptorPool;
 		allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 		allocInfo.pSetLayouts = layouts.data();
 
-		descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-		if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
+		node.descriptorSetIds.reserve(MAX_FRAMES_IN_FLIGHT);
+		for (auto i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+		{
+			auto new_set = descriptorSets.emplace_back();
+			node.descriptorSetIds.push_back(new_set.first);
+		}
+
+		assert(node.descriptorSetIds.size() > 0);
+		auto &firstSet = descriptorSets.get(node.descriptorSetIds.at(0));
+		if (vkAllocateDescriptorSets(device, &allocInfo, &firstSet) != VK_SUCCESS) {
 			throw std::runtime_error("failed to allocate descriptor sets!");
 		}
 
@@ -649,8 +707,9 @@ public:
 
 			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
+			assert(i < node.descriptorSetIds.size());
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = descriptorSets[i];
+			descriptorWrites[0].dstSet = descriptorSets.get(node.descriptorSetIds.at(i));
 			descriptorWrites[0].dstBinding = 0;
 			descriptorWrites[0].dstArrayElement = 0;
 			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -658,7 +717,7 @@ public:
 			descriptorWrites[0].pBufferInfo = &bufferInfo;
 
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets[i];
+			descriptorWrites[1].dstSet = descriptorSets.get(node.descriptorSetIds.at(i));;
 			descriptorWrites[1].dstBinding = 1;
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -829,13 +888,25 @@ int main() {
 
 		VulkanTemplateApp app;
 		std::cout << app;
+
+		// TODO: implement pools to avoid reference invalidation on reallocation problem
 		app.sceneState.posColTexMeshes.reserve(10);
 		app.sceneState.posNorTexMeshes.reserve(10);
+		app.sceneState.graph.nodes.reserve(10);
+
+		auto& attachmentPoint = app.sceneState.graph.nodes.emplace_back();
+		app.sceneState.graph.root = &attachmentPoint;
 
 		// std::cout << "GLTF path: " << gltf_dir.native().c_str() << std::endl;
-		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState);
+		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
 		const auto& meshName = std::string("Room");
-		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState);
+		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
+
+		for (auto* node : app.sceneState.graph.root->children)
+		{
+			assert(node != nullptr);
+			app.createDescriptorSets(*node);
+		}
 
 		std::cout << "PosColTex Meshes loaded:" << std::endl;
 		for (const auto& mesh : app.sceneState.posColTexMeshes)
