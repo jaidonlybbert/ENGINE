@@ -48,6 +48,7 @@
 #include "interfaces/gltf.h"
 #include "interfaces/Instance.h"
 #include "interfaces/buffer.h"
+#include "interfaces/logging.h"
 
 
 namespace ENG
@@ -192,32 +193,32 @@ public:
 
 	friend std::ostream& operator<<(std::ostream& os, VulkanTemplateApp& app) {
 		// Print application name and version
-		std::cout << PROJECT_NAME_AND_VERSION << std::endl;
+		ENG_LOG_INFO(PROJECT_NAME_AND_VERSION << std::endl);
 		// Print physical device properties
 		VkPhysicalDeviceProperties deviceProperties;
 		vkGetPhysicalDeviceProperties(app.physicalDevice, &deviceProperties);
-		std::cout << std::endl << "Physical Device Properties: " << std::endl;
-		std::cout << "Name:\t" << deviceProperties.deviceName << std::endl;
-		std::cout << "API Version:\t" << deviceProperties.apiVersion << std::endl;
-		std::cout << "Driver Version:\t" << deviceProperties.driverVersion << std::endl;
-		std::cout << std::endl;
+		ENG_LOG_INFO(std::endl << "Physical Device Properties: " << std::endl);
+		ENG_LOG_INFO("Name:\t" << deviceProperties.deviceName << std::endl);
+		ENG_LOG_INFO("API Version:\t" << deviceProperties.apiVersion << std::endl);
+		ENG_LOG_INFO("Driver Version:\t" << deviceProperties.driverVersion << std::endl);
+		ENG_LOG_INFO(std::endl);
 		
 		// Print available extensions
 		uint32_t extensionCount = 0;
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
-		std::cout << "Available Vulkan Extensions:" << std::endl;
+		ENG_LOG_INFO("Available Vulkan Extensions:" << std::endl);
 		for (const auto& extension: availableExtensions) {
-			std::cout << '\t' << extension.extensionName << std::endl;
+			ENG_LOG_INFO('\t' << extension.extensionName << std::endl);
 		}
 
 		// Print used extensions
 		auto enabledExtensions = app.instanceFactory->getRequiredExtensions();
 
-		std::cout << "Enabled Vulkan Extensions:" << std::endl;
+		ENG_LOG_INFO("Enabled Vulkan Extensions:" << std::endl);
 		for (auto extension : enabledExtensions) {
-			std::cout << '\t' << extension << std::endl;
+			ENG_LOG_INFO('\t' << extension << std::endl);
 		}
 		return os;
 	}
@@ -255,7 +256,7 @@ public:
 	{
 		if (key == GLFW_KEY_E && action == GLFW_PRESS)
 		{
-			std::cout << "E key down" << std::endl;
+			ENG_LOG_INFO("E key down" << std::endl);
 			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 			auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
 			auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
@@ -270,7 +271,7 @@ public:
 
 		if (key == GLFW_KEY_R && action == GLFW_PRESS)
 		{
-			std::cout << "R key down" << std::endl;
+			ENG_LOG_INFO("R key down" << std::endl);
 			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 			auto& test_rot = sceneState->test_model;
 			// rotate 3 degrees around y-axis when E is pressed
@@ -288,11 +289,11 @@ public:
 			if (action == GLFW_PRESS) // && initial_press)
 			{
 				glfwGetCursorPos(window, &sceneState->cursor_x, &sceneState->cursor_y);
-				std::cout << "Middle mouse initial press" << std::endl;
+				ENG_LOG_INFO("Middle mouse initial press" << std::endl);
 			}
 			else // action is GLFW_RELEASE
 			{
-				std::cout << "Middle mouse released" << std::endl;
+				ENG_LOG_INFO("Middle mouse released" << std::endl);
 			}
 		}
 	}
@@ -307,7 +308,7 @@ public:
 		const auto& shift_state = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT);
 		if (shift_state == GLFW_PRESS)
 		{
-			std::cout << "Shift down" << std::endl;
+			ENG_LOG_INFO("Shift down" << std::endl);
 			auto& camera = sceneState->scene.cameras[sceneState->scene.nodes[sceneState->activeCameraNodeIdx].camera];
 			auto& fovy = camera.perspective.yfov;
 			fovy += 0.1 * yoffset;
@@ -355,13 +356,13 @@ public:
 		const auto& middle_mouse_state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
 		if (middle_mouse_state == GLFW_PRESS)
 		{
-			std::cout << "Middle mouse down" << std::endl;
+			ENG_LOG_INFO("Middle mouse down" << std::endl);
 			dx = xpos - sceneState->cursor_x;
 			dy = ypos - sceneState->cursor_y;
 			sceneState->cursor_x = xpos;
 			sceneState->cursor_y = ypos;
 
-			std::cout << "dx: " << dx << " dy: " << dx << std::endl;
+			ENG_LOG_INFO("dx: " << dx << " dy: " << dx << std::endl);
 
 			//auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
 			//auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
@@ -488,14 +489,16 @@ public:
 		{
 			if (!node.shaderId.has_value())
 			{
+				ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no shaderId" << std::endl);
 				continue;
 			}
 
 			if (!node.mesh.has_value())
-			{
+			{	
+				ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no mesh" << std::endl);
 				continue;
 			}
-			// Draw PosColTex meshes
+			ENG_LOG_TRACE("Drawing " << node.name << std::endl);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(node.shaderId.value()));
 
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(node.shaderId.value()),
@@ -513,7 +516,8 @@ public:
 				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
 			}
 			else if (dynamic_cast<ENG::Mesh<ENG::VertexPosNorTex>*>(meshPtr))
-			{
+			{	
+				ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
 				auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosNorTex>*>(meshPtr);
 				VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
 				VkDeviceSize offsets[] = {0};
@@ -733,7 +737,7 @@ public:
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pImageInfo = &imageInfo;
-			std::cout << "attempt update descriptorsets" << std::endl;
+			ENG_LOG_INFO("attempt update descriptorsets" << std::endl);
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -882,7 +886,8 @@ public:
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 		if (show_demo_window)
 		{
-			ImGui::ShowDemoWindow(&show_demo_window);
+			// WARN: my customization of (ImGui::ShowDemoWindow()) - revert if things go south!
+			ImGui::ShowCustomizedDemoWindow(&show_demo_window);
 		}
 
 		// Rendering
@@ -894,10 +899,10 @@ int main() {
 	
 	try {
 		printf("Starting app\n");
-		// std::cout << "Application path: " << install_dir.native().c_str() << std::endl;
+		// ENG_LOG_INFO("Application path: " << install_dir.native().c_str() << std::endl);
 
 		VulkanTemplateApp app;
-		std::cout << app;
+		ENG_LOG_INFO(app);
 
 		// TODO: implement pools to avoid reference invalidation on reallocation problem
 		app.sceneState.posColTexMeshes.reserve(10);
@@ -907,7 +912,7 @@ int main() {
 		auto& attachmentPoint = app.sceneState.graph.nodes.emplace_back();
 		app.sceneState.graph.root = &attachmentPoint;
 
-		// std::cout << "GLTF path: " << gltf_dir.native().c_str() << std::endl;
+		// ENG_LOG_INFO("GLTF path: " << gltf_dir.native().c_str() << std::endl);
 		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
 		const auto& meshName = std::string("Room");
 		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
@@ -918,16 +923,16 @@ int main() {
 			app.createDescriptorSets(*node);
 		}
 
-		std::cout << "PosColTex Meshes loaded:" << std::endl;
+		ENG_LOG_INFO("PosColTex Meshes loaded:" << std::endl);
 		for (const auto& mesh : app.sceneState.posColTexMeshes)
 		{
-			std::cout << "\t" << mesh.name << std::endl;
+			ENG_LOG_INFO("\t" << mesh.name << std::endl);
 		}
 
-		std::cout << "PosNorTex Meshes loaded:" << std::endl;
+		ENG_LOG_INFO("PosNorTex Meshes loaded:" << std::endl);
 		for (const auto& mesh : app.sceneState.posNorTexMeshes)
 		{
-			std::cout << "\t" << mesh.name << std::endl;
+			ENG_LOG_INFO("\t" << mesh.name << std::endl);
 		}
 
 		app.run();
