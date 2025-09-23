@@ -52,44 +52,46 @@
 
 namespace ENG
 {
-	template <typename T>
-	class Pool {
-	public:
-		Pool(const size_t capacity)
-		{
-			data.reserve(capacity);
-		}
 
-		std::pair<size_t, T&> emplace_back()
-		{
-			if (handle.capacity() < id_counter)
-			{
-				throw std::runtime_error("Pool capacity exceeded!");
-			}
-			T& ref = handle.emplace_back();
-			auto id = id_counter;
-			id_counter++;
-			return { id, ref };
-		}
+template <typename T>
+class Pool {
+public:
+	Pool(const size_t capacity)
+	{
+		data.reserve(capacity);
+	}
 
-		T& get(const size_t id)
+	std::pair<size_t, T&> emplace_back()
+	{
+		if (handle.capacity() < id_counter)
 		{
-			return handle.at(id);
+			throw std::runtime_error("Pool capacity exceeded!");
 		}
+		T& ref = handle.emplace_back();
+		auto id = id_counter;
+		id_counter++;
+		return { id, ref };
+	}
 
-	private:
-		std::vector<T> data;
-		std::vector<T>& handle = data;
-		inline static unsigned long long id_counter = 0;
-		Pool() = delete;
-		Pool(const Pool& other) = delete;
-		Pool& operator=(const Pool& other) = delete;
-	};
+	T& get(const size_t id)
+	{
+		return handle.at(id);
+	}
+
+private:
+	std::vector<T> data;
+	std::vector<T>& handle = data;
+	inline static unsigned long long id_counter = 0;
+	Pool() = delete;
+	Pool(const Pool& other) = delete;
+	Pool& operator=(const Pool& other) = delete;
+};
+	
+template class Pool<VkDescriptorSet>;
 }
 
 using namespace ENG;
 
-template class Pool<VkDescriptorSet>;
 
 class Camera : Component {
 public:
