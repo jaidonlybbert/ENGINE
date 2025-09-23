@@ -346,32 +346,40 @@ public:
 	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos)
 	{
 		static double dx, dy = 0.f;
+		dx = 0.f;
+		dy = 0.f;
+
 		auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 		const auto& middle_mouse_state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
 		if (middle_mouse_state == GLFW_PRESS)
 		{
 			std::cout << "Middle mouse down" << std::endl;
-			dx += xpos - sceneState->cursor_x;
-			dy += ypos - sceneState->cursor_y;
+			dx = xpos - sceneState->cursor_x;
+			dy = ypos - sceneState->cursor_y;
 			sceneState->cursor_x = xpos;
 			sceneState->cursor_y = ypos;
 
-			auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
-			auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
-			// rotate 3 degrees around x-axis when E is pressed
-			constexpr float sensitivity = 0.01f;
-			auto dx_radians = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.0f, 1.0f, 0.0f));
-			auto dy_radians = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(1.0f, 0.0f, 0.0f));
-			cam_quat = cam_quat * dx_radians;
-			camera_rotation[0] = cam_quat.z;
-			camera_rotation[1] = cam_quat.x;
-			camera_rotation[2] = cam_quat.y;
-			camera_rotation[3] = cam_quat.w;
+			std::cout << "dx: " << dx << " dy: " << dx << std::endl;
+
+			//auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
+			//auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
+
+			constexpr float sensitivity = 0.1f;
+			const auto& local_x_axis = glm::normalize(sceneState->test_model[0]);
+			auto dx_radians = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.0f, 0.0f, 1.0f));
+			auto dy_radians = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(local_x_axis.x, local_x_axis.y, local_x_axis.z));
+			//cam_quat = cam_quat * dx_radians;
+			//camera_rotation[0] = cam_quat.z;
+			//camera_rotation[1] = cam_quat.x;
+			//camera_rotation[2] = cam_quat.y;
+			//camera_rotation[3] = cam_quat.w;
+
+			auto& test_rot = sceneState->test_model;
+			// rotate 3 degrees around y-axis when E is pressed
+			//auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			test_rot = glm::mat4_cast(dy_radians) * glm::mat4_cast(dx_radians) * test_rot;
 		}
-		else
-		{
-			dx = 0.f, dy = 0.f;
-		}
+
 	}
 
 	void initWindow() {
@@ -635,9 +643,9 @@ public:
 		//{
 		//	auto quat1 = glm::quat(cam_rot[3], cam_rot[0], cam_rot[1], cam_rot[2]);
 		//	ubo.view = glm::mat4_cast(quat1);
-			//ubo.view[0][3] = glm_cam_pos.x;
-			//ubo.view[1][3] = glm_cam_pos.y;
-			//ubo.view[2][3] = glm_cam_pos.z;
+		//	ubo.view[0][3] = glm_cam_pos.x;
+		//	ubo.view[1][3] = glm_cam_pos.y;
+		//	ubo.view[2][3] = glm_cam_pos.z;
 		//}
 
 		const auto& camera = sceneState.scene.cameras[camera_node.camera];
