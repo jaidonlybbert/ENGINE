@@ -398,7 +398,7 @@ public:
 	}
 
 
-	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh<VertexPosColTex> &mesh) {
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = 0; // Optional
@@ -421,8 +421,6 @@ public:
 		renderPassInfo.pClearValues = clearValues.data();
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(ENG_SHADER::PosColTex));
-
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -437,19 +435,37 @@ public:
 		scissor.extent = swapchain->swapChainExtent;
 		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+		// Draw PosColTex meshes
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(ENG_SHADER::PosColTex));
+
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosColTex),
 			  0, 1, &descriptorSets[currentFrame], 0, nullptr);
+		for (const auto& mesh : sceneState.posColTexMeshes)
+		{
+			VkBuffer vertexBuffers[] = {mesh.vertexBuffer->buffer};
+			VkDeviceSize offsets[] = {0};
+			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-		VkBuffer vertexBuffers[] = {mesh.vertexBuffer->buffer};
-		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+			vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
 
-		vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+		}
 
-		vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+		// Draw PosNorTex meshes
+		//assert(pipelineFactory->getVkPipelines().size() >= 2);
+		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(ENG_SHADER::PosNorTex));
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(ENG_SHADER::PosNorTex),
+		//	  0, 1, &descriptorSets[currentFrame], 0, nullptr);
+		//for (const auto& mesh : sceneState.posNorTexMeshes)
+		//{
+		//	VkBuffer vertexBuffers[] = {mesh.vertexBuffer->buffer};
+		//	VkDeviceSize offsets[] = {0};
+		//	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-		//assert(graphicsPipelines.size() >= 2);
-		//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines.at(1));
+		//	vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
+
+		//	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+		//}
 
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
@@ -475,7 +491,7 @@ public:
 		vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
 		vkResetCommandBuffer(commands->commandBuffers[currentFrame], 0);
-		recordCommandBuffer(commands->commandBuffers[currentFrame], imageIndex, sceneState.posColTexMeshes.at(0));
+		recordCommandBuffer(commands->commandBuffers[currentFrame], imageIndex);
 		updateUniformBuffer(currentFrame);
 
 		VkSubmitInfo submitInfo{};
