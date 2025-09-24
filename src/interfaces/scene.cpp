@@ -32,4 +32,14 @@ Camera* get_active_camera(const SceneState& sceneState)
 	return cameraPtr;
 }
 
+
+Node* find_node_by_name(const SceneGraph& graph, const std::string& name)
+{
+	for (const auto& node : graph.nodes) {
+		if (node.name == name) return const_cast<Node*>(&node);
+	}
+
+	return nullptr;
+}
+
 } // end namespace

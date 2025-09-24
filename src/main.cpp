@@ -496,6 +496,12 @@ public:
 				ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no mesh" << std::endl);
 				continue;
 			}
+
+			if (!node.visible)
+			{
+				ENG_LOG_TRACE("Skipping draw for " << node.name << "due to visibility set to false" << std::endl);
+				continue;
+			}
 			ENG_LOG_TRACE("Drawing " << node.name << std::endl);
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(node.shaderId.value()));
 
@@ -905,6 +911,13 @@ public:
 			ImGui::SliderFloat("znear", &(camera->znear), 0.0f, 10.0f);
 			ImGui::InputFloat3("Camera position", &cameraNode.translation.x);
 			ImGui::InputFloat3("Camera rotation", &cameraNode.rotation.x);
+			
+			auto* roomPtr = find_node_by_name(sceneState.graph, "Room");
+			auto* suzannePtr = find_node_by_name(sceneState.graph, "Suzanne");
+			assert(roomPtr != nullptr);
+			assert(suzannePtr != nullptr);
+			ImGui::Checkbox("Room visible", &roomPtr->visible);
+			ImGui::Checkbox("Suzanne visible", &suzannePtr->visible);
 		}
 
 		// Rendering

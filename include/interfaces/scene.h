@@ -48,6 +48,7 @@ public:
 	Component* mesh { nullptr };
 	Component* kinematic { nullptr };
 	Component* camera { nullptr };
+	bool visible{ true };
 };
 
 glm::mat4 transformation_matrix(const Node& node);
@@ -70,6 +71,7 @@ struct SceneState {
 };
 
 Camera* get_active_camera(const SceneState& sceneState);
+Node* find_node_by_name(const SceneGraph& graph, const std::string& name);
 
 } // end namespace
 #endif
