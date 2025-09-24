@@ -271,10 +271,10 @@ public:
 		{
 			ENG_LOG_INFO("R key down" << std::endl);
 			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
-			auto& test_rot = sceneState->test_model;
+			// auto& test_rot = sceneState->test_model;
 			// rotate 3 degrees around y-axis when E is pressed
-			auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			test_rot = glm::mat4_cast(dx) * test_rot;
+			// auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			// test_rot = glm::mat4_cast(dx) * test_rot;
 		}
 	}
 
@@ -366,19 +366,19 @@ public:
 			//auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
 
 			constexpr float sensitivity = 0.1f;
-			const auto& local_x_axis = glm::normalize(sceneState->test_model[0]);
-			auto dx_radians = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.0f, 0.0f, 1.0f));
-			auto dy_radians = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(local_x_axis.x, local_x_axis.y, local_x_axis.z));
+			// const auto& local_x_axis = glm::normalize(sceneState->test_model[0]);
+			// auto dx_radians = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.0f, 0.0f, 1.0f));
+			// auto dy_radians = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(local_x_axis.x, local_x_axis.y, local_x_axis.z));
 			//cam_quat = cam_quat * dx_radians;
 			//camera_rotation[0] = cam_quat.z;
 			//camera_rotation[1] = cam_quat.x;
 			//camera_rotation[2] = cam_quat.y;
 			//camera_rotation[3] = cam_quat.w;
 
-			auto& test_rot = sceneState->test_model;
+			// auto& test_rot = sceneState->test_model;
 			// rotate 3 degrees around y-axis when E is pressed
 			//auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			test_rot = glm::mat4_cast(dy_radians) * glm::mat4_cast(dx_radians) * test_rot;
+			// test_rot = glm::mat4_cast(dy_radians) * glm::mat4_cast(dx_radians) * test_rot;
 		}
 
 	}
@@ -632,15 +632,16 @@ public:
 
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};
-		// ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.model = sceneState.test_model;
-		glm::vec3 test_pos{ 2.f, 2.f, 2.f };
 
-		// const auto& camera_node = sceneState.scene.nodes[sceneState.activeCameraNodeIdx];
-		// const auto& camera_position = sceneState.scene.nodes[sceneState.activeCameraNodeIdx].translation;
-		const glm::vec3 glm_cam_pos = test_pos;  // { camera_position[0], camera_position[1], camera_position[2] };
+		auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
+		auto* cameraPtr = get_active_camera(sceneState);
 
-		ubo.view = glm::lookAt(glm_cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		// TODO: create buffer for model matrices
+		ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+		const glm::vec3& cam_pos = cameraNode.translation;
+
+		ubo.view = glm::lookAt(cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		//const auto& cam_rot = camera_node.rotation;
 		//if (cam_rot.size() == 4)
@@ -651,26 +652,7 @@ public:
 		//	ubo.view[1][3] = glm_cam_pos.y;
 		//	ubo.view[2][3] = glm_cam_pos.z;
 		//}
-		size_t count = 0;
-		for (const auto& node : sceneState.graph.nodes)
-		{
-			ENG_LOG_TRACE("NODE IDX: " << node.name << " IDX: " << count << std::endl);
-		 	count++;
-		}
-		const auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
-		ENG_LOG_TRACE("Updating UniformBuffer from camera" << std::endl);
-		ENG_LOG_TRACE("Camera node name: " << cameraNode.name << "at idx: " << sceneState.activeCameraNodeIdx << std::endl); 
-		ENG_LOG_TRACE("Cameras vec address: " << &sceneState.graph.cameras << std::endl);
-		ENG_LOG_TRACE("Camera address: " << cameraNode.camera << std::endl);
-		ENG_LOG_TRACE("Camera ptr retrieved" << std::endl);
-
-		auto* cameraPtr = dynamic_cast<ENG::Camera*>(cameraNode.camera);
-		const auto& camera = DEREF_OR_DIE(cameraPtr);
-
-		ENG_LOG_TRACE("Camera node cast" << std::endl);
-		ENG_LOG_TRACE("Camera address: " << cameraPtr << std::endl);
-		ENG_LOG_TRACE("fovy: " << cameraPtr->fovy << std::endl);
 		const auto fovy = cameraPtr->fovy;
 		const auto aspect = cameraPtr->aspect;
 		const auto znear = cameraPtr->znear;
@@ -915,9 +897,14 @@ public:
 		{
 			ImGui::Text("Camera settings");
 			if (ImGui::Button("Save")) MySaveFunction();
-			ImGui::SliderFloat("Zoom", &sceneState.settings.camera.zoom, 0.0f, 1.0f); 
-			ImGui::InputFloat3("Camera position", &sceneState.settings.camera.position.x);
-			ImGui::InputFloat3("Camera direction", &sceneState.settings.camera.direction.x);
+			auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
+			auto* camera = CAST_OR_DIE(dynamic_cast<ENG::Camera*>(cameraNode.camera));
+			ImGui::SliderFloat("Aspect", &(camera->aspect), 0.0f, 10.0f);
+			ImGui::SliderFloat("Fovy", &(camera->fovy), 0.0f, 1.0f);
+			ImGui::SliderFloat("zfar", &(camera->zfar), 0.0f, 100.0f);
+			ImGui::SliderFloat("znear", &(camera->znear), 0.0f, 10.0f);
+			ImGui::InputFloat3("Camera position", &cameraNode.translation.x);
+			ImGui::InputFloat3("Camera rotation", &cameraNode.rotation.x);
 		}
 
 		// Rendering
@@ -967,6 +954,8 @@ int main() {
 		}
 
 		ENG_LOG_INFO("Finished loading data" << std::endl);
+
+		ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
 
 		app.run();
 

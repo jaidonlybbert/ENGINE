@@ -62,13 +62,14 @@ struct SceneState {
 	GUISettings settings;
 	SceneGraph graph;
 	size_t activeCameraNodeIdx;
-	glm::mat4 test_model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	double cursor_x;
 	double cursor_y;
 	std::vector<ENG::Mesh<VertexPosColTex>> posColTexMeshes;
 	std::vector<ENG::Mesh<VertexPosNorTex>> posNorTexMeshes;
 };
+
+Camera* get_active_camera(const SceneState& sceneState);
 
 } // end namespace
 #endif
