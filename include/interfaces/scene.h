@@ -9,10 +9,27 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "interfaces/gui.h"
+
 using namespace tinygltf;
 
 namespace ENG
 {
+
+class Camera : public Component {
+public:
+	Camera(const tinygltf::Camera& camera) {
+		fovy = static_cast<float>(camera.perspective.yfov);
+		aspect = static_cast<float>(camera.perspective.aspectRatio);
+		znear = static_cast<float>(camera.perspective.znear);
+		zfar = static_cast<float>(camera.perspective.zfar);
+	}
+	float fovy {0.f};
+	float aspect {0.f}; 
+	float znear {0.f}; 
+	float zfar {0.f};
+};
+
 class Node {
 	/*
 	 * Base class entities in a scene graph
@@ -20,25 +37,29 @@ class Node {
 
 public:
 	std::string name{};
-	glm::vec3 translation{ 0 };
-	glm::vec3 rotation{ 0 };
+	glm::vec3 scale { 1.f };
+	glm::vec3 translation{ 0.f };
+	glm::quat rotation{ 1.f, 0.f, 0.f, 0.f };
 
 	Node* parent{ nullptr };
 	std::vector<Node*> children;
 	std::vector<size_t> descriptorSetIds;
 	std::optional<ENG_SHADER> shaderId;
-	std::optional<Component*> mesh;
-	std::optional<Component*> kinematic;
-	std::optional<Component*> camera;
+	Component* mesh { nullptr };
+	Component* kinematic { nullptr };
+	Component* camera { nullptr };
 };
+
+glm::mat4 transformation_matrix(const Node& node);
 
 struct SceneGraph {
 	Node* root{ nullptr };
 	std::vector<Node> nodes;
+	std::vector<Camera> cameras;
 };
 
 struct SceneState {
-	tinygltf::Model scene;
+	GUISettings settings;
 	SceneGraph graph;
 	size_t activeCameraNodeIdx;
 	glm::mat4 test_model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));

@@ -49,6 +49,7 @@
 #include "interfaces/Instance.h"
 #include "interfaces/buffer.h"
 #include "interfaces/logging.h"
+#include "interfaces/gui.h"
 
 
 namespace ENG
@@ -94,18 +95,6 @@ template class Pool<VkDescriptorSet>;
 using namespace ENG;
 
 
-class Camera : Component {
-public:
-	Camera(const tinygltf::Camera& camera) {
-		fovy = static_cast<float>(camera.perspective.yfov);
-		aspect = static_cast<float>(camera.perspective.aspectRatio);
-		znear = static_cast<float>(camera.perspective.znear);
-		zfar = static_cast<float>(camera.perspective.zfar);
-	}
-	float fovy, aspect, znear, zfar;
-};
-
-
 struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
@@ -135,8 +124,11 @@ public:
 			FrameMarkStart("run_frame");
 #endif
 			//glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
+			ENG_LOG_TRACE("glfwPollEvents" << std::endl);
 			glfwPollEvents();
+			ENG_LOG_TRACE("drawGUI" << std::endl);
 			drawGUI();
+			ENG_LOG_TRACE("drawFrame" << std::endl);
 			drawFrame();
 #ifdef _WIN32
 			FrameMarkEnd("run_frame");
@@ -254,19 +246,25 @@ public:
 
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
+		if (key == GLFW_KEY_T && action == GLFW_PRESS)
+		{
+			ENG_LOG_INFO("Toggle settings window visibility" << std::endl);
+			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
+			sceneState->settings.showSettings = !sceneState->settings.showSettings;
+		}
 		if (key == GLFW_KEY_E && action == GLFW_PRESS)
 		{
 			ENG_LOG_INFO("E key down" << std::endl);
 			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
-			auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
-			auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
+			// auto& camera_rotation = sceneState->graph.nodes[sceneState->activeCameraNodeIdx].rotation;
+			// auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
 			// rotate 3 degrees around x-axis when E is pressed
 			auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			cam_quat = cam_quat * dx;
-			camera_rotation[0] = cam_quat.z;
-			camera_rotation[1] = cam_quat.x;
-			camera_rotation[2] = cam_quat.y;
-			camera_rotation[3] = cam_quat.w;
+			// cam_quat = cam_quat * dx;
+			// camera_rotation[0] = cam_quat.z;
+			// camera_rotation[1] = cam_quat.x;
+			// camera_rotation[2] = cam_quat.y;
+			// camera_rotation[3] = cam_quat.w;
 		}
 
 		if (key == GLFW_KEY_R && action == GLFW_PRESS)
@@ -309,39 +307,39 @@ public:
 		if (shift_state == GLFW_PRESS)
 		{
 			ENG_LOG_INFO("Shift down" << std::endl);
-			auto& camera = sceneState->scene.cameras[sceneState->scene.nodes[sceneState->activeCameraNodeIdx].camera];
-			auto& fovy = camera.perspective.yfov;
-			fovy += 0.1 * yoffset;
-			if (static_cast<float>(fovy) < 0.1) fovy = 0.1; // Prevent zooming too far out
-			printf("FOV: %.2f\n", fovy);
+			//auto& camera = sceneState->scene.cameras[sceneState->scene.nodes[sceneState->activeCameraNodeIdx].camera];
+			// auto& fovy = camera.perspective.yfov;
+			// fovy += 0.1 * yoffset;
+			// if (static_cast<float>(fovy) < 0.1) fovy = 0.1; // Prevent zooming too far out
+			// printf("FOV: %.2f\n", fovy);
 		}
 		else
 		{
-			auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
-			auto& camera_position = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].translation;
-			assert(camera_position.size() == 3);
-			auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
+			// auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
+			// auto& camera_position = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].translation;
+			// assert(camera_position.size() == 3);
+			// auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
 
 			// Default forward vector in world space
 			glm::vec3 forward(0.0f, 0.0f, -1.0f);
 
 			// Rotate the forward vector by the quaternion
-			glm::vec3 rotatedForward = cam_quat * forward;
+			// glm::vec3 rotatedForward = cam_quat * forward;
 
 			// Output the result
-			std::cout << "Forward vector: ("
-				<< rotatedForward.x << ", "
-				<< rotatedForward.y << ", "
-				<< rotatedForward.z << ")" << std::endl;
+			// std::cout << "Forward vector: ("
+			// 	<< rotatedForward.x << ", "
+			// 	<< rotatedForward.y << ", "
+			// 	<< rotatedForward.z << ")" << std::endl;
 
 			// Move camera forward or backward
-			camera_position[0] += rotatedForward[0] * 0.1f;
-			camera_position[1] += rotatedForward[1] * 0.1f;
-			camera_position[2] += rotatedForward[2] * 0.1f;
-			std::cout << "Camera position: ("
-				<< camera_position[0] << ", "
-				<< camera_position[1] << ", "
-				<< camera_position[2] << ")" << std::endl;
+			// camera_position[0] += rotatedForward[0] * 0.1f;
+			// camera_position[1] += rotatedForward[1] * 0.1f;
+			// camera_position[2] += rotatedForward[2] * 0.1f;
+			// std::cout << "Camera position: ("
+			// 	<< camera_position[0] << ", "
+			// 	<< camera_position[1] << ", "
+			// 	<< camera_position[2] << ")" << std::endl;
 		}
 	}
 
@@ -493,7 +491,7 @@ public:
 				continue;
 			}
 
-			if (!node.mesh.has_value())
+			if (node.mesh == nullptr)
 			{	
 				ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no mesh" << std::endl);
 				continue;
@@ -505,7 +503,7 @@ public:
 				  0, 1, &descriptorSets.get(node.descriptorSetIds.at(currentFrame)), 0, nullptr);
 
 
-			auto* meshPtr = node.mesh.value();
+			auto* meshPtr = node.mesh;
 			if (dynamic_cast<ENG::Mesh<ENG::VertexPosColTex>*>(meshPtr))
 			{
 				auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosColTex>*>(meshPtr);
@@ -638,8 +636,8 @@ public:
 		ubo.model = sceneState.test_model;
 		glm::vec3 test_pos{ 2.f, 2.f, 2.f };
 
-		const auto& camera_node = sceneState.scene.nodes[sceneState.activeCameraNodeIdx];
-		const auto& camera_position = sceneState.scene.nodes[sceneState.activeCameraNodeIdx].translation;
+		// const auto& camera_node = sceneState.scene.nodes[sceneState.activeCameraNodeIdx];
+		// const auto& camera_position = sceneState.scene.nodes[sceneState.activeCameraNodeIdx].translation;
 		const glm::vec3 glm_cam_pos = test_pos;  // { camera_position[0], camera_position[1], camera_position[2] };
 
 		ubo.view = glm::lookAt(glm_cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -653,14 +651,33 @@ public:
 		//	ubo.view[1][3] = glm_cam_pos.y;
 		//	ubo.view[2][3] = glm_cam_pos.z;
 		//}
+		size_t count = 0;
+		for (const auto& node : sceneState.graph.nodes)
+		{
+			ENG_LOG_TRACE("NODE IDX: " << node.name << " IDX: " << count << std::endl);
+		 	count++;
+		}
+		const auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
-		const auto& camera = sceneState.scene.cameras[camera_node.camera];
-		const auto fovy = static_cast<float>(camera.perspective.yfov);
-		const auto aspect = static_cast<float>(camera.perspective.aspectRatio);
-		const auto znear = static_cast<float>(camera.perspective.znear);
-		const auto zfar = static_cast<float>(camera.perspective.zfar);
+		ENG_LOG_TRACE("Updating UniformBuffer from camera" << std::endl);
+		ENG_LOG_TRACE("Camera node name: " << cameraNode.name << "at idx: " << sceneState.activeCameraNodeIdx << std::endl); 
+		ENG_LOG_TRACE("Cameras vec address: " << &sceneState.graph.cameras << std::endl);
+		ENG_LOG_TRACE("Camera address: " << cameraNode.camera << std::endl);
+		ENG_LOG_TRACE("Camera ptr retrieved" << std::endl);
+
+		auto* cameraPtr = dynamic_cast<ENG::Camera*>(cameraNode.camera);
+		const auto& camera = DEREF_OR_DIE(cameraPtr);
+
+		ENG_LOG_TRACE("Camera node cast" << std::endl);
+		ENG_LOG_TRACE("Camera address: " << cameraPtr << std::endl);
+		ENG_LOG_TRACE("fovy: " << cameraPtr->fovy << std::endl);
+		const auto fovy = cameraPtr->fovy;
+		const auto aspect = cameraPtr->aspect;
+		const auto znear = cameraPtr->znear;
+		const auto zfar = cameraPtr->zfar;
 		ubo.proj = glm::perspective(fovy, aspect, znear, zfar);
 		ubo.proj[1][1] *= -1;
+		ENG_LOG_TRACE("Projection matrix set" << std::endl);
 
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 	}
@@ -871,10 +888,15 @@ public:
 		ImGui_ImplVulkan_Init(&init_info);
 	}
 
+	void MySaveFunction()
+	{
+		ENG_LOG_DEBUG("Save function call" << std::endl);
+	}
+
 
 	void drawGUI() {
 		// Our state
-		bool show_demo_window = true;
+		bool show_demo_window = false;
 		bool show_another_window = false;
 		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -886,8 +908,16 @@ public:
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 		if (show_demo_window)
 		{
-			// WARN: my customization of (ImGui::ShowDemoWindow()) - revert if things go south!
-			ImGui::ShowCustomizedDemoWindow(&show_demo_window);
+			ImGui::ShowDemoWindow();
+		}
+
+		if (sceneState.settings.showSettings)
+		{
+			ImGui::Text("Camera settings");
+			if (ImGui::Button("Save")) MySaveFunction();
+			ImGui::SliderFloat("Zoom", &sceneState.settings.camera.zoom, 0.0f, 1.0f); 
+			ImGui::InputFloat3("Camera position", &sceneState.settings.camera.position.x);
+			ImGui::InputFloat3("Camera direction", &sceneState.settings.camera.direction.x);
 		}
 
 		// Rendering
@@ -908,6 +938,7 @@ int main() {
 		app.sceneState.posColTexMeshes.reserve(10);
 		app.sceneState.posNorTexMeshes.reserve(10);
 		app.sceneState.graph.nodes.reserve(10);
+		app.sceneState.graph.cameras.reserve(10);
 
 		auto& attachmentPoint = app.sceneState.graph.nodes.emplace_back();
 		app.sceneState.graph.root = &attachmentPoint;
@@ -934,6 +965,8 @@ int main() {
 		{
 			ENG_LOG_INFO("\t" << mesh.name << std::endl);
 		}
+
+		ENG_LOG_INFO("Finished loading data" << std::endl);
 
 		app.run();
 

@@ -1,6 +1,6 @@
 #include "vulkan/vulkan.h"
 #include "interfaces/gltf.h"
-#include<iostream>
+#include "interfaces/logging.h"
 
 namespace ENG
 {
@@ -69,14 +69,14 @@ void load_gltf_mesh_attributes(const VkDevice& device,
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
 		auto &mesh = sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, mesh_name, model, primitive, graphicsQueue);
-		eng_node.mesh.emplace(dynamic_cast<ENG::Component*>(&mesh));
+		eng_node.mesh = dynamic_cast<ENG::Component*>(&mesh);
 		eng_node.shaderId = ENG_SHADER::PosColTex;
 	}
 	else if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("NORMAL")
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
 		auto& mesh = sceneState.posNorTexMeshes.emplace_back(device, physicalDevice, commands, mesh_name, model, primitive, graphicsQueue);
-		eng_node.mesh.emplace(dynamic_cast<ENG::Component*>(&mesh));
+		eng_node.mesh = dynamic_cast<ENG::Component*>(&mesh);
 		eng_node.shaderId = ENG_SHADER::PosNorTex;
 	}
 }
@@ -87,12 +87,19 @@ void load_gltf_node(const VkDevice& device,
 	ENG::Command* const commands,
 	const tinygltf::Node& node,
 	SceneState& sceneState,
-	ENG::Node& eng_node)
+	ENG::Node& eng_node,
+	const tinygltf::Model& model)
 {
-	const auto& model = sceneState.scene;
+	if (node.camera != -1)
+	{
+		auto* new_cam = &sceneState.graph.cameras.emplace_back(model.cameras.at(node.camera));
+		eng_node.camera = dynamic_cast<Component*>(new_cam);
+		ENG_LOG_TRACE("Set camera on node with name: " << eng_node.name << std::endl);
+		ENG_LOG_TRACE("Camera address: " << eng_node.camera << std::endl);
+		ENG_LOG_TRACE("Cameras vec address: " << &sceneState.graph.cameras << std::endl);
+	}
 
 	if (node.mesh < 0) return;
-
 	const auto& gltf_mesh = model.meshes[node.mesh];
 	for (const auto& primitive : gltf_mesh.primitives)
 	{
@@ -109,24 +116,23 @@ bool load_gltf(const VkDevice& device,
 	SceneState& sceneState,
 	Node& attachmentPoint)
 {
-	auto& model = sceneState.scene;
+	tinygltf::Model model;
 	if (!load_gltf_model(gltf_path, model)) {
 		return false;
 	}
 
-	size_t idx{0};
-	std::cout << "Nodes found:" << std::endl;
+	ENG_LOG_DEBUG("Nodes found:" << std::endl);
 	for (const auto& node : model.nodes) {
 		auto& newNode = sceneState.graph.nodes.emplace_back();
+		const auto& idx = sceneState.graph.nodes.size() - 1;
 		attachmentPoint.children.push_back(&newNode);
 		newNode.name = node.name;
-		std::cout << "\t" << node.name << std::endl;
+		ENG_LOG_DEBUG("\t" << node.name << "\t" << idx << std::endl);
 		if (node.name == "main_camera") {
 			sceneState.activeCameraNodeIdx = idx;
-			std::cout << "Camera node set" << std::endl;
+			ENG_LOG_DEBUG("Camera node set with idx: " << idx << std::endl);
 		}
-		load_gltf_node(device, physicalDevice, graphicsQueue, commands, node, sceneState, newNode);
-		++idx;
+		load_gltf_node(device, physicalDevice, graphicsQueue, commands, node, sceneState, newNode, model);
 	}
 
 	return true;
