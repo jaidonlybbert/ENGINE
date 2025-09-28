@@ -3,8 +3,8 @@
 #include<filesystem>
 #include<optional>
 #include "tiny_gltf.h"
-#include "primitives/mesh.hpp"
-#include "interfaces/scene.h"
+#include "primitives/Mesh.hpp"
+#include "interfaces/Scene.hpp"
 
 namespace ENG
 {

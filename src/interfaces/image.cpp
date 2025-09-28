@@ -1,5 +1,5 @@
 #include "vulkan/vulkan.h"
-#include "interfaces/image.h"
+#include "interfaces/Image.hpp"
 
 namespace ENG
 {

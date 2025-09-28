@@ -1,10 +1,10 @@
 #include<vector>
 #include<array>
 #include "vulkan/vulkan_core.h"
-#include "pipelines/pipeline_factory.hpp"
-#include "pipelines/shader_factory.hpp"
+#include "pipelines/PipelineFactory.hpp"
+#include "pipelines/ShaderFactory.hpp"
 #include "pipelines/Pipeline.hpp"
-#include "pipelines/Pipeline_PosColTex.hpp"
+#include "pipelines/PipelinePosColTex.hpp"
 
 namespace ENG {
 PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapChainImageFormat,

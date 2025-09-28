@@ -8,8 +8,8 @@
 #include<cstring>
 #include "vulkan/vulkan_core.h"
 #include "glm/glm.hpp"
-#include "interfaces/buffer.h"
-#include "interfaces/command.h"
+#include "interfaces/Buffer.hpp"
+#include "interfaces/Command.hpp"
 
 namespace tinygltf {
 class Accessor;

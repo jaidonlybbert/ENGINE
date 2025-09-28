@@ -1,6 +1,6 @@
 #include "vulkan/vulkan.h"
-#include "interfaces/gltf.h"
-#include "interfaces/logging.h"
+#include "interfaces/Gltf.hpp"
+#include "interfaces/Logging.hpp"
 
 namespace ENG
 {

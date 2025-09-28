@@ -1,6 +1,6 @@
 #include<stdexcept>
-#include "interfaces/command.h"
-#include "interfaces/PhysicalDevice.h"
+#include "interfaces/Command.hpp"
+#include "interfaces/PhysicalDevice.hpp"
 
 namespace ENG
 {

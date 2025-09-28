@@ -2,8 +2,8 @@
 #define ENG_OBJ
 #include<filesystem>
 #include "vulkan/vulkan_core.h"
-#include "interfaces/command.h"
-#include "interfaces/scene.h"
+#include "interfaces/Command.hpp"
+#include "interfaces/Scene.hpp"
 
 namespace ENG
 {

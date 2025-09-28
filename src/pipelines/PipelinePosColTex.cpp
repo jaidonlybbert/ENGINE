@@ -1,8 +1,8 @@
-#include "pipelines/Pipeline.hpp"
-#include "primitives/mesh.hpp"
-#include "pipelines/shader_factory.hpp"
-#include "pipelines/Pipeline_PosColTex.hpp"
 #include<iostream>
+#include "pipelines/Pipeline.hpp"
+#include "primitives/Mesh.hpp"
+#include "pipelines/ShaderFactory.hpp"
+#include "pipelines/PipelinePosColTex.hpp"
 
 namespace ENG {
 

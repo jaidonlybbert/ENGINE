@@ -1,8 +1,8 @@
 #include<array>
 #include<iostream>
-#include "pipelines/shader_factory.hpp"
+#include "pipelines/ShaderFactory.hpp"
 #include "pipelines/Pipeline.hpp"
-#include "primitives/mesh.hpp"
+#include "primitives/Mesh.hpp"
 
 namespace ENG {
 Pipeline::Pipeline(const VkDevice& device) : device(device) {

@@ -1,0 +1,15 @@
+// Configuration options for Engine project
+#define Engine_NAME "@PROJECT_NAME@"
+#define Engine_VERSION_MAJOR @Engine_VERSION_MAJOR@
+#define Engine_VERSION_MINOR @Engine_VERSION_MINOR@
+#define Engine_VERSION_PATCH @Engine_VERSION_PATCH@
+#define PROJECT_PUBLISHER @ENG_PUBLISHER@
+#define PROJECT_NAME_AND_VERSION "@PROJECT_NAME_AND_VERSION@"
+#define WIN_REGISTRY_INSTALL_DIR "SOFTWARE\\@ENG_PUBLISHER@\\@PROJECT_NAME_AND_VERSION@"
+#define Engine_INSTALL_DIR "@Engine_INSTALL_DIR@"
+#define MAX_FRAMES_IN_FLIGHT static_cast<uint32_t>(2)
+#define WIDTH static_cast<uint32_t>(800)
+#define HEIGHT static_cast<uint32_t>(600)
+#define ENABLE_VALIDATION_LAYERS true
+#define DEREF_OR_DIE(ptr) ({ if (ptr == nullptr) { throw std::runtime_error("nullptr dereference!"); } *(ptr);}) 
+#define CAST_OR_DIE(ptr) ({ if (ptr == nullptr) { throw std::runtime_error("ptr is null!"); } ptr;})

@@ -1,7 +1,7 @@
 #ifndef ENG_SCENE
 #define ENG_SCENE
 #include "primitives/mesh.hpp"
-#include "pipelines/shader_factory.hpp"
+#include "pipelines/ShaderFactory.hpp"
 #include<optional>
 #include "tiny_gltf.h"
 #define GLM_FORCE_RADIANS
@@ -9,7 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "interfaces/gui.h"
+#include "interfaces/Gui.hpp"
 
 using namespace tinygltf;
 

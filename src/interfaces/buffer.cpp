@@ -1,8 +1,8 @@
 #include<stdexcept>
 #include<iostream>
 #include "vulkan/vulkan_core.h"
-#include "interfaces/device.h"
-#include "interfaces/buffer.h"
+#include "interfaces/Device.hpp"
+#include "interfaces/Buffer.hpp"
 
 namespace ENG
 {

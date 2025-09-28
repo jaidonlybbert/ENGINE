@@ -60,13 +60,22 @@ foreach(shader ${shaders})
 	list(APPEND shader_outputs ${CMAKE_HOME_DIRECTORY}/${shader}.spv)
 endforeach()
 add_custom_target(shader_compile ALL DEPENDS ${shader_outputs} VERBATIM)
+target_sources(shader_compile PRIVATE ${shaders})
 
 # Compile and link cpp source
-configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.h.in EngineConfig.h)
+configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in EngineConfig.hpp)
 
 file(GLOB IMGUI_SOURCES "${PROJECT_SOURCE_DIR}/third_party/imgui/*.cpp")
-file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
-add_executable(Engine ${SOURCE_FILES} ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp "src/pipelines/Pipeline_PosColTex.cpp" "include/pipelines/Pipeline_PosColTex.hpp")
+file(GLOB_RECURSE SOURCE_FILES CMAKE_CONFIGURE_DEPENDS  "${PROJECT_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE HEADER_FILES CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/*.hpp")
+add_executable(Engine ${SOURCE_FILES} ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
+target_sources(${PROJECT_NAME} PRIVATE ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
+
+# File groups for MSVC IDE integration
+source_group(TREE ${PROJECT_SOURCE_DIR}/src PREFIX "Source" FILES ${SOURCE_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
+source_group(TREE ${PROJECT_SOURCE_DIR}/include PREFIX "Header Files" FILES ${HEADER_FILES})
+source_group("Shaders" FILES ${shaders})
+source_group("ImGui" FILES ${IMGUI_SOURCES})
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -83,15 +92,17 @@ if (WIN32)
 	add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/tracy")
 endif()
 
-if (WIN32)
-	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
-	target_include_directories(Engine PUBLIC ${WINREG_INCLUDE_DIRS})
-endif()
+#if (WIN32)
+#	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
+#	target_include_directories(Engine PUBLIC ${WINREG_INCLUDE_DIRS})
+#endif()
 
 set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
 set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/tinygltf")
 
+get_target_property(INCLUDE_DIRS tinyobjloader::tinyobjloader INTERFACE_INCLUDE_DIRECTORIES)
+message("tinyobj include dirs: ${INCLUDE_DIRS}")
 target_include_directories(Engine PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")

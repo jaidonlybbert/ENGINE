@@ -1,6 +1,6 @@
 #include<filesystem>
 #include "interfaces/FilesystemInterface.hpp"
-#include "EngineConfig.h"
+#include "EngineConfig.hpp"
 
 namespace ENG
 {

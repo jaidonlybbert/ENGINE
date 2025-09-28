@@ -34,22 +34,23 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
-#include "primitives/mesh.hpp"
-#include "pipelines/shader_factory.hpp"
-#include "pipelines/pipeline_factory.hpp"
+#include "Utils.hpp"
+#include "primitives/Mesh.hpp"
+#include "pipelines/ShaderFactory.hpp"
+#include "pipelines/PipelineFactory.hpp"
 #include "interfaces/FilesystemInterface.hpp"
-#include "interfaces/command.h"
-#include "interfaces/swapchain.h"
-#include "interfaces/device.h"
-#include "interfaces/PhysicalDevice.h"
-#include "interfaces/image.h"
-#include "interfaces/obj.h"
-#include "interfaces/scene.h"
-#include "interfaces/gltf.h"
-#include "interfaces/Instance.h"
-#include "interfaces/buffer.h"
-#include "interfaces/logging.h"
-#include "interfaces/gui.h"
+#include "interfaces/Command.hpp"
+#include "interfaces/Swapchain.hpp"
+#include "interfaces/Device.hpp"
+#include "interfaces/PhysicalDevice.hpp"
+#include "interfaces/Image.hpp"
+#include "interfaces/Obj.hpp"
+#include "interfaces/Scene.hpp"
+#include "interfaces/Gltf.hpp"
+#include "interfaces/Instance.hpp"
+#include "interfaces/Buffer.hpp"
+#include "interfaces/Logging.hpp"
+#include "interfaces/Gui.hpp"
 
 
 namespace ENG
@@ -904,7 +905,7 @@ public:
 			ImGui::Text("Camera settings");
 			if (ImGui::Button("Save")) MySaveFunction();
 			auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
-			auto* camera = CAST_OR_DIE(dynamic_cast<ENG::Camera*>(cameraNode.camera));
+			auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
 			ImGui::SliderFloat("Aspect", &(camera->aspect), 0.0f, 10.0f);
 			ImGui::SliderFloat("Fovy", &(camera->fovy), 0.0f, 1.0f);
 			ImGui::SliderFloat("zfar", &(camera->zfar), 0.0f, 100.0f);

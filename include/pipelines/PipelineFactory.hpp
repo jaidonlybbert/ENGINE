@@ -4,7 +4,7 @@
 #include<memory>
 #include "vulkan/vulkan_core.h"
 #include "pipelines/Pipeline.hpp"
-#include "pipelines/shader_factory.hpp"
+#include "pipelines/ShaderFactory.hpp"
 
 namespace ENG {
 class PipelineFactory {

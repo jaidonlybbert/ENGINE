@@ -1,9 +1,9 @@
 #include<vector>
 #include "tiny_obj_loader.h"
-#include "primitives/mesh.hpp"
+#include "primitives/Mesh.hpp"
 #include "interfaces/FilesystemInterface.hpp"
-#include "interfaces/scene.h"
-#include "interfaces/obj.h"
+#include "interfaces/Scene.hpp"
+#include "interfaces/Obj.hpp"
 
 namespace ENG
 {

@@ -1,7 +1,7 @@
 #include<set>
 #include<stdexcept>
-#include "interfaces/device.h"
-#include "interfaces/PhysicalDevice.h"
+#include "interfaces/Device.hpp"
+#include "interfaces/PhysicalDevice.hpp"
 
 using namespace ENG;
 

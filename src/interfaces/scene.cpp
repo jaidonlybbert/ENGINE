@@ -1,5 +1,6 @@
-#include "interfaces/scene.h"
-#include "interfaces/logging.h"
+#include "utils.hpp"
+#include "interfaces/scene.hpp"
+#include "interfaces/logging.hpp"
 
 namespace ENG
 {
@@ -24,7 +25,7 @@ Camera* get_active_camera(const SceneState& sceneState)
 	ENG_LOG_TRACE("Camera address: " << cameraNode.camera << std::endl);
 	ENG_LOG_TRACE("Camera ptr retrieved" << std::endl);
 
-	auto* cameraPtr = CAST_OR_DIE(dynamic_cast<ENG::Camera*>(cameraNode.camera));
+	auto* cameraPtr = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
 
 	ENG_LOG_TRACE("Camera node cast" << std::endl);
 	ENG_LOG_TRACE("Camera address: " << cameraPtr << std::endl);

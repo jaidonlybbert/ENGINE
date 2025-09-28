@@ -1,8 +1,8 @@
 #include<limits>
 #include<algorithm>
 #include<array>
-#include "interfaces/swapchain.h"
-#include "image.h"
+#include "interfaces/Swapchain.hpp"
+#include "Image.hpp"
 
 namespace ENG
 {
