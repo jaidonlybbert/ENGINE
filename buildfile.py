@@ -33,9 +33,15 @@ def main():
 
     # Install dependencies using conanfile.py
     run_command(
-            ["conan", "install", source_dir, f"-pr:a={args.profile}",
-         "--build", "missing", "--settings=build_type=" + args.buildtype,
-         "--settings=compiler.cppstd=20"], cwd=source_dir, env=env)
+            ["conan", "install", source_dir, 
+             f"--profile:host={args.profile}", 
+             f"--profile:build={args.profile}",
+             f"--settings:host=build_type={args.buildtype}", 
+             f"--settings:build=build_type={args.buildtype}",
+             "--settings:host=compiler.cppstd=20",
+             "--settings:build=compiler.cppstd=20",
+             "--build", "missing"
+             ], cwd=source_dir, env=env)
 
     # Configure with CMake using the generated toolchain
     run_command(
