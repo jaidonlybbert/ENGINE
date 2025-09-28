@@ -4,7 +4,7 @@
 #include<GLFW/glfw3.h>
 #include<vulkan/vulkan_core.h>
 
-#include "EngineConfig.h"
+#include "EngineConfig.hpp"
 
 #ifdef NDEBUG
 	constexpr bool enableValidationLayers = false;
