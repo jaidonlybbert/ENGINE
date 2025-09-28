@@ -3,7 +3,7 @@
 #include "vulkan/vulkan_core.h"
 #include<vector>
 
-#include "EngineConfig.h"
+#include "EngineConfig.hpp"
 
 namespace ENG
 {

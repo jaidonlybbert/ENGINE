@@ -20,7 +20,6 @@
 #include <chrono>
 #include "vulkan/vulkan_core.h"
 #include "GLFW/glfw3.h"
-#include "EngineConfig.h"
 
 #include<tiny_gltf.h>
 #include<tiny_obj_loader.h>
@@ -34,6 +33,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
+#include "EngineConfig.hpp"
 #include "Utils.hpp"
 #include "primitives/Mesh.hpp"
 #include "pipelines/ShaderFactory.hpp"

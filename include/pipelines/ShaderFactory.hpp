@@ -5,7 +5,7 @@
 #include<assert.h>
 #include<filesystem>
 #include "vulkan/vulkan_core.h"
-#include "EngineConfig.h"
+#include "EngineConfig.hpp"
 #include "pipelines/PipelineUtils.hpp"
 
 enum class ENG_SHADER {

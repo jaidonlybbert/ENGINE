@@ -4,7 +4,7 @@
 #include<vector>
 #include<stdexcept>
 
-#include "EngineConfig.h"
+#include "EngineConfig.hpp"
 
 namespace ENG
 {
