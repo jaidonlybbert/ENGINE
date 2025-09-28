@@ -1,6 +1,6 @@
-#include "utils.hpp"
-#include "interfaces/scene.hpp"
-#include "interfaces/logging.hpp"
+#include "Utils.hpp"
+#include "interfaces/Scene.hpp"
+#include "interfaces/Logging.hpp"
 
 namespace ENG
 {
