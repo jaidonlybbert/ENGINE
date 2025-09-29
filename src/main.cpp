@@ -981,6 +981,16 @@ public:
 			assert(suzannePtr != nullptr);
 			ImGui::Checkbox("Room visible", &roomPtr->visible);
 			ImGui::Checkbox("Suzanne visible", &suzannePtr->visible);
+			ImGui::Text("IDX: Name");
+			for (auto& node : sceneState.graph.nodes) {
+				ImGui::Text("%d: %s", node.nodeId, node.name.c_str());
+			}
+			ImGui::InputInt("Active: ", &sceneState.activeNodeIdx);
+			if (sceneState.activeNodeIdx < sceneState.graph.nodes.size())
+			{
+				ImGui::SliderFloat4("Active Node Rotation", &(sceneState.graph.nodes.at(sceneState.activeNodeIdx).rotation.x), 0.f, 3.1f);
+				ImGui::SliderFloat3("Active Node Location", &(sceneState.graph.nodes.at(sceneState.activeNodeIdx).translation.x), 0.f, 3.1f);
+			}
 		}
 
 		// Rendering

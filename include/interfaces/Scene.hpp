@@ -65,6 +65,7 @@ struct SceneState {
 	GUISettings settings;
 	SceneGraph graph;
 	size_t activeCameraNodeIdx;
+	int activeNodeIdx{ 0 };
 
 	double cursor_x;
 	double cursor_y;
