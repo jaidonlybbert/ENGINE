@@ -158,6 +158,7 @@ public:
 		vkFreeMemory(device, textureImageMemory, nullptr);
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 		uniformBuffers.clear();
+		modelMatrixBuffers.clear();
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -232,6 +233,8 @@ public:
 	uint32_t currentFrame = 0;
 	std::vector<ENG::Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
+	std::vector<ENG::Buffer> modelMatrixBuffers;
+	std::vector<void*> modelMatrixBuffersMapped;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorPool imguiPool;
 	Pool<VkDescriptorSet> descriptorSets{ 10 };
@@ -243,7 +246,6 @@ public:
 	std::unique_ptr<ENG::PipelineFactory> pipelineFactory;
 	std::unique_ptr<ENG::Command> commands;
 	std::unique_ptr<ENG::Swapchain> swapchain;
-
 
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
@@ -381,7 +383,6 @@ public:
 			//auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			// test_rot = glm::mat4_cast(dy_radians) * glm::mat4_cast(dx_radians) * test_rot;
 		}
-
 	}
 
 	void initWindow() {
@@ -558,6 +559,7 @@ public:
 		vkResetCommandBuffer(commands->commandBuffers[currentFrame], 0);
 		recordCommandBuffer(commands->commandBuffers[currentFrame], imageIndex);
 		updateUniformBuffer(currentFrame);
+		updateModelMatrixBuffer();
 
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -637,6 +639,43 @@ public:
 		}
 	}
 
+	/// <summary>
+	/// Must be called after all nodes are loaded
+	/// </summary>
+	void createModelMatrices()
+	{
+		VkDeviceSize bufferSize = sizeof(glm::mat4) * sceneState.graph.nodes.size();
+		modelMatrixBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+		modelMatrixBuffers.reserve(2);
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+		{
+			ENG_LOG_DEBUG("Creating " << i << " model buffer of size " << bufferSize << std::endl);
+			modelMatrixBuffers.emplace_back(device, physicalDevice, bufferSize,
+				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			vkMapMemory(device, modelMatrixBuffers[i].bufferMemory, 0, bufferSize, 0, &modelMatrixBuffersMapped[i]);
+		}
+	}
+
+	void updateModelMatrix(glm::mat4& modelMatrix, const ENG::Node& node)
+	{
+		modelMatrix = glm::translate(glm::mat4(1.f), node.translation)
+			* glm::mat4_cast(node.rotation)
+			* glm::scale(glm::mat4(1.f), node.scale);
+	}
+
+	void updateModelMatrixBuffer()
+	{
+		for (const auto& node : sceneState.graph.nodes)
+		{
+			assert(node.nodeId < sceneState.modelMatrices.size());
+			updateModelMatrix(sceneState.modelMatrices.at(node.nodeId), node);
+		}
+
+		const auto& bufferSize = sceneState.modelMatrices.size() * sizeof(glm::mat4);
+		memcpy(modelMatrixBuffersMapped[currentFrame], sceneState.modelMatrices.data(), bufferSize);
+	}
+
 	void updateUniformBuffer(uint32_t currentImage) {
 		UniformBufferObject ubo{};
 
@@ -672,11 +711,13 @@ public:
 	}
 
 	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		std::array<VkDescriptorPoolSize, 3> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
 
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -725,7 +766,13 @@ public:
 			imageInfo.imageView = textureImageView;
 			imageInfo.sampler = textureSampler;
 
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+			VkDescriptorBufferInfo modelMatrixBufferInfo{};
+			assert(modelMatrixBuffers[i].buffer != nullptr);
+			modelMatrixBufferInfo.buffer = modelMatrixBuffers[i].buffer;
+			modelMatrixBufferInfo.offset = 0;
+			modelMatrixBufferInfo.range = sizeof(glm::mat4) * sceneState.modelMatrices.size();
+
+			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
 			assert(i < node.descriptorSetIds.size());
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -737,12 +784,22 @@ public:
 			descriptorWrites[0].pBufferInfo = &bufferInfo;
 
 			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets.get(node.descriptorSetIds.at(i));;
+			descriptorWrites[1].dstSet = descriptorSets.get(node.descriptorSetIds.at(i));
 			descriptorWrites[1].dstBinding = 1;
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[2].dstSet = descriptorSets.get(node.descriptorSetIds.at(i));
+			descriptorWrites[2].dstBinding = 2;
+			descriptorWrites[2].dstArrayElement = 0;
+			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			descriptorWrites[2].descriptorCount = 1;
+			descriptorWrites[2].pBufferInfo = &modelMatrixBufferInfo;
+
+
 			ENG_LOG_INFO("attempt update descriptorsets" << std::endl);
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
@@ -947,9 +1004,24 @@ int main() {
 		// ENG_LOG_INFO("GLTF path: " << gltf_dir.native().c_str() << std::endl);
 		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
 		auto& cameraNode = app.sceneState.graph.nodes.at(app.sceneState.activeCameraNodeIdx);
-		auto* camera = checked_cast<Component, ENG::Camera>(cameraNode.camera);
+		cameraNode.translation.x = 2.f;
+		cameraNode.translation.y = 2.f;
+		cameraNode.translation.z = 2.f;
+
 		const auto& meshName = std::string("Room");
 		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
+
+		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
+		app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
+
+		int id = 0;
+		for (auto& node : app.sceneState.graph.nodes)
+		{
+			node.nodeId = id;
+			id++;
+		}
+
+		app.createModelMatrices();
 
 		for (auto* node : app.sceneState.graph.root->children)
 		{

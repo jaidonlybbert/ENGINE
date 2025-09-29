@@ -37,6 +37,7 @@ class Node {
 	 */
 
 public:
+	unsigned int nodeId;  // index into "nodes" vector
 	std::string name{};
 	glm::vec3 scale { 1.f };
 	glm::vec3 translation{ 0.f };
@@ -69,6 +70,7 @@ struct SceneState {
 	double cursor_y;
 	std::vector<ENG::Mesh<VertexPosColTex>> posColTexMeshes;
 	std::vector<ENG::Mesh<VertexPosNorTex>> posNorTexMeshes;
+	std::vector<glm::mat4> modelMatrices;
 };
 
 Camera* get_active_camera(const SceneState& sceneState);
