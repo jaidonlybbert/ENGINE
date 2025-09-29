@@ -121,18 +121,53 @@ bool load_gltf(const VkDevice& device,
 		return false;
 	}
 
+	// Since we are attaching this gltf scene to ours, the node index is offset by
+	// the number of nodes loaded before this function is called
+	const auto& nodeOffset = sceneState.graph.nodes.size();
+
 	ENG_LOG_DEBUG("Nodes found:" << std::endl);
 	for (const auto& node : model.nodes) {
 		auto& newNode = sceneState.graph.nodes.emplace_back();
 		const auto& idx = sceneState.graph.nodes.size() - 1;
+		// Default to adding node as child of root
 		attachmentPoint.children.push_back(&newNode);
 		newNode.name = node.name;
+		newNode.nodeId = idx;
+		newNode.parent = &attachmentPoint;	
+
 		ENG_LOG_DEBUG("\t" << node.name << "\t" << idx << std::endl);
 		if (node.name == "main_camera") {
 			sceneState.activeCameraNodeIdx = idx;
 			ENG_LOG_DEBUG("Camera node set with idx: " << idx << std::endl);
 		}
 		load_gltf_node(device, physicalDevice, graphicsQueue, commands, node, sceneState, newNode, model);
+	}
+
+	// Iterate again now that all nodes are loaded, and update parent-child relationships
+	size_t nodeCounter = 0;
+	for (const auto& node : model.nodes) {
+		if (node.children.size() > 0)
+		{
+			assert(nodeCounter + nodeOffset < sceneState.graph.nodes.size());
+			auto& engParentNode = sceneState.graph.nodes.at(nodeCounter + nodeOffset);
+			for (const auto& childIdx : node.children)
+			{
+				const auto& engNodeChildIdx = childIdx + nodeOffset;
+				assert(engNodeChildIdx < sceneState.graph.nodes.size());
+				auto& engChild = sceneState.graph.nodes.at(engNodeChildIdx);
+				// Clear child from old parent
+				if (engChild.parent)
+				{
+					std::erase_if(engChild.parent->children, [engNodeChildIdx](const ENG::Node* oldParentChild) {
+							return (oldParentChild->nodeId == engNodeChildIdx);
+						});
+				}
+
+				engParentNode.children.push_back(&engChild);
+				engChild.parent = &engParentNode;
+			}
+		}
+		nodeCounter++;
 	}
 
 	return true;

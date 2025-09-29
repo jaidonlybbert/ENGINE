@@ -364,19 +364,20 @@ public:
 			sceneState->cursor_y = ypos;
 
 			ENG_LOG_INFO("dx: " << dx << " dy: " << dx << std::endl);
-
-			//auto& camera_rotation = sceneState->scene.nodes[sceneState->activeCameraNodeIdx].rotation;
-			//auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
-
 			constexpr float sensitivity = 0.1f;
-			// const auto& local_x_axis = glm::normalize(sceneState->test_model[0]);
-			// auto dx_radians = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.0f, 0.0f, 1.0f));
-			// auto dy_radians = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(local_x_axis.x, local_x_axis.y, local_x_axis.z));
-			//cam_quat = cam_quat * dx_radians;
-			//camera_rotation[0] = cam_quat.z;
-			//camera_rotation[1] = cam_quat.x;
-			//camera_rotation[2] = cam_quat.y;
-			//camera_rotation[3] = cam_quat.w;
+
+			if (sceneState->activeNodeIdx >= sceneState->graph.nodes.size())
+			{
+				ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
+				return;
+			}
+			auto& activeNode = sceneState->graph.nodes.at(sceneState->activeNodeIdx);
+
+			auto dx_radians = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.0f, 0.0f, 1.0f));
+			activeNode.rotation	= dx_radians * activeNode.rotation;
+			const auto& local_x_axis = glm::normalize(activeNode.rotation * glm::vec3(1.0f, 0.0f, 0.0f));
+			auto dy_radians = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(local_x_axis.x, local_x_axis.y, local_x_axis.z));
+			activeNode.rotation = dy_radians * activeNode.rotation;
 
 			// auto& test_rot = sceneState->test_model;
 			// rotate 3 degrees around y-axis when E is pressed
@@ -941,6 +942,14 @@ public:
 		ENG_LOG_DEBUG("Save function call" << std::endl);
 	}
 
+	void DrawNodeTree(ENG::Node* node) {
+		if (ImGui::TreeNode(node->name.c_str())) {
+			for (const auto& child : node->children) {
+				DrawNodeTree(child); // Recursively draw children
+			}
+			ImGui::TreePop();
+		}
+	}
 
 	void drawGUI() {
 		// Our state
@@ -985,6 +994,7 @@ public:
 			for (auto& node : sceneState.graph.nodes) {
 				ImGui::Text("%d: %s", node.nodeId, node.name.c_str());
 			}
+			DrawNodeTree(sceneState.graph.root);
 			ImGui::InputInt("Active: ", &sceneState.activeNodeIdx);
 			if (sceneState.activeNodeIdx < sceneState.graph.nodes.size())
 			{
@@ -1015,6 +1025,7 @@ int main() {
 
 		auto& attachmentPoint = app.sceneState.graph.nodes.emplace_back();
 		app.sceneState.graph.root = &attachmentPoint;
+		app.sceneState.graph.root->name = "Root";
 
 		// ENG_LOG_INFO("GLTF path: " << gltf_dir.native().c_str() << std::endl);
 		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
@@ -1028,13 +1039,6 @@ int main() {
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 		app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
-
-		int id = 0;
-		for (auto& node : app.sceneState.graph.nodes)
-		{
-			node.nodeId = id;
-			id++;
-		}
 
 		app.createModelMatrices();
 
