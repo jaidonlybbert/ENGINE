@@ -28,6 +28,7 @@ public:
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 	VkPipelineColorBlendStateCreateInfo colorBlending{};
 	VkDescriptorSetLayout descriptorSetLayout{};
+	VkPushConstantRange pushConstantRange{};
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	VkPipelineLayout pipelineLayout{};
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
@@ -43,6 +44,7 @@ public:
 	virtual void createColorBlendAttachmentState();
 	virtual void createColorBlendingStateInfo();
 	virtual void createDescriptorSetLayout(const VkDevice& device);
+	virtual void createPushConstantsRange();
 	virtual void createPipelineLayoutInfo();
 	virtual void createDepthStencilInfo();
 	virtual void createPipelineInfo(VkGraphicsPipelineCreateInfo& create_info, const VkRenderPass& renderPass);

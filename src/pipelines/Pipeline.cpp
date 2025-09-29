@@ -22,6 +22,7 @@ void Pipeline::Initialize(const VkRenderPass& renderPass,
 	createColorBlendAttachmentState();
 	createColorBlendingStateInfo();
 	createDescriptorSetLayout(device);
+	createPushConstantsRange();
 	createPipelineLayoutInfo();
 
 	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
@@ -170,13 +171,19 @@ void Pipeline::createDescriptorSetLayout(const VkDevice& device) {
 	}
 }
 
+void Pipeline::createPushConstantsRange() {
+	pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	pushConstantRange.offset = 0;
+	pushConstantRange.size = sizeof(uint32_t);
+}
+
 
 void Pipeline::createPipelineLayoutInfo() {
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
 	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
-	pipelineLayoutInfo.pPushConstantRanges = nullptr;
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 }
 
 void Pipeline::createDepthStencilInfo() {

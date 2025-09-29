@@ -509,6 +509,8 @@ public:
 
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(node.shaderId.value()),
 				  0, 1, &descriptorSets.get(node.descriptorSetIds.at(currentFrame)), 0, nullptr);
+			vkCmdPushConstants(commandBuffer, pipelineFactory->getVkPipelineLayout(node.shaderId.value()), VK_SHADER_STAGE_VERTEX_BIT, 0,
+				sizeof(uint32_t), &node.nodeId);
 
 
 			auto* meshPtr = node.mesh;
@@ -971,6 +973,9 @@ public:
 			ImGui::InputFloat3("Camera rotation", &cameraNode.rotation.x);
 			
 			auto* roomPtr = find_node_by_name(sceneState.graph, "Room");
+			ImGui::Text("Room properties");
+			ImGui::SliderFloat4("Rotation", &(roomPtr->rotation.x), 0.f, 3.1f);
+			ImGui::SliderFloat3("Location", &(roomPtr->translation.x), 0.f, 3.1f);
 			auto* suzannePtr = find_node_by_name(sceneState.graph, "Suzanne");
 			assert(roomPtr != nullptr);
 			assert(suzannePtr != nullptr);
