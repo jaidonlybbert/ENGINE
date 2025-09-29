@@ -31,6 +31,10 @@ namespace ENG
 		glm::vec2 texCoord;
 	};
 
+	struct VertexPos {
+		glm::vec3 pos;
+	};	
+
 	class Component {
 		/*
 		 * Base class for components associated with Entities

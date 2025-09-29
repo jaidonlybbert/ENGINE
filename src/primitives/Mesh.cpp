@@ -30,6 +30,21 @@ namespace ENG
 	}
 
 	template<>
+	Mesh<VertexPos>::Mesh(
+		const VkDevice& device,
+		const VkPhysicalDevice& physicalDevice,
+		ENG::Command* const commands,
+		std::string name,
+		std::vector<VertexPos> vertices,
+		std::vector<uint32_t> indices,
+		const VkQueue& graphicsQueue
+	) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue)
+	{
+		createVertexBuffer(graphicsQueue);
+		createIndexBuffer(graphicsQueue);
+	}
+
+	template<>
 	Mesh<VertexPosColTex>::Mesh(const VkDevice& device,
 		const VkPhysicalDevice& physicalDevice,
 		ENG::Command* const commands,
@@ -162,6 +177,56 @@ namespace ENG
 	}
 
 	template<>
+	Mesh<VertexPos>::Mesh(const VkDevice& device,
+		const VkPhysicalDevice& physicalDevice,
+		ENG::Command* const commands,
+		const std::string& mesh_name,
+		const tinygltf::Model& model,
+		const tinygltf::Primitive& primitive,
+		const VkQueue& graphicsQueue) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {
+		const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
+		assert(primitive.indices >= 0);
+		const auto& ind_acc = model.accessors[primitive.indices];
+
+		const auto& pos_bv = model.bufferViews[pos_acc.bufferView];
+		const auto& ind_bv = model.bufferViews[ind_acc.bufferView];
+
+		const auto& pos_buff = model.buffers[pos_bv.buffer];
+		const auto& ind_buff = model.buffers[ind_bv.buffer];
+
+		size_t pos_size{ get_size_bytes_from_tinygltf_accessor(pos_acc) };
+		size_t ind_size{ get_size_bytes_from_tinygltf_accessor(ind_acc) };
+		assert(pos_size == 12);
+		assert(ind_size == 2);
+
+		const size_t num_elements = pos_bv.byteLength / pos_size;
+		const size_t num_indices = ind_bv.byteLength / ind_size;
+		assert(num_elements == nor_bv.byteLength / nor_size);
+		assert(num_elements == tex_bv.byteLength / tex_size);
+
+		name = mesh_name;
+		vertices.resize(num_elements);
+		indices.resize(num_indices);
+		for (size_t i = 0; i < num_elements; ++i)
+		{
+			VertexPos vert;
+			// Assumes data is not interleaved
+			assert(pos_bv.byteStride == 0);
+			vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
+
+			vertices[i] = vert;
+		}
+		for (size_t i = 0; i < num_indices; ++i)
+		{
+			indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
+		}
+
+		createVertexBuffer(graphicsQueue);
+		createIndexBuffer(graphicsQueue);
+	}
+		
+
+	template<>
 	std::vector<VkVertexInputAttributeDescription> Mesh<VertexPosColTex>::getAttributeDescriptions() {
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{ 3 };
 
@@ -201,6 +266,18 @@ namespace ENG
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
 		attributeDescriptions[2].offset = offsetof(VertexPosNorTex, texCoord);
+
+		return attributeDescriptions;
+	}
+
+	template<>
+	std::vector<VkVertexInputAttributeDescription> Mesh<VertexPos>::getAttributeDescriptions() {
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{ 1 };
+
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(VertexPos, pos);
 
 		return attributeDescriptions;
 	}
