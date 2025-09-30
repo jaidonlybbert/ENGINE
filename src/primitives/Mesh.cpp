@@ -201,8 +201,8 @@ namespace ENG
 
 		const size_t num_elements = pos_bv.byteLength / pos_size;
 		const size_t num_indices = ind_bv.byteLength / ind_size;
-		assert(num_elements == nor_bv.byteLength / nor_size);
-		assert(num_elements == tex_bv.byteLength / tex_size);
+		assert(num_elements == pos_bv.byteLength / pos_size);
+		assert(num_elements == ind_bv.byteLength / ind_size);
 
 		name = mesh_name;
 		vertices.resize(num_elements);

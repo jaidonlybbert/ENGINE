@@ -71,6 +71,7 @@ struct SceneState {
 	double cursor_y;
 	std::vector<ENG::Mesh<VertexPosColTex>> posColTexMeshes;
 	std::vector<ENG::Mesh<VertexPosNorTex>> posNorTexMeshes;
+	std::vector<ENG::Mesh<VertexPos>> posMeshes;
 	std::vector<glm::mat4> modelMatrices;
 };
 

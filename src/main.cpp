@@ -143,6 +143,7 @@ public:
 	~VulkanTemplateApp() {
 		sceneState.posColTexMeshes.clear();
 		sceneState.posNorTexMeshes.clear();
+		sceneState.posMeshes.clear();
 
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
@@ -534,6 +535,22 @@ public:
 				vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
 			}
+			else if (dynamic_cast<ENG::Mesh<ENG::VertexPos>*>(meshPtr))
+			{
+				ENG_LOG_DEBUG("Cast for " << node.name << " success" << std::endl);
+				auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPos>*>(meshPtr);
+				assert(castPtr != nullptr);
+				assert(castPtr->vertexBuffer != nullptr);
+				assert(castPtr->vertexBuffer->buffer != nullptr);
+				assert(castPtr->indexBuffer != nullptr);
+				assert(castPtr->indexBuffer->buffer != nullptr);
+				VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
+
+				VkDeviceSize offsets[] = {0};
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+				vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
+			}
 		}
 
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -733,6 +750,82 @@ public:
 		}
 	}
 
+	VkWriteDescriptorSet createDescriptorWriteModelMatrix(const ENG::Node& node, const size_t frameIdx, const size_t bindingIdx, const VkDescriptorBufferInfo& modelMatrixBufferInfo) {
+		assert(node.descriptorSetIds.size() > frameIdx);
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
+		descriptorWrite.dstBinding = bindingIdx;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &modelMatrixBufferInfo;
+
+		return descriptorWrite;
+	}
+
+	VkWriteDescriptorSet createDescriptorWriteSampler(const ENG::Node& node, const size_t frameIdx, const size_t bindingIdx, const VkDescriptorImageInfo& imageInfo) {
+		assert(node.descriptorSetIds.size() > frameIdx);
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
+		descriptorWrite.dstBinding = bindingIdx;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pImageInfo = &imageInfo;
+
+		return descriptorWrite;
+	}
+
+	VkWriteDescriptorSet createDescriptorWriteUbo(const ENG::Node& node, const size_t frameIdx, const size_t bindingIdx, const VkDescriptorBufferInfo& bufferInfo) {
+		assert(node.descriptorSetIds.size() > frameIdx);
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
+		descriptorWrite.dstBinding = bindingIdx;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+
+		return descriptorWrite;
+	}
+
+	void writeDescriptorSets(const ENG::Node& node) {
+		// NOTE: This seems overly complicated and inefficient?
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = uniformBuffers[i].buffer;
+			bufferInfo.offset = 0;
+			bufferInfo.range = sizeof(UniformBufferObject);
+
+			VkDescriptorImageInfo imageInfo{};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = textureImageView;
+			imageInfo.sampler = textureSampler;
+
+			VkDescriptorBufferInfo modelMatrixBufferInfo{};
+			assert(modelMatrixBuffers[i].buffer != nullptr);
+			modelMatrixBufferInfo.buffer = modelMatrixBuffers[i].buffer;
+			modelMatrixBufferInfo.offset = 0;
+			modelMatrixBufferInfo.range = sizeof(glm::mat4) * sceneState.modelMatrices.size();
+
+			std::vector<VkWriteDescriptorSet> descriptorWrites;
+			if (node.shaderId == ENG_SHADER::PosBB) {
+				descriptorWrites = { createDescriptorWriteUbo(node, i, 0, bufferInfo), createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo) };
+			} else {
+				descriptorWrites = { createDescriptorWriteUbo(node, i, 0, bufferInfo), createDescriptorWriteSampler(node, i, 1, imageInfo),
+					createDescriptorWriteModelMatrix(node, i, 2, modelMatrixBufferInfo) };
+			}
+
+			assert(i < node.descriptorSetIds.size());
+			ENG_LOG_INFO("attempt update descriptorsets" << std::endl);
+
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+		}
+	}
+
 	void createDescriptorSets(ENG::Node& node) {
 		if (!node.shaderId.has_value())
 		{
@@ -758,55 +851,7 @@ public:
 			throw std::runtime_error("failed to allocate descriptor sets!");
 		}
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = uniformBuffers[i].buffer;
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
-
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = textureImageView;
-			imageInfo.sampler = textureSampler;
-
-			VkDescriptorBufferInfo modelMatrixBufferInfo{};
-			assert(modelMatrixBuffers[i].buffer != nullptr);
-			modelMatrixBufferInfo.buffer = modelMatrixBuffers[i].buffer;
-			modelMatrixBufferInfo.offset = 0;
-			modelMatrixBufferInfo.range = sizeof(glm::mat4) * sceneState.modelMatrices.size();
-
-			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
-
-			assert(i < node.descriptorSetIds.size());
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = descriptorSets.get(node.descriptorSetIds.at(i));
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets.get(node.descriptorSetIds.at(i));
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-
-			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[2].dstSet = descriptorSets.get(node.descriptorSetIds.at(i));
-			descriptorWrites[2].dstBinding = 2;
-			descriptorWrites[2].dstArrayElement = 0;
-			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			descriptorWrites[2].descriptorCount = 1;
-			descriptorWrites[2].pBufferInfo = &modelMatrixBufferInfo;
-
-
-			ENG_LOG_INFO("attempt update descriptorsets" << std::endl);
-
-			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-		}
+		writeDescriptorSets(node);
 	}
 
 	void createTextureImage() {
@@ -1020,7 +1065,8 @@ int main() {
 		// TODO: implement pools to avoid reference invalidation on reallocation problem
 		app.sceneState.posColTexMeshes.reserve(10);
 		app.sceneState.posNorTexMeshes.reserve(10);
-		app.sceneState.graph.nodes.reserve(10);
+		app.sceneState.posMeshes.reserve(10);
+		app.sceneState.graph.nodes.reserve(100);
 		app.sceneState.graph.cameras.reserve(10);
 
 		auto& attachmentPoint = app.sceneState.graph.nodes.emplace_back();
@@ -1036,6 +1082,65 @@ int main() {
 
 		const auto& meshName = std::string("Room");
 		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
+
+		// Create bounding box around Suzanne
+		auto* suzanneNode = find_node_by_name(app.sceneState.graph, "Suzanne");
+		if (suzanneNode != nullptr)
+		{
+			const auto* mesh = checked_cast<ENG::Component, ENG::Mesh<VertexPosNorTex>>(suzanneNode->mesh);
+			const auto& minXIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+				return (rhs.pos.x < lhs.pos.x);
+			});
+			const auto& minYIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+				return (rhs.pos.y < lhs.pos.y);
+			});
+			const auto& minZIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+				return (rhs.pos.z < lhs.pos.z);
+			});
+			const auto& maxXIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+				return (rhs.pos.x > lhs.pos.x);
+			});
+			const auto& maxYIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+				return (rhs.pos.y > lhs.pos.y);
+			});
+			const auto& maxZIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+				return (rhs.pos.z > lhs.pos.z);
+			});
+
+			const auto& maxX = maxXIt->pos.x;
+			const auto& maxY = maxYIt->pos.y;
+			const auto& maxZ = maxZIt->pos.z;
+			const auto& minX = minXIt->pos.x;
+			const auto& minY = minYIt->pos.y;
+			const auto& minZ = minZIt->pos.z;
+
+			std::vector<VertexPos> bbVertices {
+				{ { minX, minY, maxZ } },
+				{ { maxX, minY, maxZ } },
+				{ { maxX, maxY, maxZ } },
+				{ { minX, maxY, maxZ } },
+				{ { minX, minY, minZ } },
+				{ { maxX, minY, minZ } },
+				{ { maxX, maxY, minZ } },
+				{ { minX, maxY, minZ } },
+			};
+
+			std::vector<uint32_t> bbIndices {
+				0, 1, 1, 2, 2, 3, 3, 0,
+				4, 5, 5, 6, 6, 7, 7, 4,
+				0, 4, 1, 5, 2, 6, 3, 7
+			};
+
+			auto& bbMesh = app.sceneState.posMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), "SuzanneBB" , bbVertices, bbIndices, app.graphicsQueue);
+			auto& bbNode = app.sceneState.graph.nodes.emplace_back();
+			bbNode.name = "SuzanneBoundingBox";
+			bbNode.nodeId = app.sceneState.graph.nodes.size() - 1;
+			bbNode.parent = suzanneNode;
+			bbNode.mesh = &bbMesh;
+			bbNode.shaderId = ENG_SHADER::PosBB;
+			suzanneNode->children.push_back(&bbNode);
+		}
+
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 		app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
@@ -1056,6 +1161,12 @@ int main() {
 
 		ENG_LOG_INFO("PosNorTex Meshes loaded:" << std::endl);
 		for (const auto& mesh : app.sceneState.posNorTexMeshes)
+		{
+			ENG_LOG_INFO("\t" << mesh.name << std::endl);
+		}
+
+		ENG_LOG_INFO("PosBB Meshes loaded:" << std::endl);
+		for (const auto& mesh : app.sceneState.posMeshes)
 		{
 			ENG_LOG_INFO("\t" << mesh.name << std::endl);
 		}

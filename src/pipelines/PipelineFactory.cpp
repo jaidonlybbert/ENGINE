@@ -15,14 +15,15 @@ PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapCha
 
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosColTex>(device, renderPass, shader_factory, pipelineCreateInfos));
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosNorTex>(device, renderPass, shader_factory, pipelineCreateInfos));
+	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosBB>(device, renderPass, shader_factory, pipelineCreateInfos));
 
 	// TODO: Graphics pipelines is more than 1!
-	assert(pipelineCreateInfos.size() == 2);
+	assert(pipelineCreateInfos.size() == 3);
 	graphicsPipelines.resize(pipelineCreateInfos.size());
 	assert(graphicsPipelines.data() && pipelineCreateInfos.data());
 	const auto* pCreateInfos = pipelineCreateInfos.data();
 	auto* pPipelines = graphicsPipelines.data();
-	const auto success = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 2, pCreateInfos, nullptr, pPipelines);
+	const auto success = vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, pipelineCreateInfos.size(), pCreateInfos, nullptr, pPipelines);
 	if (success != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}

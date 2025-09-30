@@ -10,7 +10,8 @@
 
 enum class ENG_SHADER {
 	PosColTex,
-	PosNorTex
+	PosNorTex,
+	PosBB
 };
 
 class ShaderFactory {

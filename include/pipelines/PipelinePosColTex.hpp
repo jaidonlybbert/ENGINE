@@ -22,5 +22,15 @@ public:
 	void createVertexInputInfo() override;
 };
 
+class Pipeline_PosBB : public Pipeline {
+public:
+	Pipeline_PosBB(const VkDevice& device, const VkRenderPass& renderPass,
+		const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos);
+	void createShaderStages(const ShaderFactory& shader_fac) override;
+	void createVertexInputInfo() override;
+	void createDescriptorSetLayout(const VkDevice& device) override;
+	void createInputAssemblyInfo() override;
+	void createRasterizationStateInfo() override;
+};
 } // end namespace
 #endif
