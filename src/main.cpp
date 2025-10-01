@@ -78,6 +78,7 @@ public:
 
 	T& get(const size_t id)
 	{
+		assert(id < handle.size());
 		return handle.at(id);
 	}
 
@@ -494,6 +495,7 @@ public:
 				ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no shaderId" << std::endl);
 				continue;
 			}
+			const auto& shaderId = node.shaderId.value();
 
 			if (node.mesh == nullptr)
 			{	
@@ -507,11 +509,12 @@ public:
 				continue;
 			}
 			ENG_LOG_TRACE("Drawing " << node.name << std::endl);
-			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(node.shaderId.value()));
+			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(shaderId));
 
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(node.shaderId.value()),
+			assert(currentFrame < node.descriptorSetIds.size());
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(shaderId),
 				  0, 1, &descriptorSets.get(node.descriptorSetIds.at(currentFrame)), 0, nullptr);
-			vkCmdPushConstants(commandBuffer, pipelineFactory->getVkPipelineLayout(node.shaderId.value()), VK_SHADER_STAGE_VERTEX_BIT, 0,
+			vkCmdPushConstants(commandBuffer, pipelineFactory->getVkPipelineLayout(shaderId), VK_SHADER_STAGE_VERTEX_BIT, 0,
 				sizeof(uint32_t), &node.nodeId);
 
 
@@ -733,17 +736,17 @@ public:
 	void createDescriptorPool() {
 		std::array<VkDescriptorPoolSize, 3> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
+		poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
+		poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100;
 		poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
+		poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100;
 
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2;
+		poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100;
 
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create descriptor pool!");
@@ -1147,10 +1150,9 @@ int main() {
 
 		app.createModelMatrices();
 
-		for (auto* node : app.sceneState.graph.root->children)
+		for (auto& node : app.sceneState.graph.nodes)
 		{
-			assert(node != nullptr);
-			app.createDescriptorSets(*node);
+			app.createDescriptorSets(node);
 		}
 
 		ENG_LOG_INFO("PosColTex Meshes loaded:" << std::endl);

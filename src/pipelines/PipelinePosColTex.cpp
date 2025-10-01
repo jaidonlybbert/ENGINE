@@ -1,4 +1,5 @@
 #include<iostream>
+#include<array>
 #include "interfaces/Logging.hpp"
 #include "pipelines/Pipeline.hpp"
 #include "primitives/Mesh.hpp"

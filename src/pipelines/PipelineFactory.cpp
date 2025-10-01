@@ -109,14 +109,19 @@ const VkRenderPass& PipelineFactory::getRenderPass() const {
 }
 
 const VkDescriptorSetLayout& PipelineFactory::getDescriptorSetLayout(const ENG_SHADER shader) const {
+	assert(static_cast<size_t>(shader) < eng_pipelines.size());
+	assert(eng_pipelines.at(static_cast<size_t>(shader)) != nullptr);
 	return eng_pipelines.at(static_cast<size_t>(shader))->getDescriptorSetLayout();
 }
 
 const VkPipeline& PipelineFactory::getVkPipeline(const ENG_SHADER shader) const {
+	assert(static_cast<size_t>(shader) < graphicsPipelines.size());
 	return graphicsPipelines.at(static_cast<size_t>(shader));
 }
 
 const VkPipelineLayout& PipelineFactory::getVkPipelineLayout(const ENG_SHADER shader) const {
+	assert(static_cast<size_t>(shader) < eng_pipelines.size());
+	assert(eng_pipelines.at(static_cast<size_t>(shader)) != nullptr);
 	return eng_pipelines.at(static_cast<size_t>(shader))->getPipelineLayout();
 }
 } // End namespace

@@ -154,22 +154,25 @@ namespace ENG
 		name = mesh_name;
 		vertices.resize(num_elements);
 		indices.resize(num_indices);
+
+
 		for (size_t i = 0; i < num_elements; ++i)
 		{
-			VertexPosNorTex vert;
 			// Assumes data is not interleaved
 			assert(pos_bv.byteStride == 0);
 			assert(nor_bv.byteStride == 0);
 			assert(tex_bv.byteStride == 0);
-			vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
-			vert.normal = static_cast<glm::vec3>(nor_buff.data[nor_bv.byteOffset + i * nor_size]);
-			vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
 
-			vertices[i] = vert;
+			std::memcpy(&vertices.at(i).pos, &pos_buff.data[pos_bv.byteOffset + i * pos_size], sizeof(vertices[0].pos));
+			std::memcpy(&vertices.at(i).normal, &nor_buff.data[nor_bv.byteOffset + i * nor_size], sizeof(vertices[0].normal));
+			std::memcpy(&vertices.at(i).texCoord, &tex_buff.data[tex_bv.byteOffset + i * tex_size], sizeof(vertices[0].texCoord));
 		}
 		for (size_t i = 0; i < num_indices; ++i)
 		{
-			indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
+			assert(i < indices.size());
+			unsigned short tmp;
+			std::memcpy(&tmp, &ind_buff.data[ind_bv.byteOffset + i * ind_size], sizeof(unsigned short));
+			indices.at(i) = static_cast<uint32_t>(tmp);
 		}
 
 		createVertexBuffer(graphicsQueue);
