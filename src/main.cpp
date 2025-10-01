@@ -540,7 +540,7 @@ public:
 			}
 			else if (dynamic_cast<ENG::Mesh<ENG::VertexPos>*>(meshPtr))
 			{
-				ENG_LOG_DEBUG("Cast for " << node.name << " success" << std::endl);
+				ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
 				auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPos>*>(meshPtr);
 				assert(castPtr != nullptr);
 				assert(castPtr->vertexBuffer != nullptr);
