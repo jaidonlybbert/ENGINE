@@ -1101,13 +1101,13 @@ int main() {
 				return (rhs.pos.z < lhs.pos.z);
 			});
 			const auto& maxXIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.x > lhs.pos.x);
+				return (rhs.pos.x < lhs.pos.x);
 			});
 			const auto& maxYIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.y > lhs.pos.y);
+				return (rhs.pos.y < lhs.pos.y);
 			});
 			const auto& maxZIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.z > lhs.pos.z);
+				return (rhs.pos.z < lhs.pos.z);
 			});
 
 			const auto& maxX = maxXIt->pos.x;
