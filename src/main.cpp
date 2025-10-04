@@ -1,4 +1,6 @@
 #include<iostream>
+#include<iterator>
+#include<stack>
 #include<locale>
 #include<vector>
 #include<stdexcept>
@@ -682,17 +684,97 @@ public:
 
 	void updateModelMatrix(glm::mat4& modelMatrix, const ENG::Node& node)
 	{
+		// Compute local transform from TRS data
 		modelMatrix = glm::translate(glm::mat4(1.f), node.translation)
 			* glm::mat4_cast(node.rotation)
 			* glm::scale(glm::mat4(1.f), node.scale);
 	}
 
+	class DFIterator {
+	public:
+		using iterator_category = std::forward_iterator_tag;
+		using value_type = ENG::Node*;
+		using difference_type = std::ptrdiff_t;
+		using pointer = ENG::Node**;
+		using reference = ENG::Node*&;
+
+		DFIterator() = default;
+		explicit DFIterator(ENG::Node* root) {
+			if (root) stack.emplace(Frame{ root, 0 });
+		}
+
+		ENG::Node* operator*() const {
+			return stack.empty() ? nullptr : stack.top().node;
+		}
+
+		DFIterator& operator++() {
+			if (stack.empty()) return *this;
+
+			Frame& top = stack.top();
+			ENG::Node* current = top.node;
+
+			if (top.childIndex < current->children.size()) {
+				ENG::Node* child = current->children[top.childIndex++];
+				stack.emplace(Frame{ child, 0 });
+			}
+			else {
+				stack.pop();
+				if (!stack.empty()) ++(*this); // Continue to next sibling or backtrack
+			}
+
+			return *this;
+		}
+
+		bool operator!=(const DFIterator& other) const {
+			return stack != other.stack;
+		}
+
+	private:
+		struct Frame {
+			ENG::Node* node;
+			size_t childIndex;
+			bool operator==(const Frame& other) const {
+				return node == other.node && childIndex == other.childIndex;
+			}
+		};
+
+		std::stack<Frame> stack;
+	};
+
+	class DFTraversal {
+	public:
+		explicit DFTraversal(ENG::Node* root) : root(root) {}
+
+		DFIterator begin() const { return DFIterator(root); }
+		DFIterator end() const { return DFIterator(); }
+
+	private:
+		ENG::Node* root;
+	};
+
 	void updateModelMatrixBuffer()
 	{
+		// Compute local transforms first from TRS data
 		for (const auto& node : sceneState.graph.nodes)
 		{
 			assert(node.nodeId < sceneState.modelMatrices.size());
 			updateModelMatrix(sceneState.modelMatrices.at(node.nodeId), node);
+		}
+
+		// Update to global transforms by depth-first traversal of the graph
+		for (auto* node : DFTraversal(sceneState.graph.root))
+		{
+			if (node == sceneState.graph.root)
+			{
+				continue;  // Do not need to do any update on root node
+			}
+
+			// Global transform is computed as the transform of local transform by parents global transform
+			// Depth-first traversal guarantees parent global transform is computed before child is visited
+			assert(node != nullptr && node->nodeId < sceneState.modelMatrices.size());
+			assert(node->parent != nullptr && node->parent->nodeId < sceneState.modelMatrices.size());
+			sceneState.modelMatrices.at(node->nodeId) = sceneState.modelMatrices.at(node->parent->nodeId) * sceneState.modelMatrices.at(node->nodeId);
+			ENG_LOG_TRACE("TRAVERSING NAME: " << node->name << std::endl);
 		}
 
 		const auto& bufferSize = sceneState.modelMatrices.size() * sizeof(glm::mat4);
