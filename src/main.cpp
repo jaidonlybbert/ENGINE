@@ -1074,6 +1074,11 @@ public:
 
 	void DrawNodeTree(ENG::Node* node) {
 		if (ImGui::TreeNode(node->name.c_str())) {
+			ImGui::Text("Properties");
+			ImGui::Checkbox("Visible", &node->visible);
+			ImGui::SliderFloat4("Rotation", &(node->rotation.x), 0.f, 3.1f);
+			ImGui::SliderFloat3("Location", &(node->translation.x), 0.f, 3.1f);
+
 			for (const auto& child : node->children) {
 				DrawNodeTree(child); // Recursively draw children
 			}
