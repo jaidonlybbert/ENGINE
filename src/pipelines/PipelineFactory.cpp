@@ -16,9 +16,9 @@ PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapCha
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosColTex>(device, renderPass, shader_factory, pipelineCreateInfos));
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosNorTex>(device, renderPass, shader_factory, pipelineCreateInfos));
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosBB>(device, renderPass, shader_factory, pipelineCreateInfos));
+	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosNorCol>(device, renderPass, shader_factory, pipelineCreateInfos));
 
-	// TODO: Graphics pipelines is more than 1!
-	assert(pipelineCreateInfos.size() == 3);
+	assert(pipelineCreateInfos.size() == 4);
 	graphicsPipelines.resize(pipelineCreateInfos.size());
 	assert(graphicsPipelines.data() && pipelineCreateInfos.data());
 	const auto* pCreateInfos = pipelineCreateInfos.data();

@@ -147,6 +147,7 @@ public:
 		sceneState.posColTexMeshes.clear();
 		sceneState.posNorTexMeshes.clear();
 		sceneState.posMeshes.clear();
+		sceneState.posNorColMeshes.clear();
 
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
@@ -556,6 +557,21 @@ public:
 				vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
 				vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
 			}
+			else if (dynamic_cast<ENG::Mesh<ENG::VertexPosNorCol>*>(meshPtr))
+			{
+				ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
+				auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosNorCol>*>(meshPtr);
+				assert(castPtr != nullptr);
+				assert(castPtr->vertexBuffer != nullptr);
+				assert(castPtr->vertexBuffer->buffer != nullptr);
+				assert(castPtr->indexBuffer != nullptr);
+				assert(castPtr->indexBuffer->buffer != nullptr);
+				VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
+
+				VkDeviceSize offsets[] = {0};
+				vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+				vkCmdDraw(commandBuffer, static_cast<uint32_t>(castPtr->vertices.size()), 1, 0, 0);
+			}
 		}
 
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -897,11 +913,18 @@ public:
 			modelMatrixBufferInfo.range = sizeof(glm::mat4) * sceneState.modelMatrices.size();
 
 			std::vector<VkWriteDescriptorSet> descriptorWrites;
-			if (node.shaderId == ENG_SHADER::PosBB) {
-				descriptorWrites = { createDescriptorWriteUbo(node, i, 0, bufferInfo), createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo) };
-			} else {
-				descriptorWrites = { createDescriptorWriteUbo(node, i, 0, bufferInfo), createDescriptorWriteSampler(node, i, 1, imageInfo),
-					createDescriptorWriteModelMatrix(node, i, 2, modelMatrixBufferInfo) };
+			if (node.shaderId == ENG_SHADER::PosBB || node.shaderId == ENG_SHADER::PosNorCol) {
+				descriptorWrites = { 
+					createDescriptorWriteUbo(node, i, 0, bufferInfo), 
+					createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo)
+				};
+			}
+			else {
+				descriptorWrites = {
+					createDescriptorWriteUbo(node, i, 0, bufferInfo),
+					createDescriptorWriteSampler(node, i, 1, imageInfo),
+					createDescriptorWriteModelMatrix(node, i, 2, modelMatrixBufferInfo)
+				};
 			}
 
 			assert(i < node.descriptorSetIds.size());
@@ -1105,6 +1128,9 @@ public:
 
 		if (sceneState.settings.showSettings)
 		{
+			ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
+			ImGui::Begin("DebugTools");
 			ImGui::Text("Camera settings");
 			if (ImGui::Button("Save")) MySaveFunction();
 			auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
@@ -1136,6 +1162,7 @@ public:
 				ImGui::SliderFloat4("Active Node Rotation", &(sceneState.graph.nodes.at(sceneState.activeNodeIdx).rotation.x), 0.f, 3.1f);
 				ImGui::SliderFloat3("Active Node Location", &(sceneState.graph.nodes.at(sceneState.activeNodeIdx).translation.x), 0.f, 3.1f);
 			}
+			ImGui::End();
 		}
 
 		// Rendering
@@ -1156,6 +1183,7 @@ int main() {
 		app.sceneState.posColTexMeshes.reserve(10);
 		app.sceneState.posNorTexMeshes.reserve(10);
 		app.sceneState.posMeshes.reserve(10);
+		app.sceneState.posNorColMeshes.reserve(10);
 		app.sceneState.graph.nodes.reserve(100);
 		app.sceneState.graph.cameras.reserve(10);
 
@@ -1231,6 +1259,63 @@ int main() {
 			suzanneNode->children.push_back(&bbNode);
 		}
 
+		// Create Tetrahedron
+		{
+			std::vector<VertexPosNorCol> tetraVertices {
+				{ {1.,  1.,  1.} },
+				{ {1., -1., -1.} },
+				{ {-1., 1., -1.} },
+				{ {-1., -1., 1.} }
+			};
+
+			std::vector<uint32_t> tetraIndices {
+				0, 1, 2,
+				0, 3, 1,
+				0, 2, 3,
+				3, 2, 1
+			};
+
+			std::vector<glm::vec3> colors {
+				{1.0, 0.5, 0.5},
+				{0.5, 1.0, 0.5},
+				{0.5, 0.5, 1.0},
+				{0.5, 0.5, 0.5},
+			};
+
+			// vertices are duplicated for face-specific color
+			std::vector<VertexPosNorCol> tetraVerticesDuplicated {
+				tetraVertices.at(0), tetraVertices.at(1), tetraVertices.at(2),
+				tetraVertices.at(0), tetraVertices.at(3), tetraVertices.at(1),
+				tetraVertices.at(0), tetraVertices.at(2), tetraVertices.at(3),
+				tetraVertices.at(3), tetraVertices.at(2), tetraVertices.at(1)
+			};
+
+			for (size_t i = 0; i < 4; ++i)
+			{
+				auto normal = glm::normalize(
+					glm::cross(
+						tetraVerticesDuplicated.at(i * 3 + 1).pos - tetraVerticesDuplicated.at(i * 3).pos,
+						tetraVerticesDuplicated.at(i * 3 + 2).pos - tetraVerticesDuplicated.at(i * 3).pos
+					)
+				);
+				for (size_t j = 0; j < 3; ++j)
+				{
+					tetraVerticesDuplicated.at(i * 3 + j).normal = normal;
+					tetraVerticesDuplicated.at(i * 3 + j).color = colors.at(i);
+				}
+			}
+
+
+			auto& tetraMesh = app.sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), "TetrahedronMesh", tetraVerticesDuplicated, tetraIndices, app.graphicsQueue);
+			auto& tetraNode = app.sceneState.graph.nodes.emplace_back();
+			tetraNode.name = "Tetrahedron";
+			tetraNode.nodeId = app.sceneState.graph.nodes.size() - 1;
+			tetraNode.parent = app.sceneState.graph.root;
+			tetraNode.mesh = &tetraMesh;
+			tetraNode.shaderId = ENG_SHADER::PosNorCol;
+			app.sceneState.graph.root->children.push_back(&tetraNode);
+		}
+
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 		app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
@@ -1263,6 +1348,13 @@ int main() {
 		ENG_LOG_INFO("Finished loading data" << std::endl);
 
 		ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
+
+		// custom settings overrides
+		suzanneNode->visible = false;
+		auto* roomNode = find_node_by_name(app.sceneState.graph, "Room");
+		roomNode->visible = false;
+		auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
+		camera->fovy = 0.7;
 
 		app.run();
 

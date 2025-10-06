@@ -31,6 +31,12 @@ namespace ENG
 		glm::vec2 texCoord;
 	};
 
+	struct VertexPosNorCol {
+		glm::vec3 pos;
+		glm::vec3 normal;
+		glm::vec3 color;
+	};
+
 	struct VertexPos {
 		glm::vec3 pos;
 	};	

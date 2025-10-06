@@ -32,5 +32,14 @@ public:
 	void createInputAssemblyInfo() override;
 	void createRasterizationStateInfo() override;
 };
+
+class Pipeline_PosNorCol : public Pipeline {
+public:
+	Pipeline_PosNorCol(const VkDevice& device, const VkRenderPass& renderpass,
+		const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos);
+	void createShaderStages(const ShaderFactory& shader_fac) override;
+	void createVertexInputInfo() override;
+	void createDescriptorSetLayout(const VkDevice& device) override;
+};
 } // end namespace
 #endif

@@ -30,6 +30,36 @@ namespace ENG
 	}
 
 	template<>
+	Mesh<VertexPosNorTex>::Mesh(
+		const VkDevice& device,
+		const VkPhysicalDevice& physicalDevice,
+		ENG::Command* const commands,
+		std::string name,
+		std::vector<VertexPosNorTex> vertices,
+		std::vector<uint32_t> indices,
+		const VkQueue& graphicsQueue
+	) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue)
+	{
+		createVertexBuffer(graphicsQueue);
+		createIndexBuffer(graphicsQueue);
+	}
+
+	template<>
+	Mesh<VertexPosNorCol>::Mesh(
+		const VkDevice& device,
+		const VkPhysicalDevice& physicalDevice,
+		ENG::Command* const commands,
+		std::string name,
+		std::vector<VertexPosNorCol> vertices,
+		std::vector<uint32_t> indices,
+		const VkQueue& graphicsQueue
+	) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue)
+	{
+		createVertexBuffer(graphicsQueue);
+		createIndexBuffer(graphicsQueue);
+	}
+
+	template<>
 	Mesh<VertexPos>::Mesh(
 		const VkDevice& device,
 		const VkPhysicalDevice& physicalDevice,
@@ -247,6 +277,28 @@ namespace ENG
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
 		attributeDescriptions[2].offset = offsetof(VertexPosColTex, texCoord);
+
+		return attributeDescriptions;
+	}
+
+	template<>
+	std::vector<VkVertexInputAttributeDescription> Mesh<VertexPosNorCol>::getAttributeDescriptions() {
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{ 3 };
+
+		attributeDescriptions[0].binding = 0;
+		attributeDescriptions[0].location = 0;
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(VertexPosNorCol, pos);
+
+		attributeDescriptions[1].binding = 0;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[1].offset = offsetof(VertexPosNorCol, normal);
+
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[2].offset = offsetof(VertexPosNorCol, color);
 
 		return attributeDescriptions;
 	}

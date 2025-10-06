@@ -72,6 +72,7 @@ struct SceneState {
 	std::vector<ENG::Mesh<VertexPosColTex>> posColTexMeshes;
 	std::vector<ENG::Mesh<VertexPosNorTex>> posNorTexMeshes;
 	std::vector<ENG::Mesh<VertexPos>> posMeshes;
+	std::vector<ENG::Mesh<VertexPosNorCol>> posNorColMeshes;
 	std::vector<glm::mat4> modelMatrices;
 };
 
