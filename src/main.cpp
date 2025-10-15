@@ -31,6 +31,10 @@
 #include "tracy/Tracy.hpp"
 #endif
 
+// Necessary definition for PMP header compilation
+#define M_PI 3.1415926
+#include "pmp/surface_mesh.h"
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
@@ -1316,6 +1320,28 @@ int main() {
 			app.sceneState.graph.root->children.push_back(&tetraNode);
 		}
 
+		// Test out PMP library - create a cube
+		{
+			pmp::SurfaceMesh mesh;
+
+			// choose coordinates on the unit sphere
+			float a = 1.0f / 3.0f;
+			float b = sqrt(8.0f / 9.0f);
+			float c = sqrt(2.0f / 9.0f);
+			float d = sqrt(2.0f / 3.0f);
+
+			// add the 4 vertices
+			auto v0 = mesh.add_vertex(pmp::Point(0, 0, 1));
+			auto v1 = mesh.add_vertex(pmp::Point(-c, d, -a));
+			auto v2 = mesh.add_vertex(pmp::Point(-c, -d, -a));
+			auto v3 = mesh.add_vertex(pmp::Point(b, 0, -a));
+
+			// add the 4 faces
+			mesh.add_triangle(v0, v1, v2);
+			mesh.add_triangle(v0, v2, v3);
+			mesh.add_triangle(v0, v3, v1);
+			mesh.add_triangle(v3, v2, v1);
+		}
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 		app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
@@ -1350,9 +1376,15 @@ int main() {
 		ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
 
 		// custom settings overrides
-		suzanneNode->visible = false;
+		if (suzanneNode != nullptr)
+		{
+			suzanneNode->visible = false;
+		}
 		auto* roomNode = find_node_by_name(app.sceneState.graph, "Room");
-		roomNode->visible = false;
+		if (roomNode != nullptr)
+		{
+			roomNode->visible = false;
+		}
 		auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
 		camera->fovy = 0.7;
 

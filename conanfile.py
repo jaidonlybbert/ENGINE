@@ -13,6 +13,7 @@ class EngineRecipe(ConanFile):
         "stb/cci.20240531",
         "tinyobjloader/2.0.0-rc10",
         "nlohmann_json/3.12.0",
+        "pmp/3.0.0",
     )
 
     if platform.platform() == "Windows":
