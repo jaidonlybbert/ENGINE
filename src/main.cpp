@@ -1223,10 +1223,30 @@ void project_to_unit_sphere(pmp::SurfaceMesh& mesh)
 	}
 }
 
-//pmp::SurfaceMesh create_tetrahedron()
-//{
-//
-//}
+pmp::SurfaceMesh create_tetrahedron()
+{
+	pmp::SurfaceMesh mesh;
+
+	// choose coordinates on the unit sphere
+	float a = 1.0f / 3.0f;
+	float b = sqrt(8.0f / 9.0f);
+	float c = sqrt(2.0f / 9.0f);
+	float d = sqrt(2.0f / 3.0f);
+
+	// add the 4 vertices
+	auto v0 = mesh.add_vertex(pmp::Point(0, 0, 1));
+	auto v1 = mesh.add_vertex(pmp::Point(-c, d, -a));
+	auto v2 = mesh.add_vertex(pmp::Point(-c, -d, -a));
+	auto v3 = mesh.add_vertex(pmp::Point(b, 0, -a));
+
+	// add the 4 faces
+	mesh.add_triangle(v0, v1, v2);
+	mesh.add_triangle(v0, v2, v3);
+	mesh.add_triangle(v0, v3, v1);
+	mesh.add_triangle(v3, v2, v1);
+
+	return mesh;
+}
 
 pmp::SurfaceMesh create_hexahedron()
 {
@@ -1504,29 +1524,7 @@ int main() {
 		}
 
 		// Test out PMP library - create a tetrahedron 
-		{
-			pmp::SurfaceMesh mesh;
-
-			// choose coordinates on the unit sphere
-			float a = 1.0f / 3.0f;
-			float b = sqrt(8.0f / 9.0f);
-			float c = sqrt(2.0f / 9.0f);
-			float d = sqrt(2.0f / 3.0f);
-
-			// add the 4 vertices
-			auto v0 = mesh.add_vertex(pmp::Point(0, 0, 1));
-			auto v1 = mesh.add_vertex(pmp::Point(-c, d, -a));
-			auto v2 = mesh.add_vertex(pmp::Point(-c, -d, -a));
-			auto v3 = mesh.add_vertex(pmp::Point(b, 0, -a));
-
-			// add the 4 faces
-			mesh.add_triangle(v0, v1, v2);
-			mesh.add_triangle(v0, v2, v3);
-			mesh.add_triangle(v0, v3, v1);
-			mesh.add_triangle(v3, v2, v1);
-
-			load_pmp_mesh(mesh, "pmpTetrahedron1", "pmpTetrahedron2", app);
-		}
+		load_pmp_mesh(create_tetrahedron(), "pmpTetrahedron1", "pmpTetrahedron2", app);
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 		app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
