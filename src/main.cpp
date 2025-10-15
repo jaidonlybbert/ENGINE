@@ -34,6 +34,9 @@
 // Necessary definition for PMP header compilation
 #define M_PI 3.1415926
 #include "pmp/surface_mesh.h"
+#include "pmp/algorithms/triangulation.h"
+#include "pmp/algorithms/shapes.h"
+#include "pmp/algorithms/utilities.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -1338,7 +1341,7 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const st
 {
 		std::vector<VertexPosNorCol> vertices;
 		std::vector<uint32_t> indices;
-		glm::vec3 color{ 1.f, 0.f, 0.f };
+		glm::vec3 color{ 0.5f, 0.6f, 0.6f };
 
 		vertices.reserve(4);
 		indices.resize(12); // unused
@@ -1524,7 +1527,13 @@ int main() {
 		}
 
 		// Test out PMP library - create a tetrahedron 
-		load_pmp_mesh(create_tetrahedron(), "pmpTetrahedron1", "pmpTetrahedron2", app);
+		//load_pmp_mesh(pmp::icosahedron(), "pmpIcosahedron", "pmpIcosahedron2", app);
+		{
+			auto mesh = pmp::icosphere(3);
+			dual(mesh);
+			pmp::triangulate(mesh);
+			load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", app);
+		}
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 		app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
