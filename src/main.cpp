@@ -1341,6 +1341,44 @@ int main() {
 			mesh.add_triangle(v0, v2, v3);
 			mesh.add_triangle(v0, v3, v1);
 			mesh.add_triangle(v3, v2, v1);
+
+			std::vector<VertexPosNorCol> vertices;
+			std::vector<uint32_t> indices;
+			glm::vec3 color{ 1.f, 0.f, 0.f };
+
+			vertices.reserve(4);
+			indices.resize(12); // unused
+
+			const auto& points = mesh.get_vertex_property<pmp::Point>("v:point");
+
+			for (const auto& face : mesh.faces())
+			{
+				// extract vertex positions into glm::vec3 positions (counter-clockwise order)
+				auto circulator = pmp::SurfaceMesh::VertexAroundFaceCirculator(&mesh, face);
+				auto& it = circulator.begin();
+				const auto& p0 = points[*it];
+				const auto& p1 = points[*(++it)];
+				const auto& p2 = points[*(++it)];
+				const auto& v0 = glm::vec3(p0[0], p0[1], p0[2]);
+				const auto& v1 = glm::vec3(p1[0], p1[1], p1[2]);
+				const auto& v2 = glm::vec3(p2[0], p2[1], p2[2]);
+
+				// compute normal vector
+				const auto& normal = glm::normalize(glm::cross(v1-v0, v2-v0));
+
+				vertices.emplace_back(v0, normal, color);
+				vertices.emplace_back(v1, normal, color);
+				vertices.emplace_back(v2, normal, color);
+			}
+
+			auto& pmpMesh = app.sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), "pmpMesh", vertices, indices, app.graphicsQueue);
+			auto& pmpNode = app.sceneState.graph.nodes.emplace_back();
+			pmpNode.name = "pmpTetrahedron";
+			pmpNode.nodeId = app.sceneState.graph.nodes.size() - 1;
+			pmpNode.parent = app.sceneState.graph.root;
+			pmpNode.mesh = &pmpMesh;
+			pmpNode.shaderId = ENG_SHADER::PosNorCol;
+			app.sceneState.graph.root->children.push_back(&pmpNode);
 		}
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
