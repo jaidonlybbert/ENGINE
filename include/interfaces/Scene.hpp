@@ -66,6 +66,7 @@ struct SceneState {
 	SceneGraph graph;
 	size_t activeCameraNodeIdx;
 	int activeNodeIdx{ 0 };
+	uint32_t selectedWorldFace{ 0 };
 
 	double cursor_x;
 	double cursor_y;

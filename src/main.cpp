@@ -3,6 +3,7 @@
 #include<stack>
 #include<locale>
 #include<vector>
+#include<queue>
 #include<stdexcept>
 #include<cstdlib>
 #include<cstring>
@@ -395,6 +396,15 @@ public:
 			// rotate 3 degrees around y-axis when E is pressed
 			//auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			// test_rot = glm::mat4_cast(dy_radians) * glm::mat4_cast(dx_radians) * test_rot;
+		}
+		else 
+		{
+			//float x = (2.0f * mouseX) / screenWidth - 1.0f;
+			//float y = 1.0f - (2.0f * mouseY) / screenHeight;
+			//glm::vec4 rayClip = glm::vec4(x, y, -1.0f, 1.0f);
+			//glm::vec4 rayEye = glm::inverse(projMatrix) * rayClip;
+			//rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
+			//glm::vec3 rayWorld = glm::normalize(glm::vec3(glm::inverse(viewMatrix) * rayEye));
 		}
 	}
 
@@ -1380,6 +1390,55 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const st
 		return &pmpMesh;
 }
 
+void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh)
+{
+	// the new dual mesh
+	pmp::SurfaceMesh tmp;
+
+	// apply a face index for each face (preserved after triangulation)
+	auto oldFaceId = mesh.get_face_property<uint32_t>("f:faceId");
+	auto newFaceId = tmp.add_face_property<uint32_t>("f:faceId");
+
+	auto facecount{ 0 };
+	for (auto f : mesh.faces())
+	{
+		// calculate center of triangle fan for new mesh face
+		const auto& centerVert = tmp.add_vertex(centroid(mesh, f));
+
+		// iterate over all vertices in original face, creating triangles
+		auto vertRange = mesh.vertices(f);
+		auto it = vertRange.begin();
+		const auto& end = vertRange.end();
+		ENG_LOG_DEBUG("Verts in face: " << std::distance(it, end) << std::endl);
+		assert(std::distance(it, end) > 2);
+		auto v0 = tmp.add_vertex(mesh.position(*(it++)));
+		auto firstVert = v0;
+		auto v1 = tmp.add_vertex(mesh.position(*(it++)));
+		auto tri = tmp.add_triangle(centerVert, v0, v1);
+		facecount++;
+		newFaceId[tri] = oldFaceId[f];
+
+		for (; it != end; ++it)
+		{
+			v0 = v1;
+			v1 = tmp.add_vertex(mesh.position(*(it)));
+			tri = tmp.add_triangle(centerVert, v0, v1);
+			newFaceId[tri] = oldFaceId[f];
+			facecount++;
+			ENG_LOG_DEBUG("INNER LOOP HIT" << std::endl);
+		}
+
+		// add last triangle using last and first vertex
+		tri = tmp.add_triangle(centerVert, v1, firstVert);
+		newFaceId[tri] = oldFaceId[f];
+		facecount++;
+	}
+
+	ENG_LOG_DEBUG("FAce count " << facecount << std::endl);
+	// deep copy of tmp mesh, including properties	
+	mesh = tmp;
+}
+
 int main() {
 	
 	try {
@@ -1531,7 +1590,27 @@ int main() {
 		{
 			auto mesh = pmp::icosphere(3);
 			dual(mesh);
-			pmp::triangulate(mesh);
+
+			// apply a face index for each face (preserved after triangulation)
+			auto faceId = mesh.add_face_property<uint32_t>("f:faceId");
+
+			// for each face add the centroid to the dual mesh
+			auto facecount = static_cast<uint32_t>(0);
+			for (auto f : mesh.faces())
+			{
+				faceId[f] = facecount++;
+				ENG_LOG_DEBUG("PRE TRIANGULARIZATION FACEID: " << faceId[f] << std::endl);
+			}
+
+			ENG_LOG_DEBUG("Checkpoint" << std::endl);
+
+			triangulate_as_triangle_fan_preserving_face_ids(mesh);
+
+			faceId = mesh.get_face_property<uint32_t>("f:faceId");
+			for (auto f : mesh.faces())
+			{
+				ENG_LOG_DEBUG("POST TRIANGULURIZATION FACEID: " << faceId[f] << std::endl);
+			}
 			load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", app);
 		}
 
