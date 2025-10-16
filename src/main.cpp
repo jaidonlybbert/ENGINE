@@ -152,6 +152,8 @@ public:
 	}
 
 	~VulkanTemplateApp() {
+		faceColorBuffers.clear();
+		faceIdMapBuffers.clear();
 		sceneState.posColTexMeshes.clear();
 		sceneState.posNorTexMeshes.clear();
 		sceneState.posMeshes.clear();
@@ -248,6 +250,10 @@ public:
 	std::vector<void*> uniformBuffersMapped;
 	std::vector<ENG::Buffer> modelMatrixBuffers;
 	std::vector<void*> modelMatrixBuffersMapped;
+	std::vector<ENG::Buffer> faceColorBuffers;
+	std::vector<ENG::Buffer> faceIdMapBuffers;
+	std::vector<void*> faceColorBuffersMapped;
+	std::vector<void*> faceIdMapBuffersMapped;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorPool imguiPool;
 	Pool<VkDescriptorSet> descriptorSets{ 10 };
@@ -704,7 +710,7 @@ public:
 	{
 		VkDeviceSize bufferSize = sizeof(glm::mat4) * sceneState.graph.nodes.size();
 		modelMatrixBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-		modelMatrixBuffers.reserve(2);
+		modelMatrixBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
@@ -712,6 +718,36 @@ public:
 			modelMatrixBuffers.emplace_back(device, physicalDevice, bufferSize,
 				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			vkMapMemory(device, modelMatrixBuffers[i].bufferMemory, 0, bufferSize, 0, &modelMatrixBuffersMapped[i]);
+		}
+	}
+
+	void createFaceIdBuffers(const uint32_t number_of_faces)
+	{
+		VkDeviceSize bufferSize = sizeof(uint32_t) * number_of_faces;
+		faceIdMapBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+		faceIdMapBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+		{
+			ENG_LOG_DEBUG("Creating FaceID buffer " << i << " of size " << bufferSize << std::endl);
+			faceIdMapBuffers.emplace_back(device, physicalDevice, bufferSize,
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			vkMapMemory(device, faceIdMapBuffers[i].bufferMemory, 0, bufferSize, 0, &faceIdMapBuffersMapped[i]);
+		}
+	}
+
+	void createFaceColorBuffers(const uint32_t number_of_faces)
+	{
+		VkDeviceSize bufferSize = sizeof(glm::vec3) * number_of_faces;
+		faceColorBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+		faceColorBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+		{
+			ENG_LOG_DEBUG("Creating FaceColor buffer " << i << " of size " << bufferSize << std::endl);
+			faceColorBuffers.emplace_back(device, physicalDevice, bufferSize,
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			vkMapMemory(device, faceColorBuffers[i].bufferMemory, 0, bufferSize, 0, &faceColorBuffersMapped[i]);
 		}
 	}
 
@@ -1353,7 +1389,7 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const st
 		std::vector<uint32_t> indices;
 		glm::vec3 color{ 0.5f, 0.6f, 0.6f };
 
-		vertices.reserve(4);
+		vertices.reserve(mesh.vertices_size());
 		indices.resize(12); // unused
 
 		const auto& points = mesh.get_vertex_property<pmp::Point>("v:point");
@@ -1449,10 +1485,10 @@ int main() {
 		ENG_LOG_INFO(app);
 
 		// TODO: implement pools to avoid reference invalidation on reallocation problem
-		app.sceneState.posColTexMeshes.reserve(10);
-		app.sceneState.posNorTexMeshes.reserve(10);
-		app.sceneState.posMeshes.reserve(10);
-		app.sceneState.posNorColMeshes.reserve(10);
+		app.sceneState.posColTexMeshes.reserve(100);
+		app.sceneState.posNorTexMeshes.reserve(100);
+		app.sceneState.posMeshes.reserve(100);
+		app.sceneState.posNorColMeshes.reserve(100);
 		app.sceneState.graph.nodes.reserve(100);
 		app.sceneState.graph.cameras.reserve(10);
 
@@ -1585,16 +1621,14 @@ int main() {
 			app.sceneState.graph.root->children.push_back(&tetraNode);
 		}
 
-		// Test out PMP library - create a tetrahedron 
-		//load_pmp_mesh(pmp::icosahedron(), "pmpIcosahedron", "pmpIcosahedron2", app);
+		// Create triangulated goldberg polyhedra including faceIds
 		{
-			auto mesh = pmp::icosphere(3);
+			auto mesh = pmp::icosphere(2);
 			dual(mesh);
 
 			// apply a face index for each face (preserved after triangulation)
 			auto faceId = mesh.add_face_property<uint32_t>("f:faceId");
 
-			// for each face add the centroid to the dual mesh
 			auto facecount = static_cast<uint32_t>(0);
 			for (auto f : mesh.faces())
 			{
@@ -1602,16 +1636,33 @@ int main() {
 				ENG_LOG_DEBUG("PRE TRIANGULARIZATION FACEID: " << faceId[f] << std::endl);
 			}
 
-			ENG_LOG_DEBUG("Checkpoint" << std::endl);
+			// Vector of face colors indexed by faceId
+			std::vector<glm::vec3> faceColors;
+			faceColors.reserve(facecount);
+			for (auto f : mesh.faces())
+			{
+				faceColors.emplace_back(0.4, 0.4, 0.7);
+			}
+			app.createFaceColorBuffers(facecount);
+			const auto& colorBufferSize = faceColors.size() * sizeof(glm::vec3);
+			memcpy(app.faceColorBuffersMapped[app.currentFrame], faceColors.data(), colorBufferSize);
 
 			triangulate_as_triangle_fan_preserving_face_ids(mesh);
 
+			// Vector of faceIds indexed by primitiveId (gl_PrimitiveID) to lookup faceID in shader
+			std::vector<uint32_t> primitiveToFaceIdMap;
+			primitiveToFaceIdMap.reserve(mesh.faces_size());
 			faceId = mesh.get_face_property<uint32_t>("f:faceId");
 			for (auto f : mesh.faces())
 			{
+				primitiveToFaceIdMap.push_back(faceId[f]);
 				ENG_LOG_DEBUG("POST TRIANGULURIZATION FACEID: " << faceId[f] << std::endl);
 			}
 			load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", app);
+
+			app.createFaceIdBuffers(mesh.faces_size());
+			const auto& bufferSize = primitiveToFaceIdMap.size() * sizeof(uint32_t);
+			memcpy(app.faceIdMapBuffersMapped[app.currentFrame], primitiveToFaceIdMap.data(), bufferSize);
 		}
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
