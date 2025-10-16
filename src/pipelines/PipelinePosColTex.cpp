@@ -89,6 +89,32 @@ void Pipeline_PosNorCol::createVertexInputInfo() {
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 }
 
+void Pipeline_PosNorCol::createDescriptorSetLayout(const VkDevice& device) {
+	VkDescriptorSetLayoutBinding uboLayoutBinding{};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+	VkDescriptorSetLayoutBinding modelMatrixBinding{};
+	modelMatrixBinding.binding = 1;
+	modelMatrixBinding.descriptorCount = 1;
+	modelMatrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	modelMatrixBinding.pImmutableSamplers = nullptr;
+	modelMatrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, modelMatrixBinding};
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout!");
+	}
+}
+
 Pipeline_PosBB::Pipeline_PosBB(const VkDevice& device, const VkRenderPass& renderPass,
 	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
 {
@@ -138,32 +164,6 @@ void Pipeline_PosBB::createRasterizationStateInfo() {
 }
 
 
-void Pipeline_PosNorCol::createDescriptorSetLayout(const VkDevice& device) {
-	VkDescriptorSetLayoutBinding uboLayoutBinding{};
-	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-	VkDescriptorSetLayoutBinding modelMatrixBinding{};
-	modelMatrixBinding.binding = 1;
-	modelMatrixBinding.descriptorCount = 1;
-	modelMatrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	modelMatrixBinding.pImmutableSamplers = nullptr;
-	modelMatrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, modelMatrixBinding};
-	VkDescriptorSetLayoutCreateInfo layoutInfo{};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-	layoutInfo.pBindings = bindings.data();
-
-	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create descriptor set layout!");
-	}
-}
-
 void Pipeline_PosBB::createDescriptorSetLayout(const VkDevice& device) {
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
@@ -189,4 +189,58 @@ void Pipeline_PosBB::createDescriptorSetLayout(const VkDevice& device) {
 		throw std::runtime_error("failed to create descriptor set layout!");
 	}
 }
+
+Pipeline_Goldberg::Pipeline_Goldberg(const VkDevice& device, const VkRenderPass& renderPass,
+	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
+{
+	Initialize(renderPass, shader_fac, pipelineCreateInfos);
+}
+
+void Pipeline_Goldberg::createShaderStages(const ShaderFactory& shader_fac) {
+	ENG_LOG_INFO("Create shaders derived class Goldberg" << std::endl);
+	shader_stages = shader_fac.get_shader_stages(ENG_SHADER::Goldberg);
+	assert (shader_stages.size() == 2);
+	assert (shader_stages.at(0) && shader_stages.at(1));
+}
+
+void Pipeline_Goldberg::createVertexInputInfo() {
+	ENG_LOG_INFO("Create vertex input info derived class Goldberg" << std::endl);
+	attributeDescriptions = Mesh<VertexPosNorCol>::getAttributeDescriptions();
+	bindingDescription.binding = 0;
+	bindingDescription.stride = sizeof(VertexPosNorCol);
+	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+}
+
+void Pipeline_Goldberg::createDescriptorSetLayout(const VkDevice& device) {
+	VkDescriptorSetLayoutBinding uboLayoutBinding{};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+
+	VkDescriptorSetLayoutBinding modelMatrixBinding{};
+	modelMatrixBinding.binding = 1;
+	modelMatrixBinding.descriptorCount = 1;
+	modelMatrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	modelMatrixBinding.pImmutableSamplers = nullptr;
+	modelMatrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, modelMatrixBinding};
+	VkDescriptorSetLayoutCreateInfo layoutInfo{};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+	layoutInfo.pBindings = bindings.data();
+
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout!");
+	}
+}
+
 } // end namespace

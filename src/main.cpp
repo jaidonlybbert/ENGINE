@@ -965,8 +965,9 @@ public:
 			modelMatrixBufferInfo.offset = 0;
 			modelMatrixBufferInfo.range = sizeof(glm::mat4) * sceneState.modelMatrices.size();
 
+			// TODO: This is just bad..
 			std::vector<VkWriteDescriptorSet> descriptorWrites;
-			if (node.shaderId == ENG_SHADER::PosBB || node.shaderId == ENG_SHADER::PosNorCol) {
+			if (node.shaderId == ENG_SHADER::PosBB || node.shaderId == ENG_SHADER::PosNorCol || node.shaderId == ENG_SHADER::Goldberg) {
 				descriptorWrites = { 
 					createDescriptorWriteUbo(node, i, 0, bufferInfo), 
 					createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo)
@@ -1420,7 +1421,7 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const st
 		pmpNode.nodeId = app.sceneState.graph.nodes.size() - 1;
 		pmpNode.parent = app.sceneState.graph.root;
 		pmpNode.mesh = &pmpMesh;
-		pmpNode.shaderId = ENG_SHADER::PosNorCol;
+		pmpNode.shaderId = ENG_SHADER::Goldberg;
 		app.sceneState.graph.root->children.push_back(&pmpNode);
 
 		return &pmpMesh;

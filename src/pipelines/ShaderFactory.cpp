@@ -56,6 +56,8 @@ void ShaderFactory::get_filepaths() {
 		ENG::get_install_dir() / "shaders" / "posBBFrag.frag.spv",
 		ENG::get_install_dir() / "shaders" / "posNorColVert.vert.spv",
 		ENG::get_install_dir() / "shaders" / "posNorColFrag.frag.spv",
+		ENG::get_install_dir() / "shaders" / "goldbergVert.vert.spv",
+		ENG::get_install_dir() / "shaders" / "goldbergFrag.frag.spv",
 	};
 }
 
@@ -67,7 +69,7 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
 		modules.push_back(createShaderModule(device, readFile(filepaths.at(i))));
 	}
 
-	assert(modules.size() == 8);
+	assert(modules.size() == 10);
 	stages.push_back(createDefaultStage(&modules.at(0), VK_SHADER_STAGE_VERTEX_BIT));
 	stages.push_back(createDefaultStage(&modules.at(1), VK_SHADER_STAGE_FRAGMENT_BIT));
 	stages.push_back(createDefaultStage(&modules.at(2), VK_SHADER_STAGE_VERTEX_BIT));
@@ -76,20 +78,24 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
 	stages.push_back(createDefaultStage(&modules.at(5), VK_SHADER_STAGE_FRAGMENT_BIT));
 	stages.push_back(createDefaultStage(&modules.at(6), VK_SHADER_STAGE_VERTEX_BIT));
 	stages.push_back(createDefaultStage(&modules.at(7), VK_SHADER_STAGE_FRAGMENT_BIT));
+	stages.push_back(createDefaultStage(&modules.at(8), VK_SHADER_STAGE_VERTEX_BIT));
+	stages.push_back(createDefaultStage(&modules.at(9), VK_SHADER_STAGE_FRAGMENT_BIT));
 
-	assert(stages.size() == 8);
+	assert(stages.size() == 10);
 	module_map = {
 		{ENG_SHADER::PosColTex, {&modules.at(0), &modules.at(1)}},
 		{ENG_SHADER::PosNorTex, {&modules.at(2), &modules.at(3)}},
 		{ENG_SHADER::PosBB,		{&modules.at(4), &modules.at(5)}},
-		{ENG_SHADER::PosNorCol, {&modules.at(6), &modules.at(7)}}
+		{ENG_SHADER::PosNorCol, {&modules.at(6), &modules.at(7)}},
+		{ENG_SHADER::Goldberg,  {&modules.at(8), &modules.at(9)}}
 	};
 
 	stage_map = {
 		{ENG_SHADER::PosColTex, {&stages.at(0), &stages.at(1)}},
 		{ENG_SHADER::PosNorTex, {&stages.at(2), &stages.at(3)}},
 		{ENG_SHADER::PosBB,		{&stages.at(4), &stages.at(5)}},
-		{ENG_SHADER::PosNorCol, {&stages.at(6), &stages.at(7)}}
+		{ENG_SHADER::PosNorCol, {&stages.at(6), &stages.at(7)}},
+		{ENG_SHADER::Goldberg,  {&stages.at(8), &stages.at(9)}}
 	};
 }
 
