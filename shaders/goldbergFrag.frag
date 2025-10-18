@@ -6,6 +6,15 @@
 //    vec3 objectCol;
 //} light;
 
+layout(binding = 2) buffer faceColorMatrix {
+    vec3 faceColors[];
+};
+
+layout(binding = 3) buffer faceIdMap {
+    uint faceIds[];
+};
+
+
 layout(location = 0) in vec3 fragNormal;
 layout(location = 1) in vec3 fragPos;
 layout(location = 2) in vec3 fragColor;
@@ -20,6 +29,9 @@ void main() {
     vec3 L = normalize(vec3(2.0, 2.0, 2.0) - fragPos);
     // Diffuse element of intensity
     float diff = max(dot(N, L), 0.0);
+
+    // grab color from faceColors matrix
+    vec3 faceColor = faceColors[faceIds[gl_PrimitiveID]];
 
     // vec3 diffuse = diff * light.lightCol;
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);

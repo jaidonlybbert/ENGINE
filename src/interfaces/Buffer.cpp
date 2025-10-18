@@ -7,8 +7,8 @@
 namespace ENG
 {
 
-Buffer::Buffer(const VkDevice &device, const VkPhysicalDevice &physicalDevice, const VkDeviceSize size, const VkBufferUsageFlags usage,
-	       const VkMemoryPropertyFlags properties) : device(device), physicalDevice(physicalDevice)
+Buffer::Buffer(const VkDevice &device, const VkPhysicalDevice &physicalDevice, const size_t element_size_bytes, const VkDeviceSize size, const VkBufferUsageFlags usage,
+	       const VkMemoryPropertyFlags properties) : device(device), physicalDevice(physicalDevice), total_size_bytes(size), element_size_bytes(element_size_bytes)
 {
 	createBuffer(size, usage, properties);
 }

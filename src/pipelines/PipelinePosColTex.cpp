@@ -232,7 +232,22 @@ void Pipeline_Goldberg::createDescriptorSetLayout(const VkDevice& device) {
 	modelMatrixBinding.pImmutableSamplers = nullptr;
 	modelMatrixBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-	std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, modelMatrixBinding};
+	VkDescriptorSetLayoutBinding faceColorMatrixBinding{};
+	faceColorMatrixBinding.binding = 2;
+	faceColorMatrixBinding.descriptorCount = 1;
+	faceColorMatrixBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	faceColorMatrixBinding.pImmutableSamplers = nullptr;
+	faceColorMatrixBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutBinding faceIdMapBufferBinding{};
+	faceIdMapBufferBinding.binding = 3;
+	faceIdMapBufferBinding.descriptorCount = 1;
+	faceIdMapBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	faceIdMapBufferBinding.pImmutableSamplers = nullptr;
+	faceIdMapBufferBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+
+	std::array<VkDescriptorSetLayoutBinding, 4> bindings = {uboLayoutBinding, modelMatrixBinding, faceColorMatrixBinding, faceIdMapBufferBinding};
 	VkDescriptorSetLayoutCreateInfo layoutInfo{};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());

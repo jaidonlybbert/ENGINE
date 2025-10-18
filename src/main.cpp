@@ -696,7 +696,7 @@ public:
 		uniformBuffers.reserve(2);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			uniformBuffers.emplace_back(device, physicalDevice, bufferSize,
+			uniformBuffers.emplace_back(device, physicalDevice, bufferSize, bufferSize,
 			       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 			vkMapMemory(device, uniformBuffers[i].bufferMemory, 0, bufferSize, 0, &uniformBuffersMapped[i]);
@@ -715,7 +715,7 @@ public:
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
 			ENG_LOG_DEBUG("Creating " << i << " model buffer of size " << bufferSize << std::endl);
-			modelMatrixBuffers.emplace_back(device, physicalDevice, bufferSize,
+			modelMatrixBuffers.emplace_back(device, physicalDevice, sizeof(glm::mat4), bufferSize,
 				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			vkMapMemory(device, modelMatrixBuffers[i].bufferMemory, 0, bufferSize, 0, &modelMatrixBuffersMapped[i]);
 		}
@@ -730,8 +730,8 @@ public:
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
 			ENG_LOG_DEBUG("Creating FaceID buffer " << i << " of size " << bufferSize << std::endl);
-			faceIdMapBuffers.emplace_back(device, physicalDevice, bufferSize,
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			faceIdMapBuffers.emplace_back(device, physicalDevice, sizeof(uint32_t), bufferSize,
+				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			vkMapMemory(device, faceIdMapBuffers[i].bufferMemory, 0, bufferSize, 0, &faceIdMapBuffersMapped[i]);
 		}
 	}
@@ -745,8 +745,8 @@ public:
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
 			ENG_LOG_DEBUG("Creating FaceColor buffer " << i << " of size " << bufferSize << std::endl);
-			faceColorBuffers.emplace_back(device, physicalDevice, bufferSize,
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			faceColorBuffers.emplace_back(device, physicalDevice, sizeof(glm::vec3), bufferSize,
+				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			vkMapMemory(device, faceColorBuffers[i].bufferMemory, 0, bufferSize, 0, &faceColorBuffersMapped[i]);
 		}
 	}
@@ -946,6 +946,36 @@ public:
 		return descriptorWrite;
 	}
 
+	VkWriteDescriptorSet createDescriptorWriteFaceColorMatrix(const ENG::Node& node, const size_t frameIdx, const size_t bindingIdx, const VkDescriptorBufferInfo& bufferInfo)
+	{
+		assert(node.descriptorSetIds.size() > frameIdx);
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
+		descriptorWrite.dstBinding = bindingIdx;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+
+		return descriptorWrite;
+	}
+
+	VkWriteDescriptorSet createDescriptorWriteFaceIdMapBuffer(const ENG::Node& node, const size_t frameIdx, const size_t bindingIdx, const VkDescriptorBufferInfo& bufferInfo)
+	{
+		assert(node.descriptorSetIds.size() > frameIdx);
+		VkWriteDescriptorSet descriptorWrite{};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
+		descriptorWrite.dstBinding = bindingIdx;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+
+		return descriptorWrite;
+	}
+
 	void writeDescriptorSets(const ENG::Node& node) {
 		// NOTE: This seems overly complicated and inefficient?
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -965,15 +995,38 @@ public:
 			modelMatrixBufferInfo.offset = 0;
 			modelMatrixBufferInfo.range = sizeof(glm::mat4) * sceneState.modelMatrices.size();
 
+			VkDescriptorBufferInfo faceColorMatrixBufferInfo{};
+			assert(faceColorBuffers[i].buffer != nullptr);
+			faceColorMatrixBufferInfo.buffer = faceColorBuffers[i].buffer;
+			faceColorMatrixBufferInfo.offset = 0;
+			faceColorMatrixBufferInfo.range = faceColorBuffers[i].total_size_bytes;
+
+			VkDescriptorBufferInfo faceIdMapBufferInfo{};
+			assert(faceIdMapBuffers[i].buffer != nullptr);
+			faceIdMapBufferInfo.buffer = faceIdMapBuffers[i].buffer;
+			faceIdMapBufferInfo.offset = 0;
+			faceIdMapBufferInfo.range = faceIdMapBuffers[i].total_size_bytes;
+
 			// TODO: This is just bad..
 			std::vector<VkWriteDescriptorSet> descriptorWrites;
-			if (node.shaderId == ENG_SHADER::PosBB || node.shaderId == ENG_SHADER::PosNorCol || node.shaderId == ENG_SHADER::Goldberg) {
+			if (node.shaderId == ENG_SHADER::PosBB || node.shaderId == ENG_SHADER::PosNorCol)
+			{
 				descriptorWrites = { 
 					createDescriptorWriteUbo(node, i, 0, bufferInfo), 
 					createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo)
 				};
+			} 
+			else if (node.shaderId == ENG_SHADER::Goldberg)
+			{ 
+				descriptorWrites = {
+					createDescriptorWriteUbo(node, i, 0, bufferInfo),
+					createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo),
+					createDescriptorWriteFaceColorMatrix(node, i, 2, faceColorMatrixBufferInfo),
+					createDescriptorWriteFaceIdMapBuffer(node, i, 3, faceIdMapBufferInfo)
+				};
 			}
-			else {
+			else
+			{
 				descriptorWrites = {
 					createDescriptorWriteUbo(node, i, 0, bufferInfo),
 					createDescriptorWriteSampler(node, i, 1, imageInfo),
@@ -1025,7 +1078,7 @@ public:
 			throw std::runtime_error("failed to load texture image!");
 		}
 
-		const ENG::Buffer stagingBuffer(device, physicalDevice, imageSize, 
+		const ENG::Buffer stagingBuffer(device, physicalDevice, 4, imageSize, 
 				  VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 		void* data;
@@ -1646,7 +1699,10 @@ int main() {
 			}
 			app.createFaceColorBuffers(facecount);
 			const auto& colorBufferSize = faceColors.size() * sizeof(glm::vec3);
-			memcpy(app.faceColorBuffersMapped[app.currentFrame], faceColors.data(), colorBufferSize);
+			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+			{
+				memcpy(app.faceColorBuffersMapped[i], faceColors.data(), colorBufferSize);
+			}
 
 			triangulate_as_triangle_fan_preserving_face_ids(mesh);
 
@@ -1663,7 +1719,10 @@ int main() {
 
 			app.createFaceIdBuffers(mesh.faces_size());
 			const auto& bufferSize = primitiveToFaceIdMap.size() * sizeof(uint32_t);
-			memcpy(app.faceIdMapBuffersMapped[app.currentFrame], primitiveToFaceIdMap.data(), bufferSize);
+			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+			{
+				memcpy(app.faceIdMapBuffersMapped[i], primitiveToFaceIdMap.data(), bufferSize);
+			}
 		}
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)

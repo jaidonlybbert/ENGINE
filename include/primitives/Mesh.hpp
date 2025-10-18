@@ -89,7 +89,7 @@ namespace ENG
 			const auto vert_size = sizeof(vertices[0]);
 			const VkDeviceSize bufferSize = vert_size * vertices.size();
 
-			const ENG::Buffer stagingBuffer{ device, physicalDevice, bufferSize,
+			const ENG::Buffer stagingBuffer{ device, physicalDevice, vert_size, bufferSize,
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
 
 			void* data;
@@ -101,7 +101,7 @@ namespace ENG
 			data = (char*)data + buffSize;
 			vkUnmapMemory(device, stagingBuffer.bufferMemory);
 
-			vertexBuffer = std::make_unique<ENG::Buffer>(device, physicalDevice, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			vertexBuffer = std::make_unique<ENG::Buffer>(device, physicalDevice, vert_size, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 			if (commands == nullptr)
 			{
@@ -118,7 +118,7 @@ namespace ENG
 			VkDeviceSize bufferSize = idx_size * indices.size();
 			std::cout << "buffer size: " << bufferSize << std::endl;
 
-			const ENG::Buffer stagingBuffer{ device, physicalDevice, bufferSize,
+			const ENG::Buffer stagingBuffer{ device, physicalDevice, idx_size, bufferSize,
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
 
 			void* data;
@@ -130,7 +130,7 @@ namespace ENG
 			data = (char*)data + buffSize;
 			vkUnmapMemory(device, stagingBuffer.bufferMemory);
 
-			indexBuffer = std::make_unique<ENG::Buffer>(device, physicalDevice, bufferSize,
+			indexBuffer = std::make_unique<ENG::Buffer>(device, physicalDevice, idx_size, bufferSize,
 				VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 			commands->copyBuffer(graphicsQueue, stagingBuffer.buffer, indexBuffer->buffer, bufferSize);
