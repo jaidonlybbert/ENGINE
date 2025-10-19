@@ -738,14 +738,14 @@ public:
 
 	void createFaceColorBuffers(const uint32_t number_of_faces)
 	{
-		VkDeviceSize bufferSize = sizeof(glm::vec3) * number_of_faces;
+		VkDeviceSize bufferSize = sizeof(glm::vec4) * number_of_faces;
 		faceColorBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 		faceColorBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
 			ENG_LOG_DEBUG("Creating FaceColor buffer " << i << " of size " << bufferSize << std::endl);
-			faceColorBuffers.emplace_back(device, physicalDevice, sizeof(glm::vec3), bufferSize,
+			faceColorBuffers.emplace_back(device, physicalDevice, sizeof(glm::vec4), bufferSize,
 				VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			vkMapMemory(device, faceColorBuffers[i].bufferMemory, 0, bufferSize, 0, &faceColorBuffersMapped[i]);
 		}
@@ -1691,14 +1691,50 @@ int main() {
 			}
 
 			// Vector of face colors indexed by faceId
-			std::vector<glm::vec3> faceColors;
-			faceColors.reserve(facecount);
+			std::vector<glm::vec4> faceColors;
+			faceColors.resize(facecount);
+
+			for (auto i = 0; i < facecount; ++i)
+			{
+				faceColors[i] = glm::vec4(0.4f, 0.4f, 0.7f, 1.0f);
+			}
+
+			const auto& oceanblue = glm::vec4(0.f, 0.369f, 0.722f, 1.0f);
+			const auto& forestgreen = glm::vec4(0.133f, 0.545f, 0.133f, 1.f);
+			const auto& sunset = glm::vec4(0.98f, 0.77f, 0.4f, 1.f);
+			
+			// First 12 faces are pentagons
+			auto count = 0;
 			for (auto f : mesh.faces())
 			{
-				faceColors.emplace_back(0.4, 0.4, 0.7);
+				if (count++ < 12)
+				{
+					faceColors[f.idx()] = forestgreen;
+
+					// Circulate around first outer ring of pentagon faces and paint faces
+					for (auto h : mesh.halfedges(f))
+					{
+						auto h2 = mesh.opposite_halfedge(h);
+						auto f2 = mesh.face(h2);
+						faceColors[f2.idx()] = forestgreen;
+
+						// Jump 2 half-edges of face on outer ring, and paint
+						h2 = mesh.next_halfedge(mesh.next_halfedge(h2));
+						auto h3 = mesh.opposite_halfedge(h2);
+						auto f3 = mesh.face(h3);
+						faceColors[f3.idx()] = oceanblue;
+
+						// Jump 3rd half-edge of face on outer ring and paint
+						h2 = mesh.next_halfedge(h2);
+						h3 = mesh.opposite_halfedge(h2);
+						f3 = mesh.face(h3);
+						faceColors[f3.idx()] = oceanblue;
+					}
+
+				}
 			}
 			app.createFaceColorBuffers(facecount);
-			const auto& colorBufferSize = faceColors.size() * sizeof(glm::vec3);
+			const auto& colorBufferSize = faceColors.size() * sizeof(glm::vec4);
 			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 			{
 				memcpy(app.faceColorBuffersMapped[i], faceColors.data(), colorBufferSize);
@@ -1762,10 +1798,20 @@ int main() {
 		{
 			suzanneNode->visible = false;
 		}
+		auto* suzanneBoundingBoxNode = find_node_by_name(app.sceneState.graph, "SuzanneBoundingBox");
+		if (suzanneBoundingBoxNode != nullptr)
+		{
+			suzanneBoundingBoxNode->visible = false;
+		}
 		auto* roomNode = find_node_by_name(app.sceneState.graph, "Room");
 		if (roomNode != nullptr)
 		{
 			roomNode->visible = false;
+		}
+		auto* tetrahedronNode = find_node_by_name(app.sceneState.graph, "Tetrahedron");
+		if (tetrahedronNode != nullptr)
+		{
+			tetrahedronNode->visible = false;
 		}
 		auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
 		camera->fovy = 0.7;

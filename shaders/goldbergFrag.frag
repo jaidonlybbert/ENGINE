@@ -7,7 +7,7 @@
 //} light;
 
 layout(binding = 2) buffer faceColorMatrix {
-    vec3 faceColors[];
+    vec4 faceColors[];
 };
 
 layout(binding = 3) buffer faceIdMap {
@@ -31,11 +31,11 @@ void main() {
     float diff = max(dot(N, L), 0.0);
 
     // grab color from faceColors matrix
-    vec3 faceColor = faceColors[faceIds[gl_PrimitiveID]];
+    vec4 faceColor = faceColors[faceIds[gl_PrimitiveID]];
 
     // vec3 diffuse = diff * light.lightCol;
     vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
-    vec4 result = vec4(diffuse, 1.0) * vec4(fragColor, 1.0);
+    vec4 result = vec4(diffuse, 1.0) * faceColor;
     // Final color
     outColor = result;
     // outColor = vec4(1.0, 1.0, 1.0, 1.0);
