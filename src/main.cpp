@@ -15,6 +15,7 @@
 #include<cstdint>
 #include<fstream>
 #include<filesystem>
+#include<random>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
@@ -234,6 +235,7 @@ public:
 
 
 	SceneState sceneState;
+	GameState gameState;
 	GLFWwindow* window;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device;
@@ -270,13 +272,13 @@ public:
 	{
 		if (key == GLFW_KEY_T && action == GLFW_PRESS)
 		{
-			ENG_LOG_INFO("Toggle settings window visibility" << std::endl);
+			ENG_LOG_TRACE("Toggle settings window visibility" << std::endl);
 			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 			sceneState->settings.showSettings = !sceneState->settings.showSettings;
 		}
 		if (key == GLFW_KEY_E && action == GLFW_PRESS)
 		{
-			ENG_LOG_INFO("E key down" << std::endl);
+			ENG_LOG_TRACE("E key down" << std::endl);
 			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 			// auto& camera_rotation = sceneState->graph.nodes[sceneState->activeCameraNodeIdx].rotation;
 			// auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
@@ -291,7 +293,7 @@ public:
 
 		if (key == GLFW_KEY_R && action == GLFW_PRESS)
 		{
-			ENG_LOG_INFO("R key down" << std::endl);
+			ENG_LOG_TRACE("R key down" << std::endl);
 			auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 			// auto& test_rot = sceneState->test_model;
 			// rotate 3 degrees around y-axis when E is pressed
@@ -309,11 +311,11 @@ public:
 			if (action == GLFW_PRESS) // && initial_press)
 			{
 				glfwGetCursorPos(window, &sceneState->cursor_x, &sceneState->cursor_y);
-				ENG_LOG_INFO("Middle mouse initial press" << std::endl);
+				ENG_LOG_TRACE("Middle mouse initial press" << std::endl);
 			}
 			else // action is GLFW_RELEASE
 			{
-				ENG_LOG_INFO("Middle mouse released" << std::endl);
+				ENG_LOG_TRACE("Middle mouse released" << std::endl);
 			}
 		}
 	}
@@ -328,7 +330,7 @@ public:
 		const auto& shift_state = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT);
 		if (shift_state == GLFW_PRESS)
 		{
-			ENG_LOG_INFO("Shift down" << std::endl);
+			ENG_LOG_TRACE("Shift down" << std::endl);
 			//auto& camera = sceneState->scene.cameras[sceneState->scene.nodes[sceneState->activeCameraNodeIdx].camera];
 			// auto& fovy = camera.perspective.yfov;
 			// fovy += 0.1 * yoffset;
@@ -376,13 +378,13 @@ public:
 		const auto& middle_mouse_state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
 		if (middle_mouse_state == GLFW_PRESS)
 		{
-			ENG_LOG_INFO("Middle mouse down" << std::endl);
+			ENG_LOG_TRACE("Middle mouse down" << std::endl);
 			dx = xpos - sceneState->cursor_x;
 			dy = ypos - sceneState->cursor_y;
 			sceneState->cursor_x = xpos;
 			sceneState->cursor_y = ypos;
 
-			ENG_LOG_INFO("dx: " << dx << " dy: " << dx << std::endl);
+			ENG_LOG_TRACE("dx: " << dx << " dy: " << dx << std::endl);
 			constexpr float sensitivity = 0.1f;
 
 			if (sceneState->activeNodeIdx >= sceneState->graph.nodes.size())
@@ -1485,6 +1487,8 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh)
 	// the new dual mesh
 	pmp::SurfaceMesh tmp;
 
+	tmp.reserve(mesh.vertices_size() * 2, mesh.edges_size() * 2, mesh.faces_size() * 2);
+
 	// apply a face index for each face (preserved after triangulation)
 	auto oldFaceId = mesh.get_face_property<uint32_t>("f:faceId");
 	auto newFaceId = tmp.add_face_property<uint32_t>("f:faceId");
@@ -1499,7 +1503,7 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh)
 		auto vertRange = mesh.vertices(f);
 		auto it = vertRange.begin();
 		const auto& end = vertRange.end();
-		ENG_LOG_DEBUG("Verts in face: " << std::distance(it, end) << std::endl);
+		ENG_LOG_TRACE("Verts in face: " << std::distance(it, end) << std::endl);
 		assert(std::distance(it, end) > 2);
 		auto v0 = tmp.add_vertex(mesh.position(*(it++)));
 		auto firstVert = v0;
@@ -1515,7 +1519,7 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh)
 			tri = tmp.add_triangle(centerVert, v0, v1);
 			newFaceId[tri] = oldFaceId[f];
 			facecount++;
-			ENG_LOG_DEBUG("INNER LOOP HIT" << std::endl);
+			ENG_LOG_TRACE("INNER LOOP HIT" << std::endl);
 		}
 
 		// add last triangle using last and first vertex
@@ -1533,7 +1537,7 @@ int main() {
 	
 	try {
 		printf("Starting app\n");
-		// ENG_LOG_INFO("Application path: " << install_dir.native().c_str() << std::endl);
+		// ENG_LOG_TRACE("Application path: " << install_dir.native().c_str() << std::endl);
 
 		VulkanTemplateApp app;
 		ENG_LOG_INFO(app);
@@ -1675,9 +1679,13 @@ int main() {
 			app.sceneState.graph.root->children.push_back(&tetraNode);
 		}
 
+		// Seed randomizer
+		// first: 20398475
+		app.gameState.randomizer.seed(20398475);
+
 		// Create triangulated goldberg polyhedra including faceIds
 		{
-			auto mesh = pmp::icosphere(2);
+			auto mesh = pmp::icosphere(5);
 			dual(mesh);
 
 			// apply a face index for each face (preserved after triangulation)
@@ -1687,52 +1695,165 @@ int main() {
 			for (auto f : mesh.faces())
 			{
 				faceId[f] = facecount++;
-				ENG_LOG_DEBUG("PRE TRIANGULARIZATION FACEID: " << faceId[f] << std::endl);
+				ENG_LOG_TRACE("PRE TRIANGULARIZATION FACEID: " << faceId[f] << std::endl);
 			}
 
-			// Vector of face colors indexed by faceId
-			std::vector<glm::vec4> faceColors;
-			faceColors.resize(facecount);
-
-			for (auto i = 0; i < facecount; ++i)
-			{
-				faceColors[i] = glm::vec4(0.4f, 0.4f, 0.7f, 1.0f);
-			}
+			const auto& UNVISITED = 0;
+			const auto& OCEAN = 1;
+			const auto& LAND = 2;
 
 			const auto& oceanblue = glm::vec4(0.f, 0.369f, 0.722f, 1.0f);
 			const auto& forestgreen = glm::vec4(0.133f, 0.545f, 0.133f, 1.f);
 			const auto& sunset = glm::vec4(0.98f, 0.77f, 0.4f, 1.f);
+
+			std::vector<glm::vec4> colorMap{
+				glm::vec4(0.4f, 0.4f, 0.7f, 1.0f),
+				oceanblue,
+				forestgreen
+			};
+
+			// are faces land or ocean? indexed by faceId
+			std::vector<int> climate(facecount, 0);
+
+			/// PARAMETERS AFFECTING GENERATION OUTPUT
+			const auto& continentGrowthFactor = 0.45f;
 			
+			// Vector of face colors indexed by faceId
+			std::vector<glm::vec4> faceColors;
+			faceColors.resize(facecount);
+
 			// First 12 faces are pentagons
-			auto count = 0;
-			for (auto f : mesh.faces())
+			// Choose a random 5 pentagons to be continents
+			std::vector<size_t> samples;
+			std::vector<size_t> choices{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+			std::sample(choices.begin(), choices.end(), std::back_inserter(samples), 5, app.gameState.randomizer);
+
+			std::uniform_real_distribution<float> randFloatDistribution(0.f, 1.f);
+			// Grow continents (mark faces as land) according to parameters
+			for (const auto& sample : samples)
 			{
-				if (count++ < 12)
+				// land is traversed "depth-first" / longest-shore first
+				// once land perimeter is complete (the landmass is sourounded by water), start popping off the stack
+				// until a land tile with an unvisited shore is found, then follow that inland path until it is surrounded
+				// by water or land, and repeat
+				auto i = 0;
+				auto currentF = pmp::Face(sample);
+				climate[sample] = LAND;
+
+				struct landStackContext {
+					pmp::Halfedge start;
+					pmp::Halfedge current;
+				};
+
+				std::stack<landStackContext> landStack; 
+				auto start_h = *mesh.halfedges(currentF).begin();
+				auto h = start_h;
+				landStack.push({start_h, h});
+				while (!landStack.empty())
 				{
-					faceColors[f.idx()] = forestgreen;
+					auto f = mesh.face(mesh.opposite_halfedge(h));  // opposite face from current h
+					ENG_LOG_DEBUG("At iteration " << i++ << " face is " << climate[f.idx()] << std::endl);
 
-					// Circulate around first outer ring of pentagon faces and paint faces
-					for (auto h : mesh.halfedges(f))
+					// If previously visited, simply iterate the halfedge, and re-evaluate next iteration
+					if (climate[f.idx()] == OCEAN || climate[f.idx()] == LAND)
 					{
-						auto h2 = mesh.opposite_halfedge(h);
-						auto f2 = mesh.face(h2);
-						faceColors[f2.idx()] = forestgreen;
+						h = mesh.next_halfedge(h);
+					}
 
-						// Jump 2 half-edges of face on outer ring, and paint
-						h2 = mesh.next_halfedge(mesh.next_halfedge(h2));
-						auto h3 = mesh.opposite_halfedge(h2);
-						auto f3 = mesh.face(h3);
-						faceColors[f3.idx()] = oceanblue;
+					// If unvisited, assign climate randomly and if land, push halfedge to stack, move to face, continue
+					else if (climate[f.idx()] == UNVISITED)
+					{
+						if (randFloatDistribution(app.gameState.randomizer) < continentGrowthFactor)
+						{
+							climate[f.idx()] = LAND;
+							landStack.push({ start_h, h });
+							ENG_LOG_DEBUG("PUSH: " << h.idx() << std::endl);
+							start_h = mesh.opposite_halfedge(h);
+							h = start_h;
+							continue;
+						}
+						else
+						{
+							climate[f.idx()] = OCEAN;
+							continue;
+						}
+					}
 
-						// Jump 3rd half-edge of face on outer ring and paint
-						h2 = mesh.next_halfedge(h2);
-						h3 = mesh.opposite_halfedge(h2);
-						f3 = mesh.face(h3);
-						faceColors[f3.idx()] = oceanblue;
+					if (h == start_h)
+					{
+						assert(!landStack.empty());
+						auto context = landStack.top();
+						landStack.pop();
+						start_h = context.start;
+						h = context.current;
+						ENG_LOG_DEBUG("POP: " << h.idx() << std::endl);
 					}
 
 				}
 			}
+
+			// "hole-filling" algorithm - if any ocean tiles are surrounded by land tiles, change them to land tiles
+			for (auto f : mesh.faces())
+			{
+				if (climate[f.idx()] != OCEAN)
+				{
+					continue;
+				}
+
+				auto count{ 0U };
+				for (auto h : mesh.halfedges(f))
+				{
+					if (climate[mesh.face(mesh.opposite_halfedge(h)).idx()] == LAND)
+					{
+						++count;
+					}
+				}
+
+				if (count >= 4)
+				{
+					climate[f.idx()] = LAND;
+				}
+			}
+
+
+			// "hole-filling" algorithm - if any ocean tiles are surrounded by land tiles, change them to land tiles
+			for (auto f : mesh.faces())
+			{
+				if (climate[f.idx()] != OCEAN)
+				{
+					continue;
+				}
+
+				auto count{ 0U };
+				for (auto h : mesh.halfedges(f))
+				{
+					if (climate[mesh.face(mesh.opposite_halfedge(h)).idx()] == LAND)
+					{
+						++count;
+					}
+				}
+
+				if (count >= 6)
+				{
+					climate[f.idx()] = LAND;
+				}
+			}
+
+			// Fill unvisited with ocean tiles
+			for (auto f : mesh.faces())
+			{
+				if (climate[f.idx()] == UNVISITED)
+				{
+					climate[f.idx()] = OCEAN;
+				}
+			}
+
+			// paint faces according to climate
+			for (size_t i = 0; i < faceColors.size(); ++i)
+			{
+				faceColors[i] = colorMap[climate[i]];
+			}
+
 			app.createFaceColorBuffers(facecount);
 			const auto& colorBufferSize = faceColors.size() * sizeof(glm::vec4);
 			for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -1749,7 +1870,7 @@ int main() {
 			for (auto f : mesh.faces())
 			{
 				primitiveToFaceIdMap.push_back(faceId[f]);
-				ENG_LOG_DEBUG("POST TRIANGULURIZATION FACEID: " << faceId[f] << std::endl);
+				ENG_LOG_TRACE("POST TRIANGULURIZATION FACEID: " << faceId[f] << std::endl);
 			}
 			load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", app);
 

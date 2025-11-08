@@ -1,6 +1,7 @@
 #ifndef ENG_SCENE
 #define ENG_SCENE
 #include<optional>
+#include<random>
 
 #include "tiny_gltf.h"
 #define GLM_FORCE_RADIANS
@@ -75,6 +76,10 @@ struct SceneState {
 	std::vector<ENG::Mesh<VertexPos>> posMeshes;
 	std::vector<ENG::Mesh<VertexPosNorCol>> posNorColMeshes;
 	std::vector<glm::mat4> modelMatrices;
+};
+
+struct GameState {
+	std::mt19937 randomizer;
 };
 
 Camera* get_active_camera(const SceneState& sceneState);
