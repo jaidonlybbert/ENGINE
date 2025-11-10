@@ -304,14 +304,53 @@ public:
 		}
 	}
 
+	static void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const double dy)
+	{
+
+		ENG_LOG_INFO("dx: " << dx << " dy: " << dy << std::endl);
+		constexpr float sensitivity = 1.0f;
+
+		auto dx_quat = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.f, 1.f, 0.f));
+		auto dy_quat = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(1.f, 0.f, 0.f));
+		activeNode.rotation = activeNode.rotation * dx_quat * dy_quat;
+
+		// activeNode.rotation = dy_radians * activeNode.rotation;
+
+		// auto& test_rot = sceneState->test_model;
+		// rotate 3 degrees around y-axis when E is pressed
+		//auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		// test_rot = glm::mat4_cast(dy_radians) * glm::mat4_cast(dx_radians) * test_rot;
+	}
+
 	static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	{
-		static double dx, dy = 0.f;
-		auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 		// Print the scroll offsets
 		printf("Scroll Offset - X: %.2f, Y: %.2f\n", xoffset, yoffset);
 
+		static double dx, dy = 0.f;
+		static const auto invert_x = true;
+		static const auto invert_y = false;
+		static const auto sensitivity = static_cast<double>(1.f);
+
+		xoffset *= sensitivity;
+		yoffset *= sensitivity;
+		xoffset = invert_x ? -xoffset : xoffset;
+		yoffset = invert_y ? -yoffset : yoffset;
+
+		auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
+
 		const auto& shift_state = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT);
+
+		if (sceneState->activeNodeIdx >= sceneState->graph.nodes.size())
+		{
+			ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
+			return;
+		}
+		auto& activeNode = sceneState->graph.nodes.at(sceneState->activeNodeIdx);
+
+
+		node_rotation_follows_input(activeNode, xoffset, yoffset);
+
 		if (shift_state == GLFW_PRESS)
 		{
 			ENG_LOG_INFO("Shift down" << std::endl);
@@ -352,42 +391,27 @@ public:
 	}
 
 
+
 	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos)
 	{
 		static double dx, dy = 0.f;
-		dx = 0.f;
-		dy = 0.f;
 
 		auto* sceneState = static_cast<SceneState*>(glfwGetWindowUserPointer(window));
 		const auto& middle_mouse_state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
 		if (middle_mouse_state == GLFW_PRESS)
 		{
-			ENG_LOG_INFO("Middle mouse down" << std::endl);
 			dx = xpos - sceneState->cursor_x;
 			dy = ypos - sceneState->cursor_y;
 			sceneState->cursor_x = xpos;
 			sceneState->cursor_y = ypos;
-
-			ENG_LOG_INFO("dx: " << dx << " dy: " << dx << std::endl);
-			constexpr float sensitivity = 0.1f;
-
+			ENG_LOG_INFO("Middle mouse down" << std::endl);
 			if (sceneState->activeNodeIdx >= sceneState->graph.nodes.size())
 			{
 				ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
 				return;
 			}
 			auto& activeNode = sceneState->graph.nodes.at(sceneState->activeNodeIdx);
-
-			auto dx_radians = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.0f, 0.0f, 1.0f));
-			activeNode.rotation	= dx_radians * activeNode.rotation;
-			const auto& local_x_axis = glm::normalize(activeNode.rotation * glm::vec3(1.0f, 0.0f, 0.0f));
-			auto dy_radians = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(local_x_axis.x, local_x_axis.y, local_x_axis.z));
-			activeNode.rotation = dy_radians * activeNode.rotation;
-
-			// auto& test_rot = sceneState->test_model;
-			// rotate 3 degrees around y-axis when E is pressed
-			//auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			// test_rot = glm::mat4_cast(dy_radians) * glm::mat4_cast(dx_radians) * test_rot;
+			node_rotation_follows_input(activeNode, dx, dy);
 		}
 	}
 
@@ -803,12 +827,15 @@ public:
 		auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 		auto* cameraPtr = get_active_camera(sceneState);
 
-		// TODO: create buffer for model matrices
-		ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		// TODO: remove model component of ubo
+		// ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		const glm::vec3& cam_pos = cameraNode.translation;
-
-		ubo.view = glm::lookAt(cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		// The global translation is stored in the last column
+		const glm::vec3& cam_pos = glm::vec3(sceneState.modelMatrices.at(cameraNode.nodeId)[3]);
+		const glm::vec3& up = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(0., 1., 0., 0.);
+		const glm::vec3& right = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(1., 0., 0., 0.);
+		
+		ubo.view = glm::lookAt(cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(up));
 
 		//const auto& cam_rot = camera_node.rotation;
 		//if (cam_rot.size() == 4)
@@ -1194,9 +1221,6 @@ int main() {
 		// ENG_LOG_INFO("GLTF path: " << gltf_dir.native().c_str() << std::endl);
 		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
 		auto& cameraNode = app.sceneState.graph.nodes.at(app.sceneState.activeCameraNodeIdx);
-		cameraNode.translation.x = 2.f;
-		cameraNode.translation.y = 2.f;
-		cameraNode.translation.z = 2.f;
 
 		const auto& meshName = std::string("Room");
 		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
@@ -1355,6 +1379,8 @@ int main() {
 		roomNode->visible = false;
 		auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
 		camera->fovy = 0.7;
+		cameraNode.translation = glm::vec3(0., 0., 2.);
+		app.sceneState.activeNodeIdx = 3;
 
 		app.run();
 
