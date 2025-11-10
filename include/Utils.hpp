@@ -1,6 +1,5 @@
 #include<stdexcept>
-
-enum VkResult;
+#include "vulkan/vulkan_core.h"
 
 namespace ENG {
 template<typename Tfrom, typename Tto>

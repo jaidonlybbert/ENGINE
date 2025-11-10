@@ -2,7 +2,9 @@
 #include <application.hpp>
 
 // Necessary definition for PMP header compilation
+#ifndef M_PI
 #define M_PI 3.1415926
+#endif
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/triangulation.h"
 #include "pmp/algorithms/shapes.h"
@@ -13,6 +15,7 @@
 #include "interfaces/Gltf.hpp"
 #include "interfaces/FilesystemInterface.hpp"
 #include "interfaces/Obj.hpp"
+#include "primitives/Mesh.hpp"
 
 pmp::Point centroid(const pmp::SurfaceMesh& mesh, pmp::Face f)
 {
@@ -178,16 +181,18 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const st
 {
 		std::vector<VertexPosNorCol> vertices;
 		std::vector<uint32_t> indices;
-		glm::vec3 color{ 0.5f, 0.6f, 0.6f };
+		const auto& color = glm::vec3( 0.5f, 0.6f, 0.6f);
 
-		vertices.reserve(mesh.vertices_size());
+		vertices.resize(mesh.vertices_size() * 3);
 		indices.resize(12); // unused
 
 		const auto& points = mesh.get_vertex_property<pmp::Point>("v:point");
 
+		size_t idx{0};
 		for (const auto& face : mesh.faces())
 		{
 			// extract vertex positions into glm::vec3 positions (counter-clockwise order)
+			assert(idx + 2 < vertices.size());
 			auto circulator = pmp::SurfaceMesh::VertexAroundFaceCirculator(&mesh, face);
 			auto& it = circulator.begin();
 			const auto& p0 = points[*it];
@@ -200,9 +205,17 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const st
 			// compute normal vector
 			const auto& normal = glm::normalize(glm::cross(v1-v0, v2-v0));
 
-			vertices.emplace_back(v0, normal, color);
-			vertices.emplace_back(v1, normal, color);
-			vertices.emplace_back(v2, normal, color);
+			vertices.at(idx).pos = v0;
+			vertices.at(idx).normal = normal;
+			vertices.at(idx).color = color;
+			vertices.at(idx+1).pos = v1;
+			vertices.at(idx+1).normal = normal;
+			vertices.at(idx+1).color = color;
+			vertices.at(idx+2).pos = v2;
+			vertices.at(idx+2).normal = normal;
+			vertices.at(idx+2).color = color;
+
+			idx += 3;
 		}
 
 		auto& pmpMesh = app.sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), mesh_name, vertices, indices, app.graphicsQueue);
