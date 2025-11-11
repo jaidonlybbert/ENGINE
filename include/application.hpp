@@ -104,6 +104,7 @@ public:
 
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+	static void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const double dy);
 	static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos);
 	void initWindow();

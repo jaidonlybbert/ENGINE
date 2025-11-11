@@ -306,9 +306,6 @@ int main() {
 		// ENG_LOG_INFO("GLTF path: " << gltf_dir.native().c_str() << std::endl);
 		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
 		auto& cameraNode = app.sceneState.graph.nodes.at(app.sceneState.activeCameraNodeIdx);
-		cameraNode.translation.x = 2.f;
-		cameraNode.translation.y = 2.f;
-		cameraNode.translation.z = 2.f;
 
 		const auto& meshName = std::string("Room");
 		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
@@ -685,6 +682,9 @@ int main() {
 		}
 		auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
 		camera->fovy = 0.7;
+
+		cameraNode.translation = glm::vec3(0., 0., 2.);
+		app.sceneState.activeNodeIdx = 3;
 
 		app.run();
 
