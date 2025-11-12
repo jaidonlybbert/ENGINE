@@ -220,12 +220,28 @@ void VulkanTemplateApp::mouse_button_callback(GLFWwindow* window, int button, in
 	}
 }
 
+/*
+* Blender style camera - rotation around y axis is global, rotation around x axis is local to active object.
+* Reverses rotation around y-axis when camera is 'upside down'
+*/
+void VulkanTemplateApp::node_rotation_follows_input_preserve_y_as_up(ENG::Node& activeNode, const double dx, const double dy)
+{
+
+	ENG_LOG_TRACE("dx: " << dx << " dy: " << dy << std::endl);
+	constexpr auto sensitivity = 1.0f;
+
+	const auto invert = (activeNode.rotation * glm::vec3(0.f, 1.f, 0.f)).y >= 0.f ? 1.f : -1.f;
+
+	auto dx_quat = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.f, invert, 0.f));
+	auto dy_quat = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(1.f, 0.f, 0.f));
+	activeNode.rotation = dx_quat * activeNode.rotation * dy_quat;
+}
 
 void VulkanTemplateApp::node_rotation_follows_input(ENG::Node& activeNode, const double dx, const double dy)
 {
 
-	ENG_LOG_INFO("dx: " << dx << " dy: " << dy << std::endl);
-	constexpr float sensitivity = 1.0f;
+	ENG_LOG_TRACE("dx: " << dx << " dy: " << dy << std::endl);
+	constexpr auto sensitivity = 1.0f;
 
 	auto dx_quat = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.f, 1.f, 0.f));
 	auto dy_quat = glm::angleAxis(glm::radians(static_cast<float>(dy) * sensitivity), glm::vec3(1.f, 0.f, 0.f));
@@ -258,7 +274,7 @@ void VulkanTemplateApp::mouse_scroll_callback(GLFWwindow* window, double xoffset
 	}
 	auto& activeNode = sceneState->graph.nodes.at(sceneState->activeNodeIdx);
 
-	node_rotation_follows_input(activeNode, xoffset, yoffset);
+	node_rotation_follows_input_preserve_y_as_up(activeNode, xoffset, yoffset);
 
 	if (shift_state == GLFW_PRESS)
 	{
