@@ -1,3 +1,4 @@
+#pragma once
 #include<string_view>
 static constexpr int ENG_LOG_LEVEL{1};
 static constexpr std::string_view ENG_LOG_ERROR_TAG{"ENG_LOG_ERROR"};

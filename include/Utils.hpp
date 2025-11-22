@@ -1,3 +1,4 @@
+#pragma once
 #include<stdexcept>
 #include "vulkan/vulkan_core.h"
 

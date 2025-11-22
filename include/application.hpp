@@ -1,3 +1,4 @@
+#pragma once
 #include<iterator>
 #include<stack>
 #include<vector>
