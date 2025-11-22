@@ -20,6 +20,67 @@
 #include "interfaces/Obj.hpp"
 #include "ProceduralGeometry.h"
 
+void addBoundingBoxChild(ENG::Node* node, VulkanTemplateApp& app, const std::string &bbName)
+{
+	if (node == nullptr)
+	{
+		return;
+	}
+		
+	const auto* mesh = checked_cast<ENG::Component, ENG::Mesh<VertexPosNorTex>>(node->mesh);
+	const auto& minXIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+		return (rhs.pos.x < lhs.pos.x);
+	});
+	const auto& minYIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+		return (rhs.pos.y < lhs.pos.y);
+	});
+	const auto& minZIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+		return (rhs.pos.z < lhs.pos.z);
+	});
+	const auto& maxXIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+		return (rhs.pos.x < lhs.pos.x);
+	});
+	const auto& maxYIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+		return (rhs.pos.y < lhs.pos.y);
+	});
+	const auto& maxZIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+		return (rhs.pos.z < lhs.pos.z);
+	});
+
+	const auto& maxX = maxXIt->pos.x;
+	const auto& maxY = maxYIt->pos.y;
+	const auto& maxZ = maxZIt->pos.z;
+	const auto& minX = minXIt->pos.x;
+	const auto& minY = minYIt->pos.y;
+	const auto& minZ = minZIt->pos.z;
+
+	std::vector<VertexPos> bbVertices {
+		{ { minX, minY, maxZ } },
+		{ { maxX, minY, maxZ } },
+		{ { maxX, maxY, maxZ } },
+		{ { minX, maxY, maxZ } },
+		{ { minX, minY, minZ } },
+		{ { maxX, minY, minZ } },
+		{ { maxX, maxY, minZ } },
+		{ { minX, maxY, minZ } },
+	};
+
+	std::vector<uint32_t> bbIndices {
+		0, 1, 1, 2, 2, 3, 3, 0,
+		4, 5, 5, 6, 6, 7, 7, 4,
+		0, 4, 1, 5, 2, 6, 3, 7
+	};
+
+	auto& bbMesh = app.sceneState.posMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), bbName, bbVertices, bbIndices, app.graphicsQueue);
+	auto& bbNode = app.sceneState.graph.nodes.emplace_back();
+	bbNode.name = bbName;
+	bbNode.nodeId = app.sceneState.graph.nodes.size() - 1;
+	bbNode.parent = node;
+	bbNode.mesh = &bbMesh;
+	bbNode.shaderId = ENG_SHADER::PosBB;
+	node->children.push_back(&bbNode);
+}
+
 int main() {
 	
 	try {
@@ -50,61 +111,7 @@ int main() {
 
 		// Create bounding box around Suzanne
 		auto* suzanneNode = find_node_by_name(app.sceneState.graph, "Suzanne");
-		if (suzanneNode != nullptr)
-		{
-			const auto* mesh = checked_cast<ENG::Component, ENG::Mesh<VertexPosNorTex>>(suzanneNode->mesh);
-			const auto& minXIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.x < lhs.pos.x);
-			});
-			const auto& minYIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.y < lhs.pos.y);
-			});
-			const auto& minZIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.z < lhs.pos.z);
-			});
-			const auto& maxXIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.x < lhs.pos.x);
-			});
-			const auto& maxYIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.y < lhs.pos.y);
-			});
-			const auto& maxZIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-				return (rhs.pos.z < lhs.pos.z);
-			});
-
-			const auto& maxX = maxXIt->pos.x;
-			const auto& maxY = maxYIt->pos.y;
-			const auto& maxZ = maxZIt->pos.z;
-			const auto& minX = minXIt->pos.x;
-			const auto& minY = minYIt->pos.y;
-			const auto& minZ = minZIt->pos.z;
-
-			std::vector<VertexPos> bbVertices {
-				{ { minX, minY, maxZ } },
-				{ { maxX, minY, maxZ } },
-				{ { maxX, maxY, maxZ } },
-				{ { minX, maxY, maxZ } },
-				{ { minX, minY, minZ } },
-				{ { maxX, minY, minZ } },
-				{ { maxX, maxY, minZ } },
-				{ { minX, maxY, minZ } },
-			};
-
-			std::vector<uint32_t> bbIndices {
-				0, 1, 1, 2, 2, 3, 3, 0,
-				4, 5, 5, 6, 6, 7, 7, 4,
-				0, 4, 1, 5, 2, 6, 3, 7
-			};
-
-			auto& bbMesh = app.sceneState.posMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), "SuzanneBB" , bbVertices, bbIndices, app.graphicsQueue);
-			auto& bbNode = app.sceneState.graph.nodes.emplace_back();
-			bbNode.name = "SuzanneBoundingBox";
-			bbNode.nodeId = app.sceneState.graph.nodes.size() - 1;
-			bbNode.parent = suzanneNode;
-			bbNode.mesh = &bbMesh;
-			bbNode.shaderId = ENG_SHADER::PosBB;
-			suzanneNode->children.push_back(&bbNode);
-		}
+		addBoundingBoxChild(suzanneNode, app, "SuzanneBoundingBox");
 
 		// Create Tetrahedron
 		{
