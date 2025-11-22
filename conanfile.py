@@ -14,6 +14,7 @@ class EngineRecipe(ConanFile):
         "tinyobjloader/2.0.0-rc10",
         "nlohmann_json/3.12.0",
         "pmp/3.0.0",
+        "lua/5.4.7",
     )
 
     if platform.platform() == "Windows":

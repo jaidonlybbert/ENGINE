@@ -10,6 +10,8 @@
 #include "pmp/algorithms/shapes.h"
 #include "pmp/algorithms/utilities.h"
 
+#include "lua.h"
+
 #include "interfaces/Logging.hpp"
 #include "Utils.hpp"
 #include "interfaces/Gltf.hpp"

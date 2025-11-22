@@ -37,6 +37,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
+#include "lua.hpp"
+
 #include "EngineConfig.hpp"
 #include "Utils.hpp"
 #include "primitives/Mesh.hpp"
@@ -60,10 +62,22 @@
 
 using namespace ENG;
 
+void VulkanTemplateApp::initLua() {
+	luaState = luaL_newstate();
+	if (luaState == nullptr) {
+		throw std::runtime_error("Failed to initialize Lua");
+	}
+	luaL_openlibs(luaState);
+	if (luaL_dostring(luaState, "x = 42; print('Hello from Lua!')") != LUA_OK) {
+		throw std::runtime_error("Failed running test lua script from string");
+	}
+}
+
 VulkanTemplateApp::VulkanTemplateApp() {
 	initWindow();
 	initVulkan();
 	initGui();
+	initLua();
 }
 
 void VulkanTemplateApp::run() {
@@ -78,6 +92,7 @@ void VulkanTemplateApp::run() {
 		drawGUI();
 		ENG_LOG_TRACE("drawFrame" << std::endl);
 		drawFrame();
+		ENG_LOG_TRACE("process lua" << std::endl);
 #ifdef _WIN32
 		FrameMarkEnd("run_frame");
 #endif

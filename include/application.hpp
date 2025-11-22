@@ -5,6 +5,8 @@
 
 #include "vulkan/vulkan_core.h"
 
+#include "lua.hpp"
+
 #include "interfaces/Scene.hpp"
 #include "interfaces/Instance.hpp"
 #include "interfaces/Swapchain.hpp"
@@ -101,6 +103,7 @@ public:
 	std::unique_ptr<ENG::PipelineFactory> pipelineFactory;
 	std::unique_ptr<ENG::Command> commands;
 	std::unique_ptr<ENG::Swapchain> swapchain;
+	lua_State* luaState;
 
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -108,6 +111,7 @@ public:
 	static void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const double dy);
 	static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos);
+	void initLua();
 	void initWindow();
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 	void initVulkan();
