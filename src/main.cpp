@@ -20,6 +20,8 @@
 #include "interfaces/Obj.hpp"
 #include "ProceduralGeometry.h"
 
+#include "flatbuffers/flatbuffers.h"
+
 void addBoundingBoxChild(ENG::Node* node, VulkanTemplateApp& app, const std::string &bbName)
 {
 	if (node == nullptr)
@@ -381,6 +383,7 @@ int main() {
 		// Create Tetrahedron
 		create_tetrahedron_no_pmp(app);
 
+		// Create world mesh
 		create_world_polyhedra(app);
 
 		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)

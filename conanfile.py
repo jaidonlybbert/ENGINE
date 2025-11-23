@@ -15,6 +15,7 @@ class EngineRecipe(ConanFile):
         "nlohmann_json/3.12.0",
         "pmp/3.0.0",
         "lua/5.4.7",
+        "flatbuffers/25.9.23",
     )
 
     if platform.platform() == "Windows":
