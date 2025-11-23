@@ -12,6 +12,8 @@
 #include "interfaces/FilesystemInterface.hpp"
 #include "interfaces/Obj.hpp"
 
+using namespace ENG;
+
 pmp::Point centroid(const pmp::SurfaceMesh& mesh, pmp::Face f)
 {
 	pmp::Point c(0, 0, 0);
@@ -171,12 +173,12 @@ pmp::SurfaceMesh create_dodecahedron()
 	return mesh;
 }
 
-ENG::Mesh<ENG::VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
+ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
 	VulkanTemplateApp& app)
 {
-		std::vector<ENG::VertexPosNorCol> vertices;
+		std::vector<VertexPosNorCol> vertices;
 		std::vector<uint32_t> indices;
-		glm::vec3 color{ 0.5f, 0.6f, 0.6f };
+		const glm::vec3& color{ 0.5f, 0.6f, 0.6f };
 
 		vertices.reserve(mesh.vertices_size());
 		indices.resize(12); // unused
@@ -198,9 +200,13 @@ ENG::Mesh<ENG::VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, con
 			// compute normal vector
 			const auto& normal = glm::normalize(glm::cross(v1-v0, v2-v0));
 
-			vertices.emplace_back(v0, normal, color);
-			vertices.emplace_back(v1, normal, color);
-			vertices.emplace_back(v2, normal, color);
+			const VertexPosNorCol& vert0 {v0, normal, color};
+			const VertexPosNorCol& vert1 {v1, normal, color};
+			const VertexPosNorCol& vert2 {v2, normal, color};
+
+			vertices.emplace_back(vert0);
+			vertices.emplace_back(vert1);
+			vertices.emplace_back(vert2);
 		}
 
 		auto& pmpMesh = app.sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), mesh_name, vertices, indices, app.graphicsQueue);
