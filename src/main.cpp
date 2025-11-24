@@ -21,6 +21,18 @@
 #include "ProceduralGeometry.h"
 
 #include "flatbuffers/flatbuffers.h"
+#include "boost/asio/thread_pool.hpp"
+#include "boost/asio/post.hpp"
+#include "boost/asio.hpp"
+
+#include <vector>
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
+#include <future>
+
 
 void addBoundingBoxChild(ENG::Node* node, VulkanTemplateApp& app, const std::string &bbName)
 {
@@ -443,6 +455,20 @@ int main() {
 
 		cameraNode.translation = glm::vec3(0., 0., 2.);
 		app.sceneState.activeNodeIdx = 3;
+
+		boost::asio::thread_pool pool(4);  // 4 threads
+
+		// Submit tasks
+		boost::asio::post(pool, []() {
+			std::cout << "Task 1\n";
+		});
+
+		// With return value
+		auto future = boost::asio::post(pool, boost::asio::use_future([]() { return 42; }));
+
+		int result = future.get();  // Get the result
+
+		pool.join();  // Wait for all tasks to complete
 
 		app.run();
 
