@@ -19,6 +19,7 @@
 #include "interfaces/FilesystemInterface.hpp"
 #include "interfaces/Obj.hpp"
 #include "ProceduralGeometry.h"
+#include "SocketSessionServer.h"
 
 #include "flatbuffers/flatbuffers.h"
 #include "boost/asio/thread_pool.hpp"
@@ -458,19 +459,38 @@ int main() {
 
 		boost::asio::thread_pool pool(4);  // 4 threads
 
-		// Submit tasks
-		boost::asio::post(pool, []() {
-			std::cout << "Task 1\n";
+		// // Submit tasks
+		// boost::asio::post(pool, []() {
+		// 	std::cout << "Task 1\n";
+		// });
+		//
+		// // With return value
+		// auto future = boost::asio::post(pool, boost::asio::use_future([]() { return 42; }));
+		//
+		// int result = future.get();  // Get the result
+
+		boost::asio::io_context io_context;
+
+		// Create server listening on port 8080
+		SocketSessionServer server(io_context, 8080);
+		std::cout << "Server listening on port 8080..." << std::endl;
+
+		// Run in background thread
+		std::thread io_thread([&io_context]() {
+			io_context.run();
 		});
 
-		// With return value
-		auto future = boost::asio::post(pool, boost::asio::use_future([]() { return 42; }));
+		app.run(); 
 
-		int result = future.get();  // Get the result
+		// Graceful shutdown sequence
+		server.stop();           // Stop acceptor and close all sessions
+		io_context.stop();       // Stop the io_context
+
+		if (io_thread.joinable()) {
+			io_thread.join();    // Wait for io thread to finish
+		}
 
 		pool.join();  // Wait for all tasks to complete
-
-		app.run();
 
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
