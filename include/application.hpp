@@ -67,6 +67,7 @@ class VulkanTemplateApp {
 public:
 	VulkanTemplateApp();
 	void run();
+	void initializeScene(std::function<void(VulkanTemplateApp&)> loadFunction);
 	~VulkanTemplateApp();
 	void cleanupGui();
 	friend std::ostream& operator<<(std::ostream& os, VulkanTemplateApp& app);
@@ -106,6 +107,9 @@ public:
 	std::unique_ptr<ENG::Swapchain> swapchain;
 	lua_State* luaState;
 
+	std::mutex scene_mtx;
+	bool sceneReadyToRender = false;
+
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 	static void node_rotation_follows_input_preserve_y_as_up(ENG::Node& activeNode, const double dx, const double dy);
@@ -118,6 +122,7 @@ public:
 	void initVulkan();
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	void createSurface();
+	void recordCommandsForSceneGraph(VkCommandBuffer& commandBuffer);
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	void drawFrame();
 	void createSyncObjects();

@@ -102,6 +102,13 @@ void VulkanTemplateApp::run() {
 	vkDeviceWaitIdle(device);
 }
 
+void VulkanTemplateApp::initializeScene(std::function<void(VulkanTemplateApp&)> loadFunction) {
+	std::lock_guard<std::mutex> lock(scene_mtx);
+	sceneReadyToRender = false;
+	loadFunction(*this);
+	sceneReadyToRender = true;
+}
+
 VulkanTemplateApp::~VulkanTemplateApp() {
 	faceColorBuffers.clear();
 	faceIdMapBuffers.clear();
@@ -430,43 +437,8 @@ void VulkanTemplateApp::createSurface() {
 	}
 }
 
-void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = 0; // Optional
-	beginInfo.pInheritanceInfo = nullptr; // Optional
-
-	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-		throw std::runtime_error("failed to begin recording command buffer!");
-	}
-
-	VkRenderPassBeginInfo renderPassInfo{};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	renderPassInfo.renderPass = renderPass;
-	renderPassInfo.framebuffer = swapchain->swapChainFramebuffers[imageIndex];
-	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = swapchain->swapChainExtent;
-	std::array<VkClearValue, 2> clearValues{};
-	clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-	clearValues[1].depthStencil = {1.0f, 0};
-	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-	renderPassInfo.pClearValues = clearValues.data();
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-	VkViewport viewport{};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(swapchain->swapChainExtent.width);
-	viewport.height = static_cast<float>(swapchain->swapChainExtent.height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-	VkRect2D scissor{};
-	scissor.offset = {0, 0};
-	scissor.extent = swapchain->swapChainExtent;
-	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
+void VulkanTemplateApp::recordCommandsForSceneGraph(VkCommandBuffer& commandBuffer)
+{
 	for (const auto& node : sceneState.graph.nodes)
 	{
 		if (!node.shaderId.has_value())
@@ -490,7 +462,12 @@ void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint3
 		ENG_LOG_TRACE("Drawing " << node.name << std::endl);
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(shaderId));
 
-		assert(currentFrame < node.descriptorSetIds.size());
+		// During scene switching/loading, nodes will be in a partially loaded state not ready to be rendered
+		if (currentFrame > node.descriptorSetIds.size()) {
+			ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has no descriptor sets" << std::endl);
+			continue;
+		}
+
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(shaderId),
 			  0, 1, &descriptorSets.get(node.descriptorSetIds.at(currentFrame)), 0, nullptr);
 		vkCmdPushConstants(commandBuffer, pipelineFactory->getVkPipelineLayout(shaderId), VK_SHADER_STAGE_VERTEX_BIT, 0,
@@ -550,6 +527,49 @@ void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint3
 		}
 	}
 
+}
+
+void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = 0; // Optional
+	beginInfo.pInheritanceInfo = nullptr; // Optional
+
+	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+		throw std::runtime_error("failed to begin recording command buffer!");
+	}
+
+	VkRenderPassBeginInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = renderPass;
+	renderPassInfo.framebuffer = swapchain->swapChainFramebuffers[imageIndex];
+	renderPassInfo.renderArea.offset = {0, 0};
+	renderPassInfo.renderArea.extent = swapchain->swapChainExtent;
+	std::array<VkClearValue, 2> clearValues{};
+	clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+	clearValues[1].depthStencil = {1.0f, 0};
+	renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+	renderPassInfo.pClearValues = clearValues.data();
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = static_cast<float>(swapchain->swapChainExtent.width);
+	viewport.height = static_cast<float>(swapchain->swapChainExtent.height);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+	VkRect2D scissor{};
+	scissor.offset = {0, 0};
+	scissor.extent = swapchain->swapChainExtent;
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+	if (sceneReadyToRender) {
+		recordCommandsForSceneGraph(commandBuffer);
+	}
+
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
 	vkCmdEndRenderPass(commandBuffer);
@@ -576,8 +596,11 @@ void VulkanTemplateApp::drawFrame()
 
 	vkResetCommandBuffer(commands->commandBuffers[currentFrame], 0);
 	recordCommandBuffer(commands->commandBuffers[currentFrame], imageIndex);
-	updateUniformBuffer(currentFrame);
-	updateModelMatrixBuffer();
+
+	if (sceneReadyToRender) {
+		updateUniformBuffer(currentFrame);
+		updateModelMatrixBuffer();
+	}
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

@@ -361,6 +361,96 @@ void create_world_polyhedra(VulkanTemplateApp& app)
 }
 
 
+void initializeWorldScene(VulkanTemplateApp& app) {
+	// TODO: implement pools to avoid reference invalidation on reallocation problem
+	app.sceneState.posColTexMeshes.reserve(100);
+	app.sceneState.posNorTexMeshes.reserve(100);
+	app.sceneState.posMeshes.reserve(100);
+	app.sceneState.posNorColMeshes.reserve(100);
+	app.sceneState.graph.nodes.reserve(100);
+	app.sceneState.graph.cameras.reserve(10);
+
+	auto& attachmentPoint = app.sceneState.graph.nodes.emplace_back();
+	app.sceneState.graph.root = &attachmentPoint;
+	app.sceneState.graph.root->name = "Root";
+
+	// ENG_LOG_INFO("GLTF path: " << gltf_dir.native().c_str() << std::endl);
+	load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
+	auto& cameraNode = app.sceneState.graph.nodes.at(app.sceneState.activeCameraNodeIdx);
+
+	const auto& meshName = std::string("Room");
+	ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
+
+	// Create bounding box around Suzanne
+	auto* suzanneNode = find_node_by_name(app.sceneState.graph, "Suzanne");
+	addBoundingBoxChild(suzanneNode, app, "SuzanneBoundingBox");
+
+	// Create Tetrahedron
+	create_tetrahedron_no_pmp(app);
+
+	// Create world mesh
+	create_world_polyhedra(app);
+
+	// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
+	app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
+
+	app.createModelMatrices();
+
+	for (auto& node : app.sceneState.graph.nodes)
+	{
+		app.createDescriptorSets(node);
+	}
+
+	ENG_LOG_INFO("PosColTex Meshes loaded:" << std::endl);
+	for (const auto& mesh : app.sceneState.posColTexMeshes)
+	{
+		ENG_LOG_INFO("\t" << mesh.name << std::endl);
+	}
+
+	ENG_LOG_INFO("PosNorTex Meshes loaded:" << std::endl);
+	for (const auto& mesh : app.sceneState.posNorTexMeshes)
+	{
+		ENG_LOG_INFO("\t" << mesh.name << std::endl);
+	}
+
+	ENG_LOG_INFO("PosBB Meshes loaded:" << std::endl);
+	for (const auto& mesh : app.sceneState.posMeshes)
+	{
+		ENG_LOG_INFO("\t" << mesh.name << std::endl);
+	}
+
+	ENG_LOG_INFO("Finished loading data" << std::endl);
+
+	ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
+
+	// custom settings overrides
+	if (suzanneNode != nullptr)
+	{
+		suzanneNode->visible = false;
+	}
+	auto* suzanneBoundingBoxNode = find_node_by_name(app.sceneState.graph, "SuzanneBoundingBox");
+	if (suzanneBoundingBoxNode != nullptr)
+	{
+		suzanneBoundingBoxNode->visible = false;
+	}
+	auto* roomNode = find_node_by_name(app.sceneState.graph, "Room");
+	if (roomNode != nullptr)
+	{
+		roomNode->visible = false;
+	}
+	auto* tetrahedronNode = find_node_by_name(app.sceneState.graph, "Tetrahedron");
+	if (tetrahedronNode != nullptr)
+	{
+		tetrahedronNode->visible = false;
+	}
+	auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
+	camera->fovy = 0.7;
+
+	cameraNode.translation = glm::vec3(0., 0., 2.);
+	app.sceneState.activeNodeIdx = 3;
+}
+
+
 int main() {
 	
 	try {
@@ -370,106 +460,11 @@ int main() {
 		VulkanTemplateApp app;
 		ENG_LOG_INFO(app);
 
-		// TODO: implement pools to avoid reference invalidation on reallocation problem
-		app.sceneState.posColTexMeshes.reserve(100);
-		app.sceneState.posNorTexMeshes.reserve(100);
-		app.sceneState.posMeshes.reserve(100);
-		app.sceneState.posNorColMeshes.reserve(100);
-		app.sceneState.graph.nodes.reserve(100);
-		app.sceneState.graph.cameras.reserve(10);
-
-		auto& attachmentPoint = app.sceneState.graph.nodes.emplace_back();
-		app.sceneState.graph.root = &attachmentPoint;
-		app.sceneState.graph.root->name = "Root";
-
-		// ENG_LOG_INFO("GLTF path: " << gltf_dir.native().c_str() << std::endl);
-		load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
-		auto& cameraNode = app.sceneState.graph.nodes.at(app.sceneState.activeCameraNodeIdx);
-
-		const auto& meshName = std::string("Room");
-		ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
-
-		// Create bounding box around Suzanne
-		auto* suzanneNode = find_node_by_name(app.sceneState.graph, "Suzanne");
-		addBoundingBoxChild(suzanneNode, app, "SuzanneBoundingBox");
-
-		// Create Tetrahedron
-		create_tetrahedron_no_pmp(app);
-
-		// Create world mesh
-		create_world_polyhedra(app);
-
-		// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
-		app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
-
-		app.createModelMatrices();
-
-		for (auto& node : app.sceneState.graph.nodes)
-		{
-			app.createDescriptorSets(node);
-		}
-
-		ENG_LOG_INFO("PosColTex Meshes loaded:" << std::endl);
-		for (const auto& mesh : app.sceneState.posColTexMeshes)
-		{
-			ENG_LOG_INFO("\t" << mesh.name << std::endl);
-		}
-
-		ENG_LOG_INFO("PosNorTex Meshes loaded:" << std::endl);
-		for (const auto& mesh : app.sceneState.posNorTexMeshes)
-		{
-			ENG_LOG_INFO("\t" << mesh.name << std::endl);
-		}
-
-		ENG_LOG_INFO("PosBB Meshes loaded:" << std::endl);
-		for (const auto& mesh : app.sceneState.posMeshes)
-		{
-			ENG_LOG_INFO("\t" << mesh.name << std::endl);
-		}
-
-		ENG_LOG_INFO("Finished loading data" << std::endl);
-
-		ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
-
-		// custom settings overrides
-		if (suzanneNode != nullptr)
-		{
-			suzanneNode->visible = false;
-		}
-		auto* suzanneBoundingBoxNode = find_node_by_name(app.sceneState.graph, "SuzanneBoundingBox");
-		if (suzanneBoundingBoxNode != nullptr)
-		{
-			suzanneBoundingBoxNode->visible = false;
-		}
-		auto* roomNode = find_node_by_name(app.sceneState.graph, "Room");
-		if (roomNode != nullptr)
-		{
-			roomNode->visible = false;
-		}
-		auto* tetrahedronNode = find_node_by_name(app.sceneState.graph, "Tetrahedron");
-		if (tetrahedronNode != nullptr)
-		{
-			tetrahedronNode->visible = false;
-		}
-		auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
-		camera->fovy = 0.7;
-
-		cameraNode.translation = glm::vec3(0., 0., 2.);
-		app.sceneState.activeNodeIdx = 3;
-
-		boost::asio::thread_pool pool(4);  // 4 threads
-
-		// // Submit tasks
-		// boost::asio::post(pool, []() {
-		// 	std::cout << "Task 1\n";
-		// });
-		//
-		// // With return value
-		// auto future = boost::asio::post(pool, boost::asio::use_future([]() { return 42; }));
-		//
-		// int result = future.get();  // Get the result
-
 		boost::asio::io_context io_context;
+
+		boost::asio::post([&app] () {
+			app.initializeScene(initializeWorldScene);
+		});
 
 		// Create server listening on port 8080
 		SocketSessionServer server(io_context, 8080);
@@ -490,7 +485,6 @@ int main() {
 			io_thread.join();    // Wait for io thread to finish
 		}
 
-		pool.join();  // Wait for all tasks to complete
 
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;
