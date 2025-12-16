@@ -10,6 +10,7 @@
 #include "glm/glm.hpp"
 #include "renderer/Buffer.hpp"
 #include "renderer/Command.hpp"
+#include "scene/Primitives.hpp"
 
 namespace tinygltf {
 class Accessor;
@@ -19,27 +20,6 @@ class Model;
 
 namespace ENG
 {
-	struct VertexPosNorTex {
-		glm::vec3 pos;
-		glm::vec3 normal;
-		glm::vec2 texCoord;
-	};
-
-	struct VertexPosColTex {
-		glm::vec3 pos;
-		glm::vec3 color;
-		glm::vec2 texCoord;
-	};
-
-	struct VertexPosNorCol {
-		glm::vec3 pos;
-		glm::vec3 normal;
-		glm::vec3 color;
-	};
-
-	struct VertexPos {
-		glm::vec3 pos;
-	};	
 
 	class Component {
 		/*
