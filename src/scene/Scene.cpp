@@ -1,4 +1,3 @@
-#include "renderer/Utils.hpp"
 #include "scene/Scene.hpp"
 #include "logger/Logging.hpp"
 
@@ -25,7 +24,9 @@ Camera* get_active_camera(const SceneState& sceneState)
 	ENG_LOG_TRACE("Camera address: " << cameraNode.camera << std::endl);
 	ENG_LOG_TRACE("Camera ptr retrieved" << std::endl);
 
-	auto* cameraPtr = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
+	auto* cameraPtr = dynamic_cast<ENG::Camera*>(cameraNode.camera);
+
+	assert(cameraPtr != nullptr);
 
 	ENG_LOG_TRACE("Camera node cast" << std::endl);
 	ENG_LOG_TRACE("Camera address: " << cameraPtr << std::endl);

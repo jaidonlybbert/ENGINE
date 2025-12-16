@@ -16,7 +16,7 @@ Pipeline_PosColTex::Pipeline_PosColTex(const VkDevice& device, const VkRenderPas
 
 void Pipeline_PosColTex::createShaderStages(const ShaderFactory& shader_fac) {
 	ENG_LOG_INFO("Create shaders derived class PosColTex" << std::endl);
-	shader_stages = shader_fac.get_shader_stages(ENG_SHADER::PosColTex);
+	shader_stages = shader_fac.get_shader_stages("PosColTex");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
@@ -43,7 +43,7 @@ Pipeline_PosNorTex::Pipeline_PosNorTex(const VkDevice& device, const VkRenderPas
 
 void Pipeline_PosNorTex::createShaderStages(const ShaderFactory& shader_fac) {
 	ENG_LOG_INFO("Create shaders derived class PosNorTex" << std::endl);
-	shader_stages = shader_fac.get_shader_stages(ENG_SHADER::PosNorTex);
+	shader_stages = shader_fac.get_shader_stages("PosNorTex");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
@@ -70,7 +70,7 @@ Pipeline_PosNorCol::Pipeline_PosNorCol(const VkDevice& device, const VkRenderPas
 
 void Pipeline_PosNorCol::createShaderStages(const ShaderFactory& shader_fac) {
 	ENG_LOG_INFO("Create shaders derived class PosNorCol" << std::endl);
-	shader_stages = shader_fac.get_shader_stages(ENG_SHADER::PosNorCol);
+	shader_stages = shader_fac.get_shader_stages("PosNorCol");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
@@ -123,7 +123,7 @@ Pipeline_PosBB::Pipeline_PosBB(const VkDevice& device, const VkRenderPass& rende
 
 void Pipeline_PosBB::createShaderStages(const ShaderFactory& shader_fac) {
 	ENG_LOG_INFO("Create shaders derived class PosBB" << std::endl);
-	shader_stages = shader_fac.get_shader_stages(ENG_SHADER::PosBB);
+	shader_stages = shader_fac.get_shader_stages("PosBB");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
@@ -198,7 +198,7 @@ Pipeline_Goldberg::Pipeline_Goldberg(const VkDevice& device, const VkRenderPass&
 
 void Pipeline_Goldberg::createShaderStages(const ShaderFactory& shader_fac) {
 	ENG_LOG_INFO("Create shaders derived class Goldberg" << std::endl);
-	shader_stages = shader_fac.get_shader_stages(ENG_SHADER::Goldberg);
+	shader_stages = shader_fac.get_shader_stages("Goldberg");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }

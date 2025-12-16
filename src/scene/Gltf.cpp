@@ -65,19 +65,20 @@ void load_gltf_mesh_attributes(const VkDevice& device,
 	// Assumes vertex data is NOT interleaved in gltf buffer
 	// Each attribute exists in a contiguous section of the gltf buffer, and gets it's own
 	// binding & attribute description
+	// TODO: fix this so it doesn't hard-code shaders
 	if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("COLOR0")
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
 		auto &mesh = sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, mesh_name, model, primitive, graphicsQueue);
 		eng_node.mesh = dynamic_cast<ENG::Component*>(&mesh);
-		eng_node.shaderId = ENG_SHADER::PosColTex;
+		eng_node.shaderId = "PosColTex";
 	}
 	else if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("NORMAL")
 		&& primitive.attributes.contains("TEXCOORD_0"))
 	{
 		auto& mesh = sceneState.posNorTexMeshes.emplace_back(device, physicalDevice, commands, mesh_name, model, primitive, graphicsQueue);
 		eng_node.mesh = dynamic_cast<ENG::Component*>(&mesh);
-		eng_node.shaderId = ENG_SHADER::PosNorTex;
+		eng_node.shaderId = "PosNorTex";
 	}
 }
 

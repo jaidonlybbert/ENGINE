@@ -11,7 +11,6 @@
 
 #include "gui/Gui.hpp"
 #include "scene/Mesh.hpp"
-#include "renderer/pipelines/ShaderFactory.hpp"
 
 using namespace tinygltf;
 
@@ -47,7 +46,7 @@ public:
 	Node* parent{ nullptr };
 	std::vector<Node*> children;
 	std::vector<size_t> descriptorSetIds;
-	std::optional<ENG_SHADER> shaderId;
+	std::optional<std::string> shaderId;
 	Component* mesh { nullptr };
 	Component* kinematic { nullptr };
 	Component* camera { nullptr };

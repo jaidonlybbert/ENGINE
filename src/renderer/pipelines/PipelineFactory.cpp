@@ -1,5 +1,6 @@
 #include<vector>
 #include<array>
+#include<assert.h>
 #include "vulkan/vulkan_core.h"
 #include "renderer/pipelines/PipelineFactory.hpp"
 #include "renderer/pipelines/ShaderFactory.hpp"
@@ -12,6 +13,13 @@ PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapCha
 	std::vector<VkGraphicsPipelineCreateInfo> pipelineCreateInfos;
 	const ShaderFactory& shader_factory{device};
 	createRenderPass(device, swapChainImageFormat, depthFormat);
+
+	// TODO: interim solution to decouple renderer from scene, should be loaded from a config file
+	pipeline_names.emplace("PosColTex", 0);
+	pipeline_names.emplace("PosNorTex", 1);
+	pipeline_names.emplace("PosBB", 2);
+	pipeline_names.emplace("PosNorCol", 3);
+	pipeline_names.emplace("Goldberg", 4);
 
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosColTex>(device, renderPass, shader_factory, pipelineCreateInfos));
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosNorTex>(device, renderPass, shader_factory, pipelineCreateInfos));
@@ -109,20 +117,23 @@ const VkRenderPass& PipelineFactory::getRenderPass() const {
 	return renderPass;
 }
 
-const VkDescriptorSetLayout& PipelineFactory::getDescriptorSetLayout(const ENG_SHADER shader) const {
-	assert(static_cast<size_t>(shader) < eng_pipelines.size());
-	assert(eng_pipelines.at(static_cast<size_t>(shader)) != nullptr);
-	return eng_pipelines.at(static_cast<size_t>(shader))->getDescriptorSetLayout();
+const VkDescriptorSetLayout& PipelineFactory::getDescriptorSetLayout(const std::string& shader) const {
+	const size_t idx = pipeline_names.at(shader);
+	assert(idx < eng_pipelines.size());
+	assert(eng_pipelines.at(idx) != nullptr);
+	return eng_pipelines.at(idx)->getDescriptorSetLayout();
 }
 
-const VkPipeline& PipelineFactory::getVkPipeline(const ENG_SHADER shader) const {
-	assert(static_cast<size_t>(shader) < graphicsPipelines.size());
-	return graphicsPipelines.at(static_cast<size_t>(shader));
+const VkPipeline& PipelineFactory::getVkPipeline(const std::string& shader) const {
+	const size_t idx = pipeline_names.at(shader);
+	assert(idx < graphicsPipelines.size());
+	return graphicsPipelines.at(idx);
 }
 
-const VkPipelineLayout& PipelineFactory::getVkPipelineLayout(const ENG_SHADER shader) const {
-	assert(static_cast<size_t>(shader) < eng_pipelines.size());
-	assert(eng_pipelines.at(static_cast<size_t>(shader)) != nullptr);
-	return eng_pipelines.at(static_cast<size_t>(shader))->getPipelineLayout();
+const VkPipelineLayout& PipelineFactory::getVkPipelineLayout(const std::string& shader) const {
+	const size_t idx = pipeline_names.at(shader);
+	assert(idx < eng_pipelines.size());
+	assert(eng_pipelines.at(idx) != nullptr);
+	return eng_pipelines.at(idx)->getPipelineLayout();
 }
 } // End namespace

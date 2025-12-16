@@ -958,14 +958,14 @@ void VulkanTemplateApp::writeDescriptorSets(const ENG::Node& node)
 
 		// TODO: This is just bad..
 		std::vector<VkWriteDescriptorSet> descriptorWrites;
-		if (node.shaderId == ENG_SHADER::PosBB || node.shaderId == ENG_SHADER::PosNorCol)
+		if (node.shaderId == "PosBB" || node.shaderId == "PosNorCol")
 		{
 			descriptorWrites = { 
 				createDescriptorWriteUbo(node, i, 0, bufferInfo), 
 				createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo)
 			};
 		} 
-		else if (node.shaderId == ENG_SHADER::Goldberg)
+		else if (node.shaderId == "Goldberg")
 		{ 
 			descriptorWrites = {
 				createDescriptorWriteUbo(node, i, 0, bufferInfo),

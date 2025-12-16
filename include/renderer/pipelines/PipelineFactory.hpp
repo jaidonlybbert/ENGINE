@@ -16,10 +16,11 @@ public:
 	const std::vector<VkPipeline>& getVkPipelines() const;
 	const std::vector<std::unique_ptr<ENG::Pipeline>>& getEngPipelines() const;
 	const VkRenderPass& getRenderPass() const;
-	const VkDescriptorSetLayout& getDescriptorSetLayout(const ENG_SHADER shader) const;
-	const VkPipeline& getVkPipeline(const ENG_SHADER shader) const;
-	const VkPipelineLayout& getVkPipelineLayout(const ENG_SHADER shader) const;
+	const VkDescriptorSetLayout& getDescriptorSetLayout(const std::string& shader) const;
+	const VkPipeline& getVkPipeline(const std::string& shader) const;
+	const VkPipelineLayout& getVkPipelineLayout(const std::string& shader) const;
 private:
+	std::map<std::string, size_t> pipeline_names;
 	std::vector<VkPipeline> graphicsPipelines;
 	std::vector<std::unique_ptr<ENG::Pipeline>> eng_pipelines;
 	const VkDevice& device;

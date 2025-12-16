@@ -263,7 +263,7 @@ void addBoundingBoxChild(ENG::Node* node, VulkanTemplateApp& app, const std::str
 	bbNode.nodeId = app.sceneState.graph.nodes.size() - 1;
 	bbNode.parent = node;
 	bbNode.mesh = &bbMesh;
-	bbNode.shaderId = ENG_SHADER::PosBB;
+	bbNode.shaderId = "PosBB";
 	node->children.push_back(&bbNode);
 }
 
@@ -320,7 +320,7 @@ void create_tetrahedron_no_pmp(VulkanTemplateApp& app)
 	tetraNode.nodeId = app.sceneState.graph.nodes.size() - 1;
 	tetraNode.parent = app.sceneState.graph.root;
 	tetraNode.mesh = &tetraMesh;
-	tetraNode.shaderId = ENG_SHADER::PosNorCol;
+	tetraNode.shaderId = "PosNorCol";
 	app.sceneState.graph.root->children.push_back(&tetraNode);
 }
 

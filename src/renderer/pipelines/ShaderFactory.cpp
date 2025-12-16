@@ -1,5 +1,6 @@
 #include<fstream>
 #include<filesystem>
+#include<assert.h>
 #include "renderer/pipelines/ShaderFactory.hpp"
 #include "filesystem/FilesystemInterface.hpp"
 
@@ -83,19 +84,19 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
 
 	assert(stages.size() == 10);
 	module_map = {
-		{ENG_SHADER::PosColTex, {&modules.at(0), &modules.at(1)}},
-		{ENG_SHADER::PosNorTex, {&modules.at(2), &modules.at(3)}},
-		{ENG_SHADER::PosBB,		{&modules.at(4), &modules.at(5)}},
-		{ENG_SHADER::PosNorCol, {&modules.at(6), &modules.at(7)}},
-		{ENG_SHADER::Goldberg,  {&modules.at(8), &modules.at(9)}}
+		{"PosColTex", {&modules.at(0), &modules.at(1)}},
+		{"PosNorTex", {&modules.at(2), &modules.at(3)}},
+		{"PosBB",		{&modules.at(4), &modules.at(5)}},
+		{"PosNorCol", {&modules.at(6), &modules.at(7)}},
+		{"Goldberg",  {&modules.at(8), &modules.at(9)}}
 	};
 
 	stage_map = {
-		{ENG_SHADER::PosColTex, {&stages.at(0), &stages.at(1)}},
-		{ENG_SHADER::PosNorTex, {&stages.at(2), &stages.at(3)}},
-		{ENG_SHADER::PosBB,		{&stages.at(4), &stages.at(5)}},
-		{ENG_SHADER::PosNorCol, {&stages.at(6), &stages.at(7)}},
-		{ENG_SHADER::Goldberg,  {&stages.at(8), &stages.at(9)}}
+		{"PosColTex", {&stages.at(0), &stages.at(1)}},
+		{"PosNorTex", {&stages.at(2), &stages.at(3)}},
+		{"PosBB",		{&stages.at(4), &stages.at(5)}},
+		{"PosNorCol", {&stages.at(6), &stages.at(7)}},
+		{"Goldberg",  {&stages.at(8), &stages.at(9)}}
 	};
 }
 
@@ -105,10 +106,10 @@ ShaderFactory::~ShaderFactory() {
 	}
 }
 
-const std::vector<VkPipelineShaderStageCreateInfo*>& ShaderFactory::get_shader_stages(const ENG_SHADER& shader) const {
+const std::vector<VkPipelineShaderStageCreateInfo*>& ShaderFactory::get_shader_stages(const std::string& shader) const {
 	return stage_map.at(shader);
 }
 
-const std::vector<VkShaderModule*>& ShaderFactory::get_shader_modules(const ENG_SHADER& shader) const {
+const std::vector<VkShaderModule*>& ShaderFactory::get_shader_modules(const std::string& shader) const {
 	return module_map.at(shader);
 }

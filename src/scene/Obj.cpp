@@ -15,7 +15,8 @@ void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, E
 	auto& newNode = sceneState.graph.nodes.emplace_back();
 	newNode.name = name;
 	newNode.nodeId = sceneState.graph.nodes.size() - 1;
-	newNode.shaderId = ENG_SHADER::PosColTex;
+	// TODO: don't hardcode this here
+	newNode.shaderId = "PosColTex";
 	newNode.parent = &attachmentPoint;
 	attachmentPoint.children.push_back(&newNode);
 		
