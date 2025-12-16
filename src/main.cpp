@@ -7,15 +7,24 @@
 #endif
 
 #include "interfaces/Logging.hpp"
-#include "SocketSessionServer.h"
+#include "sockets/SocketSessionServer.h"
 #include "scenes/SceneWorld.hpp"
 
 #include "asio/post.hpp"
 #include "asio/io_context.hpp"
+#include "asio/co_spawn.hpp"
+#include "asio/detached.hpp"
 
 #include <thread>
 #include <functional>
 
+void stop(asio::io_context& io_context) {
+	if (io_context.stopped()) {
+		return;
+	}
+
+	io_context.stop();
+}
 
 int main() {
 	
@@ -32,9 +41,15 @@ int main() {
 			app.initializeScene(initializeWorldScene);
 		});
 
-		// Create server listening on port 8080
-		SocketSessionServer server(io_context, 8080);
+
+		co_spawn(io_context,
+			listener(tcp::acceptor(io_context, { tcp::v4(), 8080 })),
+			detached);
+
 		std::cout << "Server listening on port 8080..." << std::endl;
+
+		asio::signal_set signals(io_context, SIGINT, SIGTERM);
+		signals.async_wait([&](auto, auto){ stop(io_context); });
 
 		// Run in background thread
 		std::thread io_thread([&io_context]() {
@@ -44,8 +59,7 @@ int main() {
 		app.run(); 
 
 		// Graceful shutdown sequence
-		server.stop();           // Stop acceptor and close all sessions
-		io_context.stop();       // Stop the io_context
+		stop(io_context);
 
 		if (io_thread.joinable()) {
 			io_thread.join();    // Wait for io thread to finish
