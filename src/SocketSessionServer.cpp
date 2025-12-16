@@ -1,11 +1,12 @@
-#include <boost/asio.hpp>
 #include <memory>
 #include <set>
 #include <iostream>
+
+#include "asio.hpp"
 #include "SocketSessionServer.h"
 #include "interfaces/Logging.hpp"
 
-using boost::asio::ip::tcp;
+using asio::ip::tcp;
 
 namespace ENG {
 
@@ -18,19 +19,19 @@ void Session::start() {
 
 void Session::send(const std::string& message) {
 	auto self = shared_from_this();
-	boost::asio::async_write(socket_,
-			  boost::asio::buffer(message),
-			  [this, self](boost::system::error_code ec, std::size_t) {
-			  if (ec) {
-			  ENG_LOG_ERROR("Write error: " << ec.message() << std::endl);
-			  }
-			  });
+	asio::async_write(socket_,
+		asio::buffer(message),
+		[this, self](asio::error_code ec, std::size_t) {
+			if (ec) {
+				ENG_LOG_ERROR("Write error: " << ec.message() << std::endl);
+			}
+		});
 }
 
 tcp::socket& Session::socket() { return socket_; }
 
 void Session::close() {
-	boost::system::error_code ec;
+	asio::error_code ec;
 	ec = socket_.shutdown(tcp::socket::shutdown_both, ec);
 
 	if (ec) {
@@ -46,8 +47,8 @@ void Session::close() {
 void Session::do_read() {
 	auto self = shared_from_this();
 	socket_.async_read_some(
-		boost::asio::buffer(buffer_),
-		[this, self](boost::system::error_code ec, std::size_t length) {
+		asio::buffer(buffer_),
+		[this, self](asio::error_code ec, std::size_t length) {
 			if (!ec) {
 				// Echo back what we received
 				std::string message(buffer_.data(), length);
@@ -63,7 +64,7 @@ void Session::do_read() {
 }
 
 // Server that accepts connections and manages sessions
-SocketSessionServer::SocketSessionServer(boost::asio::io_context& io_context, short port)
+SocketSessionServer::SocketSessionServer(asio::io_context& io_context, short port)
 : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
 	do_accept();
 }
@@ -79,7 +80,7 @@ void SocketSessionServer::stop() {
 	std::lock_guard<std::mutex> lock(sessions_mutex_);
 
 	// Stop accepting new connections
-	boost::system::error_code ec;
+	asio::error_code ec;
 	ec = acceptor_.close(ec);
 
 	if (ec) {
@@ -95,7 +96,7 @@ void SocketSessionServer::stop() {
 
 void SocketSessionServer::do_accept() {
 	acceptor_.async_accept(
-		[this](boost::system::error_code ec, tcp::socket socket) {
+		[this](asio::error_code ec, tcp::socket socket) {
 			if (!ec) {
 				ENG_LOG_DEBUG("Client connected from: " 
 					<< socket.remote_endpoint() << std::endl);

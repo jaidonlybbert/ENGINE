@@ -10,7 +10,8 @@
 #include "SocketSessionServer.h"
 #include "scenes/SceneWorld.hpp"
 
-#include "boost/asio/post.hpp"
+#include "asio/post.hpp"
+#include "asio/io_context.hpp"
 
 #include <thread>
 #include <functional>
@@ -25,9 +26,9 @@ int main() {
 		VulkanTemplateApp app;
 		ENG_LOG_INFO(app);
 
-		boost::asio::io_context io_context;
+		asio::io_context io_context;
 
-		boost::asio::post([&app] () {
+		asio::post([&app] () {
 			app.initializeScene(initializeWorldScene);
 		});
 

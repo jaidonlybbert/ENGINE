@@ -1,10 +1,11 @@
 #pragma once
-#include <boost/asio.hpp>
 #include <memory>
 #include <set>
 #include <iostream>
 
-using boost::asio::ip::tcp;
+#include "asio.hpp"
+
+using asio::ip::tcp;
 
 namespace ENG {
 // Represents a single client connection
@@ -27,7 +28,7 @@ private:
 // Server that accepts connections and manages sessions
 class SocketSessionServer {
 public:
-	SocketSessionServer(boost::asio::io_context& io_context, short port);
+	SocketSessionServer(asio::io_context& io_context, short port);
 
 	void broadcast(const std::string& message);
 	void stop();

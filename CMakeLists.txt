@@ -86,7 +86,7 @@ find_package(pmp REQUIRED)
 find_package(lua REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(flatbuffers REQUIRED)
-find_package(Boost REQUIRED COMPONENTS asio)
+find_package(asio REQUIRED)
 
 if (WIN32)
 	# Tracy profiler doesn't build on ARM64 MacOS, the client does build however,
@@ -123,7 +123,7 @@ target_link_libraries(Engine PRIVATE pmp::pmp)
 target_link_libraries(Engine PRIVATE lua::lua)
 target_link_libraries(Engine PRIVATE Vulkan::Vulkan)
 target_link_libraries(Engine PRIVATE flatbuffers::flatbuffers)
-target_link_libraries(Engine PRIVATE Boost::boost)
+target_link_libraries(Engine PRIVATE asio::asio)
 
 if (WIN32)
 	target_link_libraries(Engine PUBLIC Tracy::TracyClient)
