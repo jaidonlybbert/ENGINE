@@ -1,12 +1,12 @@
 #include <stdio.h>
-#include <application.hpp>
+#include <renderer/renderer.hpp>
 
 // Necessary definition for PMP header compilation
 #ifndef M_PI
 #define M_PI 3.1415926
 #endif
 
-#include "interfaces/Logging.hpp"
+#include "logger/Logging.hpp"
 #include "sockets/SocketSessionServer.h"
 #include "scenes/SceneWorld.hpp"
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "primitives/Mesh.hpp"
-#include "application.hpp"
+#include "scene/Mesh.hpp"
+#include "renderer/Renderer.hpp"
 // Necessary definition for PMP header compilation
 #ifndef M_PI
 #define M_PI 3.1415926
@@ -10,11 +10,11 @@
 #include "pmp/algorithms/shapes.h"
 #include "pmp/algorithms/utilities.h"
 
-#include "interfaces/Logging.hpp"
-#include "Utils.hpp"
-#include "interfaces/Gltf.hpp"
-#include "interfaces/FilesystemInterface.hpp"
-#include "interfaces/Obj.hpp"
+#include "logger/Logging.hpp"
+#include "renderer/Utils.hpp"
+#include "scene/Gltf.hpp"
+#include "filesystem/FilesystemInterface.hpp"
+#include "scene/Obj.hpp"
 
 pmp::Point centroid(const pmp::SurfaceMesh& mesh, pmp::Face f);
 void dual(pmp::SurfaceMesh& mesh);

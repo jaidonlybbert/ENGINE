@@ -1,16 +1,16 @@
-#include "primitives/Mesh.hpp"
+#include "scene/Mesh.hpp"
 #include "ProceduralGeometry.h"
-#include "application.hpp"
+#include "renderer/Renderer.hpp"
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/triangulation.h"
 #include "pmp/algorithms/shapes.h"
 #include "pmp/algorithms/utilities.h"
 
-#include "interfaces/Logging.hpp"
-#include "Utils.hpp"
-#include "interfaces/Gltf.hpp"
-#include "interfaces/FilesystemInterface.hpp"
-#include "interfaces/Obj.hpp"
+#include "logger/Logging.hpp"
+#include "renderer/Utils.hpp"
+#include "scene/Gltf.hpp"
+#include "filesystem/FilesystemInterface.hpp"
+#include "scene/Obj.hpp"
 
 using namespace ENG;
 
