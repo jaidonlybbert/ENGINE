@@ -369,18 +369,6 @@ void VulkanTemplateApp::mouse_movement_callback(GLFWwindow* window, double xpos,
 	}
 }
 
-void VulkanTemplateApp::initWindow() {
-	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-	glfwSetWindowUserPointer(window, &sceneState);
-	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-	glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
-	glfwSetScrollCallback(window, mouse_scroll_callback);
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetMouseButtonCallback(window, mouse_button_callback);
-	glfwSetCursorPosCallback(window, mouse_movement_callback);
-}
 
 void VulkanTemplateApp::framebufferResizeCallback(GLFWwindow* window, int width, int height) 
 {

@@ -139,6 +139,18 @@ void initLua() {
 	}
 }
 
+void initWindow(VulkanTemplateApp& app) {
+	glfwInit();
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	app.window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	glfwSetWindowUserPointer(app.window, &app.sceneState);
+	glfwSetFramebufferSizeCallback(app.window, app.framebufferResizeCallback);
+	glfwGetCursorPos(app.window, &app.sceneState.cursor_x, &app.sceneState.cursor_y);
+	glfwSetScrollCallback(app.window, app.mouse_scroll_callback);
+	glfwSetKeyCallback(app.window, app.key_callback);
+	glfwSetMouseButtonCallback(app.window, app.mouse_button_callback);
+	glfwSetCursorPosCallback(app.window, app.mouse_movement_callback);
+}
 
 int main() {
 	
@@ -148,7 +160,7 @@ int main() {
 
 		VulkanTemplateApp app;
 
-		app.registerInitializationFunction([&app]() {app.initWindow();});
+		app.registerInitializationFunction([&app]() {initWindow(app);});
 		app.registerInitializationFunction([&app]() {app.initVulkan();});
 		app.registerInitializationFunction([&app]() {app.initGui();});
 		app.registerInitializationFunction([]() {initLua();});
