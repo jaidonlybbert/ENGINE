@@ -2,7 +2,7 @@
 #include<iostream>
 #include<set>
 #include "vulkan/vulkan_core.h"
-#include "renderer/PhysicalDevice.hpp"
+#include "renderer/vk/PhysicalDevice.hpp"
 
 namespace ENG
 {

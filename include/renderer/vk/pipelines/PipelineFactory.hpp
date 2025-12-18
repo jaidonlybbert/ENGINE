@@ -3,8 +3,8 @@
 #include<vector>
 #include<memory>
 #include "vulkan/vulkan_core.h"
-#include "renderer/pipelines/Pipeline.hpp"
-#include "renderer/pipelines/ShaderFactory.hpp"
+#include "renderer/vk/pipelines/Pipeline.hpp"
+#include "renderer/vk/pipelines/ShaderFactory.hpp"
 
 namespace ENG {
 class PipelineFactory {

@@ -1,4 +1,4 @@
-#include "ProceduralGeometry.h"
+#include "scenes/ProceduralGeometry.hpp"
 
 void create_world_polyhedra(VulkanTemplateApp& app)
 {

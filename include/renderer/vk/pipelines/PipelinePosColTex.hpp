@@ -1,6 +1,6 @@
 #ifndef ENG_PIPELINE_POSCOLTEX
 #define ENG_PIPELINE_POSCOLTEX
-#include "renderer/pipelines/Pipeline.hpp"
+#include "renderer/vk/pipelines/Pipeline.hpp"
 
 class ShaderFactory;
 

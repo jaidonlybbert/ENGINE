@@ -1,6 +1,6 @@
 #include<stdexcept>
-#include "renderer/Command.hpp"
-#include "renderer/PhysicalDevice.hpp"
+#include "renderer/vk/Command.hpp"
+#include "renderer/vk/PhysicalDevice.hpp"
 
 namespace ENG
 {

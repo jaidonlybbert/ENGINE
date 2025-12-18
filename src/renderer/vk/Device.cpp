@@ -1,7 +1,7 @@
 #include<set>
 #include<stdexcept>
-#include "renderer/Device.hpp"
-#include "renderer/PhysicalDevice.hpp"
+#include "renderer/vk/Device.hpp"
+#include "renderer/vk/PhysicalDevice.hpp"
 
 using namespace ENG;
 

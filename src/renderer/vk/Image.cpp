@@ -1,5 +1,6 @@
 #include "vulkan/vulkan.h"
-#include "renderer/Image.hpp"
+#include "renderer/vk/Image.hpp"
+#include "renderer/vk/Device.hpp"
 
 namespace ENG
 {

@@ -2,7 +2,7 @@
 #define ENG_OBJ
 #include<filesystem>
 #include "vulkan/vulkan_core.h"
-#include "renderer/Command.hpp"
+#include "renderer/vk/Command.hpp"
 #include "scene/Scene.hpp"
 
 namespace ENG

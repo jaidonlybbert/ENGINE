@@ -1,7 +1,7 @@
 #include<vector>
 #include<iostream>
 #include<string.h>
-#include "renderer/Instance.hpp"
+#include "renderer/vk/Instance.hpp"
 
 namespace ENG
 {

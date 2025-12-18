@@ -4,7 +4,7 @@
 #include<vector>
 #include<filesystem>
 #include "vulkan/vulkan_core.h"
-#include "renderer/pipelines/PipelineUtils.hpp"
+#include "renderer/vk/pipelines/PipelineUtils.hpp"
 
 class ShaderFactory {
 private:

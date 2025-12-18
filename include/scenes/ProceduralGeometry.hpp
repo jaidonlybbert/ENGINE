@@ -1,6 +1,6 @@
 #pragma once
 #include "scene/Mesh.hpp"
-#include "renderer/Renderer.hpp"
+#include "renderer/vk/Renderer.hpp"
 // Necessary definition for PMP header compilation
 #ifndef M_PI
 #define M_PI 3.1415926
@@ -11,7 +11,7 @@
 #include "pmp/algorithms/utilities.h"
 
 #include "logger/Logging.hpp"
-#include "renderer/Utils.hpp"
+#include "renderer/vk/Utils.hpp"
 #include "scene/Gltf.hpp"
 #include "filesystem/FilesystemInterface.hpp"
 #include "scene/Obj.hpp"

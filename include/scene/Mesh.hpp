@@ -8,8 +8,8 @@
 #include<cstring>
 #include "vulkan/vulkan_core.h"
 #include "glm/glm.hpp"
-#include "renderer/Buffer.hpp"
-#include "renderer/Command.hpp"
+#include "renderer/vk/Buffer.hpp"
+#include "renderer/vk/Command.hpp"
 #include "scene/Primitives.hpp"
 
 namespace tinygltf {

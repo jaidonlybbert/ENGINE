@@ -5,8 +5,8 @@
 #include<vulkan/vulkan.h>
 #include<GLFW/glfw3.h>
 
-#include "renderer/PhysicalDevice.hpp"
-#include "renderer/Image.hpp"
+#include "renderer/vk/PhysicalDevice.hpp"
+#include "renderer/vk/Image.hpp"
 
 namespace ENG
 {

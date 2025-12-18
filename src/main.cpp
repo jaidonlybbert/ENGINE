@@ -1,22 +1,25 @@
 #include <stdio.h>
-#include <renderer/Renderer.hpp>
+#include <thread>
+#include <functional>
 
 // Necessary definition for PMP header compilation
 #ifndef M_PI
 #define M_PI 3.1415926
 #endif
 
-#include "logger/Logging.hpp"
-#include "sockets/SocketSessionServer.h"
-#include "scenes/SceneWorld.hpp"
-
 #include "asio/post.hpp"
 #include "asio/io_context.hpp"
 #include "asio/co_spawn.hpp"
 #include "asio/detached.hpp"
 
-#include <thread>
-#include <functional>
+#include "glfw/glfw3.h"
+
+#include "renderer/vk/Renderer.hpp"
+#include "logger/Logging.hpp"
+#include "sockets/SocketSessionServer.h"
+#include "scenes/SceneWorld.hpp"
+#include "hid/Input.hpp"
+
 
 void stop(asio::io_context& io_context) {
 	if (io_context.stopped()) {
@@ -26,13 +29,6 @@ void stop(asio::io_context& io_context) {
 	io_context.stop();
 }
 
-void initForVulkan()
-{
-}
-
-void getDrawData()
-{
-}
 
 void recordCommandsForSceneGraph(VulkanTemplateApp& app, VkCommandBuffer& commandBuffer)
 {
@@ -125,6 +121,7 @@ void recordCommandsForSceneGraph(VulkanTemplateApp& app, VkCommandBuffer& comman
 	}
 }
 
+
 #include "lua.hpp"
 
 lua_State* luaState;
@@ -139,7 +136,7 @@ void initLua() {
 	}
 }
 
-#include "hid/Input.hpp"
+#include "gui/Gui.hpp"
 
 void initWindow(VulkanTemplateApp& app) {
 	glfwInit();
@@ -154,7 +151,6 @@ void initWindow(VulkanTemplateApp& app) {
 	glfwSetCursorPosCallback(app.window, mouse_movement_callback);
 }
 
-#include "gui/Gui.hpp"
 
 int main() {
 	

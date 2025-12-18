@@ -3,15 +3,20 @@
 #include<stack>
 #include<vector>
 #include<memory>
+#include<functional>
 
 #include "vulkan/vulkan_core.h"
 
 #include "lua.hpp"
 
+#include "renderer/vk/pipelines/Pipeline.hpp"
+#include "renderer/vk/pipelines/PipelineFactory.hpp"
+#include "renderer/vk/Instance.hpp"
+#include "renderer/vk/Buffer.hpp"
+#include "renderer/vk/Command.hpp"
+#include "renderer/vk/Swapchain.hpp"
 #include "scene/Scene.hpp"
-#include "renderer/Instance.hpp"
-#include "renderer/Swapchain.hpp"
-#include "renderer/pipelines/PipelineFactory.hpp"
+
 
 namespace ENG
 {
@@ -119,7 +124,6 @@ public:
 	void initVulkan();
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	void createSurface();
-	void recordCommandsForSceneGraph(VkCommandBuffer& commandBuffer);
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 	void registerCommandRecorder(std::function<void(VkCommandBuffer)> commandRecorder);
 	void drawFrame();

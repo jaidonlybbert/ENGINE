@@ -1,8 +1,9 @@
 #include<limits>
 #include<algorithm>
 #include<array>
-#include "renderer/Swapchain.hpp"
-#include "renderer/Image.hpp"
+#include "renderer/vk/Swapchain.hpp"
+#include "renderer/vk/Image.hpp"
+#include "renderer/vk/PhysicalDevice.hpp"
 
 namespace ENG
 {
