@@ -1,6 +1,6 @@
 #include "scenes/ProceduralGeometry.hpp"
 
-void create_world_polyhedra(VulkanTemplateApp& app)
+void create_world_polyhedra(VkRenderer& app)
 {
 	// Seed randomizer
 	// first: 20398475
@@ -206,7 +206,7 @@ void create_world_polyhedra(VulkanTemplateApp& app)
 	}
 }
 
-void addBoundingBoxChild(ENG::Node* node, VulkanTemplateApp& app, const std::string &bbName)
+void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bbName)
 {
 	if (node == nullptr)
 	{
@@ -267,7 +267,7 @@ void addBoundingBoxChild(ENG::Node* node, VulkanTemplateApp& app, const std::str
 	node->children.push_back(&bbNode);
 }
 
-void create_tetrahedron_no_pmp(VulkanTemplateApp& app)
+void create_tetrahedron_no_pmp(VkRenderer& app)
 {
 	std::vector<VertexPosNorCol> tetraVertices {
 		{ {1.,  1.,  1.} },
@@ -325,7 +325,7 @@ void create_tetrahedron_no_pmp(VulkanTemplateApp& app)
 }
 
 
-void initializeWorldScene(VulkanTemplateApp& app) {
+void initializeWorldScene(VkRenderer& app) {
 	// TODO: implement pools to avoid reference invalidation on reallocation problem
 	app.sceneState.posColTexMeshes.reserve(100);
 	app.sceneState.posNorTexMeshes.reserve(100);

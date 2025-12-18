@@ -174,7 +174,7 @@ pmp::SurfaceMesh create_dodecahedron()
 }
 
 ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
-	VulkanTemplateApp& app)
+	VkRenderer& app)
 {
 		std::vector<VertexPosNorCol> vertices;
 		std::vector<uint32_t> indices;

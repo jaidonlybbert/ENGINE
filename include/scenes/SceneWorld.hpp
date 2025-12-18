@@ -1,6 +1,6 @@
 #include "scenes/ProceduralGeometry.hpp"
 
-void create_world_polyhedra(VulkanTemplateApp& app);
-void addBoundingBoxChild(ENG::Node* node, VulkanTemplateApp& app, const std::string &bbName);
-void create_tetrahedron_no_pmp(VulkanTemplateApp& app);
-void initializeWorldScene(VulkanTemplateApp& app);
+void create_world_polyhedra(VkRenderer& app);
+void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bbName);
+void create_tetrahedron_no_pmp(VkRenderer& app);
+void initializeWorldScene(VkRenderer& app);

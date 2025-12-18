@@ -68,15 +68,15 @@ struct UniformBufferObject {
 };
 
 
-class VulkanTemplateApp {
+class VkRenderer {
 public:
-	VulkanTemplateApp();
+	VkRenderer();
 	void run();
 	void initialize();
-	void initializeScene(std::function<void(VulkanTemplateApp&)> loadFunction);
-	~VulkanTemplateApp();
+	void initializeScene(std::function<void(VkRenderer&)> loadFunction);
+	~VkRenderer();
 	void cleanupGui();
-	friend std::ostream& operator<<(std::ostream& os, VulkanTemplateApp& app);
+	friend std::ostream& operator<<(std::ostream& os, VkRenderer& app);
 
 	SceneState sceneState;
 	GameState gameState;

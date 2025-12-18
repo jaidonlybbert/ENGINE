@@ -30,7 +30,7 @@ void stop(asio::io_context& io_context) {
 }
 
 
-void recordCommandsForSceneGraph(VulkanTemplateApp& app, VkCommandBuffer& commandBuffer)
+void recordCommandsForSceneGraph(VkRenderer& app, VkCommandBuffer& commandBuffer)
 {
 	for (const auto& node : app.sceneState.graph.nodes)
 	{
@@ -138,7 +138,7 @@ void initLua() {
 
 #include "gui/Gui.hpp"
 
-void initWindow(VulkanTemplateApp& app) {
+void initWindow(VkRenderer& app) {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	app.window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
@@ -158,7 +158,7 @@ int main() {
 		printf("Starting app\n");
 		// ENG_LOG_TRACE("Application path: " << install_dir.native().c_str() << std::endl);
 
-		VulkanTemplateApp app;
+		VkRenderer app;
 		Gui gui;
 
 		app.registerInitializationFunction([&app]() {initWindow(app);});

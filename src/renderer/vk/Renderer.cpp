@@ -61,21 +61,21 @@
 
 using namespace ENG;
 
-VulkanTemplateApp::VulkanTemplateApp() {
+VkRenderer::VkRenderer() {
 }
 
-void VulkanTemplateApp::registerInitializationFunction(std::function<void(void)> initFunc) {
+void VkRenderer::registerInitializationFunction(std::function<void(void)> initFunc) {
 	initializationFunctions.push_back(initFunc);
 }
 
-void VulkanTemplateApp::initialize() {
+void VkRenderer::initialize() {
 	for (auto& initFunc : initializationFunctions) {
 		initFunc();
 	}
 }
 
 
-void VulkanTemplateApp::run() {
+void VkRenderer::run() {
 	while(!glfwWindowShouldClose(window)) {
 #ifdef _WIN32
 		FrameMarkStart("run_frame");
@@ -101,14 +101,14 @@ void VulkanTemplateApp::run() {
 	vkDeviceWaitIdle(device);
 }
 
-void VulkanTemplateApp::initializeScene(std::function<void(VulkanTemplateApp&)> loadFunction) {
+void VkRenderer::initializeScene(std::function<void(VkRenderer&)> loadFunction) {
 	std::lock_guard<std::mutex> lock(scene_mtx);
 	sceneReadyToRender = false;
 	loadFunction(*this);
 	sceneReadyToRender = true;
 }
 
-VulkanTemplateApp::~VulkanTemplateApp() {
+VkRenderer::~VkRenderer() {
 	faceColorBuffers.clear();
 	faceIdMapBuffers.clear();
 	sceneState.posColTexMeshes.clear();
@@ -153,11 +153,11 @@ VulkanTemplateApp::~VulkanTemplateApp() {
 }
 
 
-void VulkanTemplateApp::cleanupGui() {
+void VkRenderer::cleanupGui() {
 	vkDestroyDescriptorPool(device, imguiPool, nullptr);
 }
 
-std::ostream& operator<<(std::ostream& os, VulkanTemplateApp& app) {
+std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
 	// Print application name and version
 	ENG_LOG_INFO(PROJECT_NAME_AND_VERSION << std::endl);
 	// Print physical device properties
@@ -189,13 +189,13 @@ std::ostream& operator<<(std::ostream& os, VulkanTemplateApp& app) {
 	return os;
 }
 
-void VulkanTemplateApp::framebufferResizeCallback(GLFWwindow* window, int width, int height) 
+void VkRenderer::framebufferResizeCallback(GLFWwindow* window, int width, int height) 
 {
-	auto app = reinterpret_cast<VulkanTemplateApp*>(glfwGetWindowUserPointer(window));
+	auto app = reinterpret_cast<VkRenderer*>(glfwGetWindowUserPointer(window));
 	app->framebufferResized = true;
 }
 
-void VulkanTemplateApp::initVulkan() 
+void VkRenderer::initVulkan() 
 {
 	instanceFactory = std::make_unique<ENG::InstanceFactory>();
 	instanceFactory->createInstance();
@@ -218,7 +218,7 @@ void VulkanTemplateApp::initVulkan()
 	createSyncObjects();
 }
 
-VkShaderModule VulkanTemplateApp::createShaderModule(const std::vector<char>& code) {
+VkShaderModule VkRenderer::createShaderModule(const std::vector<char>& code) {
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = code.size();
@@ -233,13 +233,13 @@ VkShaderModule VulkanTemplateApp::createShaderModule(const std::vector<char>& co
 	return shaderModule;
 }
 
-void VulkanTemplateApp::createSurface() {
+void VkRenderer::createSurface() {
 	if (glfwCreateWindowSurface(instanceFactory->instance, window, nullptr, &surface) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create window surface!");
 	}
 }
 
-void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+void VkRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = 0; // Optional
@@ -292,11 +292,11 @@ void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint3
 	}
 }
 
-void VulkanTemplateApp::registerCommandRecorder(std::function<void(VkCommandBuffer)> commandRecorder) {
+void VkRenderer::registerCommandRecorder(std::function<void(VkCommandBuffer)> commandRecorder) {
 	commandRecorders.push_back(commandRecorder);
 }
 
-void VulkanTemplateApp::drawFrame() 
+void VkRenderer::drawFrame() 
 {
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 	uint32_t imageIndex;
@@ -363,7 +363,7 @@ void VulkanTemplateApp::drawFrame()
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void VulkanTemplateApp::createSyncObjects() 
+void VkRenderer::createSyncObjects() 
 {
 	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -385,7 +385,7 @@ void VulkanTemplateApp::createSyncObjects()
 	}
 }
 
-void VulkanTemplateApp::createUniformBuffers() 
+void VkRenderer::createUniformBuffers() 
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -403,7 +403,7 @@ void VulkanTemplateApp::createUniformBuffers()
 /// <summary>
 /// Must be called after all nodes are loaded
 /// </summary>
-void VulkanTemplateApp::createModelMatrices()
+void VkRenderer::createModelMatrices()
 {
 	VkDeviceSize bufferSize = sizeof(glm::mat4) * sceneState.graph.nodes.size();
 	modelMatrixBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
@@ -418,7 +418,7 @@ void VulkanTemplateApp::createModelMatrices()
 	}
 }
 
-void VulkanTemplateApp::createFaceIdBuffers(const uint32_t number_of_faces)
+void VkRenderer::createFaceIdBuffers(const uint32_t number_of_faces)
 {
 	VkDeviceSize bufferSize = sizeof(uint32_t) * number_of_faces;
 	faceIdMapBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
@@ -433,7 +433,7 @@ void VulkanTemplateApp::createFaceIdBuffers(const uint32_t number_of_faces)
 	}
 }
 
-void VulkanTemplateApp::createFaceColorBuffers(const uint32_t number_of_faces)
+void VkRenderer::createFaceColorBuffers(const uint32_t number_of_faces)
 {
 	VkDeviceSize bufferSize = sizeof(glm::vec4) * number_of_faces;
 	faceColorBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
@@ -448,7 +448,7 @@ void VulkanTemplateApp::createFaceColorBuffers(const uint32_t number_of_faces)
 	}
 }
 
-void VulkanTemplateApp::updateModelMatrix(glm::mat4& modelMatrix, const ENG::Node& node)
+void VkRenderer::updateModelMatrix(glm::mat4& modelMatrix, const ENG::Node& node)
 {
 	// Compute local transform from TRS data
 	modelMatrix = glm::translate(glm::mat4(1.f), node.translation)
@@ -457,7 +457,7 @@ void VulkanTemplateApp::updateModelMatrix(glm::mat4& modelMatrix, const ENG::Nod
 }
 
 
-void VulkanTemplateApp::updateModelMatrixBuffer()
+void VkRenderer::updateModelMatrixBuffer()
 {
 	// Compute local transforms first from TRS data
 	for (const auto& node : sceneState.graph.nodes)
@@ -486,7 +486,7 @@ void VulkanTemplateApp::updateModelMatrixBuffer()
 	memcpy(modelMatrixBuffersMapped[currentFrame], sceneState.modelMatrices.data(), bufferSize);
 }
 
-void VulkanTemplateApp::updateUniformBuffer(uint32_t currentImage) 
+void VkRenderer::updateUniformBuffer(uint32_t currentImage) 
 {
 	UniformBufferObject ubo{};
 
@@ -520,7 +520,7 @@ void VulkanTemplateApp::updateUniformBuffer(uint32_t currentImage)
 	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-void VulkanTemplateApp::createDescriptorPool() 
+void VkRenderer::createDescriptorPool() 
 {
 	std::array<VkDescriptorPoolSize, 3> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -541,7 +541,7 @@ void VulkanTemplateApp::createDescriptorPool()
 	}
 }
 
-VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteModelMatrix(
+VkWriteDescriptorSet VkRenderer::createDescriptorWriteModelMatrix(
 	const ENG::Node& node, 
 	const size_t frameIdx, 
 	const size_t bindingIdx, 
@@ -560,7 +560,7 @@ VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteModelMatrix(
 	return descriptorWrite;
 }
 
-VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteSampler(
+VkWriteDescriptorSet VkRenderer::createDescriptorWriteSampler(
 	const ENG::Node& node, 
 	const size_t frameIdx, 
 	const size_t bindingIdx, 
@@ -579,7 +579,7 @@ VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteSampler(
 	return descriptorWrite;
 }
 
-VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteUbo(
+VkWriteDescriptorSet VkRenderer::createDescriptorWriteUbo(
 	const ENG::Node& node, 
 	const size_t frameIdx, 
 	const size_t bindingIdx, 
@@ -598,7 +598,7 @@ VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteUbo(
 	return descriptorWrite;
 }
 
-VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteFaceColorMatrix(
+VkWriteDescriptorSet VkRenderer::createDescriptorWriteFaceColorMatrix(
 	const ENG::Node& node, 
 	const size_t frameIdx, 
 	const size_t bindingIdx, 
@@ -617,7 +617,7 @@ VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteFaceColorMatrix(
 	return descriptorWrite;
 }
 
-VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteFaceIdMapBuffer(
+VkWriteDescriptorSet VkRenderer::createDescriptorWriteFaceIdMapBuffer(
 	const ENG::Node& node, 
 	const size_t frameIdx, 
 	const size_t bindingIdx, 
@@ -636,7 +636,7 @@ VkWriteDescriptorSet VulkanTemplateApp::createDescriptorWriteFaceIdMapBuffer(
 	return descriptorWrite;
 }
 
-void VulkanTemplateApp::writeDescriptorSets(const ENG::Node& node) 
+void VkRenderer::writeDescriptorSets(const ENG::Node& node) 
 {
 	// NOTE: This seems overly complicated and inefficient?
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -702,7 +702,7 @@ void VulkanTemplateApp::writeDescriptorSets(const ENG::Node& node)
 	}
 }
 
-void VulkanTemplateApp::createDescriptorSets(ENG::Node& node) 
+void VkRenderer::createDescriptorSets(ENG::Node& node) 
 {
 	if (!node.shaderId.has_value())
 	{
@@ -731,7 +731,7 @@ void VulkanTemplateApp::createDescriptorSets(ENG::Node& node)
 	writeDescriptorSets(node);
 }
 
-void VulkanTemplateApp::createTextureImage() 
+void VkRenderer::createTextureImage() 
 {
 	int texWidth, texHeight, texChannels;
 	stbi_uc* pixels = stbi_load(get_tex_path().string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -768,12 +768,12 @@ void VulkanTemplateApp::createTextureImage()
 	commands->transitionImageLayout(graphicsQueue, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void VulkanTemplateApp::createTextureImageView() 
+void VkRenderer::createTextureImageView() 
 {
 	textureImageView = ENG::createImageView(device, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void VulkanTemplateApp::createTextureSampler() 
+void VkRenderer::createTextureSampler() 
 {
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -801,7 +801,7 @@ void VulkanTemplateApp::createTextureSampler()
 	}
 }
 
-void VulkanTemplateApp::initGui() 
+void VkRenderer::initGui() 
 {
 	//1: create descriptor pool for IMGUI
 	// the size of the pool is very oversize, but it's copied from imgui demo itself.
@@ -863,7 +863,7 @@ void VulkanTemplateApp::initGui()
 }
 
 
-void VulkanTemplateApp::registerRenderStateUpdater(std::function<void(void)> renderStateUpdater) {
+void VkRenderer::registerRenderStateUpdater(std::function<void(void)> renderStateUpdater) {
 	renderStateUpdaters.push_back(renderStateUpdater);
 }
 
