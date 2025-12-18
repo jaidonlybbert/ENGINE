@@ -125,6 +125,20 @@ void recordCommandsForSceneGraph(VulkanTemplateApp& app, VkCommandBuffer& comman
 	}
 }
 
+#include "lua.hpp"
+
+lua_State* luaState;
+void initLua() {
+	luaState = luaL_newstate();
+	if (luaState == nullptr) {
+		throw std::runtime_error("Failed to initialize Lua");
+	}
+	luaL_openlibs(luaState);
+	if (luaL_dostring(luaState, "x = 42; print('Hello from Lua 2!')") != LUA_OK) {
+		throw std::runtime_error("Failed running test lua script from string");
+	}
+}
+
 
 int main() {
 	
@@ -137,7 +151,7 @@ int main() {
 		app.registerInitializationFunction([&app]() {app.initWindow();});
 		app.registerInitializationFunction([&app]() {app.initVulkan();});
 		app.registerInitializationFunction([&app]() {app.initGui();});
-		app.registerInitializationFunction([&app]() {app.initLua();});
+		app.registerInitializationFunction([]() {initLua();});
 
 		app.initialize();
 

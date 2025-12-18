@@ -106,7 +106,6 @@ public:
 	std::unique_ptr<ENG::PipelineFactory> pipelineFactory;
 	std::unique_ptr<ENG::Command> commands;
 	std::unique_ptr<ENG::Swapchain> swapchain;
-	lua_State* luaState;
 	std::vector<std::function<void(VkCommandBuffer)>> commandRecorders;
 	std::vector<std::function<void(void)>> initializationFunctions;
 
@@ -119,7 +118,6 @@ public:
 	static void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const double dy);
 	static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos);
-	void initLua();
 	void initWindow();
 	void registerInitializationFunction(std::function<void(void)> initFunc);
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
