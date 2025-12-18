@@ -567,14 +567,12 @@ void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint3
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	if (sceneReadyToRender) {
-		recordCommandsForSceneGraph(commandBuffer);
+		for (auto& commandRecorder : commandRecorders) {
+			commandRecorder(commandBuffer);
+		}
 	}
 
 	// ENG::ImplVulkan_RenderDrawData(ENG::GetDrawData(), commandBuffer);
-
-	for (auto& commandRecorder : commandRecorders) {
-		commandRecorder(commandBuffer);
-	}
 
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
@@ -582,6 +580,10 @@ void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint3
 	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 		throw std::runtime_error("failed to record command buffer!");
 	}
+}
+
+void VulkanTemplateApp::registerCommandRecorder(std::function<void(VkCommandBuffer)> commandRecorder) {
+	commandRecorders.push_back(commandRecorder);
 }
 
 void VulkanTemplateApp::drawFrame() 

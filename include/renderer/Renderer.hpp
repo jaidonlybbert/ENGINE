@@ -125,6 +125,7 @@ public:
 	void createSurface();
 	void recordCommandsForSceneGraph(VkCommandBuffer& commandBuffer);
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	void registerCommandRecorder(std::function<void(VkCommandBuffer)> commandRecorder);
 	void drawFrame();
 	void createSyncObjects();
 	void createUniformBuffers();
