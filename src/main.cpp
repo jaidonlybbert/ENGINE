@@ -154,6 +154,7 @@ void initWindow(VulkanTemplateApp& app) {
 	glfwSetCursorPosCallback(app.window, mouse_movement_callback);
 }
 
+#include "gui/Gui.hpp"
 
 int main() {
 	
@@ -162,6 +163,7 @@ int main() {
 		// ENG_LOG_TRACE("Application path: " << install_dir.native().c_str() << std::endl);
 
 		VulkanTemplateApp app;
+		Gui gui;
 
 		app.registerInitializationFunction([&app]() {initWindow(app);});
 		app.registerInitializationFunction([&app]() {app.initVulkan();});
@@ -169,6 +171,8 @@ int main() {
 		app.registerInitializationFunction([]() {initLua();});
 
 		app.initialize();
+
+		app.registerRenderStateUpdater([&app, &gui]() {gui.drawGUI(app.sceneState);});
 
 		ENG_LOG_INFO(app);
 

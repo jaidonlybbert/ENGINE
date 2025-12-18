@@ -9,7 +9,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "gui/Gui.hpp"
 #include "scene/Mesh.hpp"
 
 using namespace tinygltf;
@@ -62,7 +61,6 @@ struct SceneGraph {
 };
 
 struct SceneState {
-	GUISettings settings;
 	SceneGraph graph;
 	size_t activeCameraNodeIdx;
 	int activeNodeIdx{ 0 };

@@ -108,10 +108,12 @@ public:
 	std::unique_ptr<ENG::Swapchain> swapchain;
 	std::vector<std::function<void(VkCommandBuffer)>> commandRecorders;
 	std::vector<std::function<void(void)>> initializationFunctions;
+	std::vector<std::function<void(void)>> renderStateUpdaters;
 
 	std::mutex scene_mtx;
 	bool sceneReadyToRender = false;
 
+	void registerRenderStateUpdater(std::function<void(void)> renderStateUpdater);
 	void registerInitializationFunction(std::function<void(void)> initFunc);
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 	void initVulkan();
@@ -173,7 +175,4 @@ public:
 	void createTextureImageView();
 	void createTextureSampler();
 	void initGui();
-	void MySaveFunction();
-	void DrawNodeTree(ENG::Node* node);
-	void drawGUI();
 };
