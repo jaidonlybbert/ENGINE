@@ -139,6 +139,8 @@ void initLua() {
 	}
 }
 
+#include "hid/Input.hpp"
+
 void initWindow(VulkanTemplateApp& app) {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -146,11 +148,12 @@ void initWindow(VulkanTemplateApp& app) {
 	glfwSetWindowUserPointer(app.window, &app.sceneState);
 	glfwSetFramebufferSizeCallback(app.window, app.framebufferResizeCallback);
 	glfwGetCursorPos(app.window, &app.sceneState.cursor_x, &app.sceneState.cursor_y);
-	glfwSetScrollCallback(app.window, app.mouse_scroll_callback);
-	glfwSetKeyCallback(app.window, app.key_callback);
-	glfwSetMouseButtonCallback(app.window, app.mouse_button_callback);
-	glfwSetCursorPosCallback(app.window, app.mouse_movement_callback);
+	glfwSetScrollCallback(app.window, mouse_scroll_callback);
+	glfwSetKeyCallback(app.window, key_callback);
+	glfwSetMouseButtonCallback(app.window, mouse_button_callback);
+	glfwSetCursorPosCallback(app.window, mouse_movement_callback);
 }
+
 
 int main() {
 	
