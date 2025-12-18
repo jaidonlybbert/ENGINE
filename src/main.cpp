@@ -174,7 +174,7 @@ int main() {
 
 		asio::io_context io_context;
 
-		asio::post([&app] () {
+		asio::post(io_context, [&app] () {
 			app.initializeScene(initializeWorldScene);
 		});
 
