@@ -74,11 +74,18 @@ void VulkanTemplateApp::initLua() {
 }
 
 VulkanTemplateApp::VulkanTemplateApp() {
-	initWindow();
-	initVulkan();
-	initGui();
-	initLua();
 }
+
+void VulkanTemplateApp::registerInitializationFunction(std::function<void(void)> initFunc) {
+	initializationFunctions.push_back(initFunc);
+}
+
+void VulkanTemplateApp::initialize() {
+	for (auto& initFunc : initializationFunctions) {
+		initFunc();
+	}
+}
+
 
 void VulkanTemplateApp::run() {
 	while(!glfwWindowShouldClose(window)) {
@@ -435,98 +442,6 @@ void VulkanTemplateApp::createSurface() {
 	if (glfwCreateWindowSurface(instanceFactory->instance, window, nullptr, &surface) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create window surface!");
 	}
-}
-
-void VulkanTemplateApp::recordCommandsForSceneGraph(VkCommandBuffer& commandBuffer)
-{
-	for (const auto& node : sceneState.graph.nodes)
-	{
-		if (!node.shaderId.has_value())
-		{
-			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no shaderId" << std::endl);
-			continue;
-		}
-		const auto& shaderId = node.shaderId.value();
-
-		if (node.mesh == nullptr)
-		{	
-			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no mesh" << std::endl);
-			continue;
-		}
-
-		if (!node.visible)
-		{
-			ENG_LOG_TRACE("Skipping draw for " << node.name << "due to visibility set to false" << std::endl);
-			continue;
-		}
-		ENG_LOG_TRACE("Drawing " << node.name << std::endl);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipeline(shaderId));
-
-		// During scene switching/loading, nodes will be in a partially loaded state not ready to be rendered
-		if (currentFrame > node.descriptorSetIds.size()) {
-			ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has no descriptor sets" << std::endl);
-			continue;
-		}
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineFactory->getVkPipelineLayout(shaderId),
-			  0, 1, &descriptorSets.get(node.descriptorSetIds.at(currentFrame)), 0, nullptr);
-		vkCmdPushConstants(commandBuffer, pipelineFactory->getVkPipelineLayout(shaderId), VK_SHADER_STAGE_VERTEX_BIT, 0,
-			sizeof(uint32_t), &node.nodeId);
-
-
-		auto* meshPtr = node.mesh;
-		if (dynamic_cast<ENG::Mesh<ENG::VertexPosColTex>*>(meshPtr))
-		{
-			auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosColTex>*>(meshPtr);
-			VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
-		}
-		else if (dynamic_cast<ENG::Mesh<ENG::VertexPosNorTex>*>(meshPtr))
-		{	
-			ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
-			auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosNorTex>*>(meshPtr);
-			VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
-		}
-		else if (dynamic_cast<ENG::Mesh<ENG::VertexPos>*>(meshPtr))
-		{
-			ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
-			auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPos>*>(meshPtr);
-			assert(castPtr != nullptr);
-			assert(castPtr->vertexBuffer != nullptr);
-			assert(castPtr->vertexBuffer->buffer != nullptr);
-			assert(castPtr->indexBuffer != nullptr);
-			assert(castPtr->indexBuffer->buffer != nullptr);
-			VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
-
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
-		}
-		else if (dynamic_cast<ENG::Mesh<ENG::VertexPosNorCol>*>(meshPtr))
-		{
-			ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
-			auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosNorCol>*>(meshPtr);
-			assert(castPtr != nullptr);
-			assert(castPtr->vertexBuffer != nullptr);
-			assert(castPtr->vertexBuffer->buffer != nullptr);
-			assert(castPtr->indexBuffer != nullptr);
-			assert(castPtr->indexBuffer->buffer != nullptr);
-			VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
-
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdDraw(commandBuffer, static_cast<uint32_t>(castPtr->vertices.size()), 1, 0, 0);
-		}
-	}
-
 }
 
 void VulkanTemplateApp::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {

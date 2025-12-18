@@ -26,6 +26,14 @@ void stop(asio::io_context& io_context) {
 	io_context.stop();
 }
 
+void initForVulkan()
+{
+}
+
+void getDrawData()
+{
+}
+
 void recordCommandsForSceneGraph(VulkanTemplateApp& app, VkCommandBuffer& commandBuffer)
 {
 	for (const auto& node : app.sceneState.graph.nodes)
@@ -125,6 +133,14 @@ int main() {
 		// ENG_LOG_TRACE("Application path: " << install_dir.native().c_str() << std::endl);
 
 		VulkanTemplateApp app;
+
+		app.registerInitializationFunction([&app]() {app.initWindow();});
+		app.registerInitializationFunction([&app]() {app.initVulkan();});
+		app.registerInitializationFunction([&app]() {app.initGui();});
+		app.registerInitializationFunction([&app]() {app.initLua();});
+
+		app.initialize();
+
 		ENG_LOG_INFO(app);
 
 		asio::io_context io_context;
