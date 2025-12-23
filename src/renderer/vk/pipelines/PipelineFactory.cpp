@@ -2,10 +2,10 @@
 #include<array>
 #include<assert.h>
 #include "vulkan/vulkan_core.h"
-#include "renderer/pipelines/PipelineFactory.hpp"
-#include "renderer/pipelines/ShaderFactory.hpp"
-#include "renderer/pipelines/Pipeline.hpp"
-#include "renderer/pipelines/PipelinePosColTex.hpp"
+#include "renderer/vk/pipelines/PipelineFactory.hpp"
+#include "renderer/vk/pipelines/ShaderFactory.hpp"
+#include "renderer/vk/pipelines/Pipeline.hpp"
+#include "renderer/vk/pipelines/PipelinePosColTex.hpp"
 
 namespace ENG {
 PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapChainImageFormat,

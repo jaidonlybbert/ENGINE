@@ -1,7 +1,7 @@
 #include<array>
 #include<iostream>
-#include "renderer/pipelines/ShaderFactory.hpp"
-#include "renderer/pipelines/Pipeline.hpp"
+#include "renderer/vk/pipelines/ShaderFactory.hpp"
+#include "renderer/vk/pipelines/Pipeline.hpp"
 #include "scene/Mesh.hpp"
 
 namespace ENG {

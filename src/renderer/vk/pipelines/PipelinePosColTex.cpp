@@ -1,9 +1,9 @@
 #include<iostream>
 #include<array>
 #include "logger/Logging.hpp"
-#include "renderer/pipelines/Pipeline.hpp"
-#include "renderer/pipelines/ShaderFactory.hpp"
-#include "renderer/pipelines/PipelinePosColTex.hpp"
+#include "renderer/vk/pipelines/Pipeline.hpp"
+#include "renderer/vk/pipelines/ShaderFactory.hpp"
+#include "renderer/vk/pipelines/PipelinePosColTex.hpp"
 #include "scene/Mesh.hpp"
 
 namespace ENG {
