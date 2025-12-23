@@ -12,8 +12,6 @@
 #include "asio/co_spawn.hpp"
 #include "asio/detached.hpp"
 
-#include "glfw/glfw3.h"
-
 #include "renderer/vk/Renderer.hpp"
 #include "logger/Logging.hpp"
 #include "sockets/SocketSessionServer.h"
