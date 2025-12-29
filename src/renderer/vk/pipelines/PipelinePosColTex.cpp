@@ -15,14 +15,14 @@ Pipeline_PosColTex::Pipeline_PosColTex(const VkDevice& device, const VkRenderPas
 }
 
 void Pipeline_PosColTex::createShaderStages(const ShaderFactory& shader_fac) {
-	ENG_LOG_INFO("Create shaders derived class PosColTex" << std::endl);
+	ENG_LOG_DEBUG("Create shaders derived class PosColTex" << std::endl);
 	shader_stages = shader_fac.get_shader_stages("PosColTex");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
 
 void Pipeline_PosColTex::createVertexInputInfo() {
-	ENG_LOG_INFO("Create vertex input info derived class PosColTex" << std::endl);
+	ENG_LOG_DEBUG("Create vertex input info derived class PosColTex" << std::endl);
 	attributeDescriptions = Mesh<VertexPosColTex>::getAttributeDescriptions();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosColTex);
@@ -42,14 +42,14 @@ Pipeline_PosNorTex::Pipeline_PosNorTex(const VkDevice& device, const VkRenderPas
 }
 
 void Pipeline_PosNorTex::createShaderStages(const ShaderFactory& shader_fac) {
-	ENG_LOG_INFO("Create shaders derived class PosNorTex" << std::endl);
+	ENG_LOG_DEBUG("Create shaders derived class PosNorTex" << std::endl);
 	shader_stages = shader_fac.get_shader_stages("PosNorTex");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
 
 void Pipeline_PosNorTex::createVertexInputInfo() {
-	ENG_LOG_INFO("Create vertex input info derived class PosNorTex" << std::endl);
+	ENG_LOG_DEBUG("Create vertex input info derived class PosNorTex" << std::endl);
 	attributeDescriptions = Mesh<VertexPosNorTex>::getAttributeDescriptions();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorTex);
@@ -69,14 +69,14 @@ Pipeline_PosNorCol::Pipeline_PosNorCol(const VkDevice& device, const VkRenderPas
 }
 
 void Pipeline_PosNorCol::createShaderStages(const ShaderFactory& shader_fac) {
-	ENG_LOG_INFO("Create shaders derived class PosNorCol" << std::endl);
+	ENG_LOG_DEBUG("Create shaders derived class PosNorCol" << std::endl);
 	shader_stages = shader_fac.get_shader_stages("PosNorCol");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
 
 void Pipeline_PosNorCol::createVertexInputInfo() {
-	ENG_LOG_INFO("Create vertex input info derived class PosNorCol" << std::endl);
+	ENG_LOG_DEBUG("Create vertex input info derived class PosNorCol" << std::endl);
 	attributeDescriptions = Mesh<VertexPosNorCol>::getAttributeDescriptions();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorCol);
@@ -122,14 +122,14 @@ Pipeline_PosBB::Pipeline_PosBB(const VkDevice& device, const VkRenderPass& rende
 }
 
 void Pipeline_PosBB::createShaderStages(const ShaderFactory& shader_fac) {
-	ENG_LOG_INFO("Create shaders derived class PosBB" << std::endl);
+	ENG_LOG_DEBUG("Create shaders derived class PosBB" << std::endl);
 	shader_stages = shader_fac.get_shader_stages("PosBB");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
 
 void Pipeline_PosBB::createVertexInputInfo() {
-	ENG_LOG_INFO("Create vertex input info derived class PosBB" << std::endl);
+	ENG_LOG_DEBUG("Create vertex input info derived class PosBB" << std::endl);
 	attributeDescriptions = Mesh<VertexPos>::getAttributeDescriptions();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPos);
@@ -197,14 +197,14 @@ Pipeline_Goldberg::Pipeline_Goldberg(const VkDevice& device, const VkRenderPass&
 }
 
 void Pipeline_Goldberg::createShaderStages(const ShaderFactory& shader_fac) {
-	ENG_LOG_INFO("Create shaders derived class Goldberg" << std::endl);
+	ENG_LOG_DEBUG("Create shaders derived class Goldberg" << std::endl);
 	shader_stages = shader_fac.get_shader_stages("Goldberg");
 	assert (shader_stages.size() == 2);
 	assert (shader_stages.at(0) && shader_stages.at(1));
 }
 
 void Pipeline_Goldberg::createVertexInputInfo() {
-	ENG_LOG_INFO("Create vertex input info derived class Goldberg" << std::endl);
+	ENG_LOG_DEBUG("Create vertex input info derived class Goldberg" << std::endl);
 	attributeDescriptions = Mesh<VertexPosNorCol>::getAttributeDescriptions();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorCol);

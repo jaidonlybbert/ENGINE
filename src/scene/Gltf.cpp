@@ -35,17 +35,17 @@ bool load_gltf_model(const std::filesystem::path gltf_path, tinygltf::Model& mod
 	bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, gltf_path.string());
 
 	if (!warn.empty()) {
-		printf("Warn: %s\n", warn.c_str());
+		ENG_LOG_ERROR("Warn: " << warn.c_str() << std::endl);
 	}
 
 	if (!err.empty()) {
-		printf("Err: %s\n", err.c_str());
+		ENG_LOG_ERROR("Err: " << err.c_str() << std::endl);
 	}
 
 	if (!ret) {
-		printf("Failed to parse glTF\n");
+		ENG_LOG_ERROR("Failed to parse glTF" << std::endl);
 	} else {
-		printf("Load glTF successful\n");
+		ENG_LOG_DEBUG("Load glTF successful" << std::endl);
 	}
 
 	return ret;

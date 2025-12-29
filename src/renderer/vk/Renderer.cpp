@@ -85,7 +85,7 @@ void VkRenderer::run() {
 		glfwPollEvents();
 		ENG_LOG_TRACE("renderStateUpdaters" << std::endl);
 
-		for (auto& updater : renderStateUpdaters) {
+		for (auto updater : renderStateUpdaters) {
 			updater();
 		}
 
@@ -159,32 +159,32 @@ void VkRenderer::cleanupGui() {
 
 std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
 	// Print application name and version
-	ENG_LOG_INFO(PROJECT_NAME_AND_VERSION << std::endl);
+	ENG_LOG_DEBUG(PROJECT_NAME_AND_VERSION << std::endl);
 	// Print physical device properties
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(app.physicalDevice, &deviceProperties);
-	ENG_LOG_INFO(std::endl << "Physical Device Properties: " << std::endl);
-	ENG_LOG_INFO("Name:\t" << deviceProperties.deviceName << std::endl);
-	ENG_LOG_INFO("API Version:\t" << deviceProperties.apiVersion << std::endl);
-	ENG_LOG_INFO("Driver Version:\t" << deviceProperties.driverVersion << std::endl);
-	ENG_LOG_INFO(std::endl);
+	ENG_LOG_DEBUG(std::endl << "Physical Device Properties: " << std::endl);
+	ENG_LOG_DEBUG("Name:\t" << deviceProperties.deviceName << std::endl);
+	ENG_LOG_DEBUG("API Version:\t" << deviceProperties.apiVersion << std::endl);
+	ENG_LOG_DEBUG("Driver Version:\t" << deviceProperties.driverVersion << std::endl);
+	ENG_LOG_DEBUG(std::endl);
 	
 	// Print available extensions
 	uint32_t extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
-	ENG_LOG_INFO("Available Vulkan Extensions:" << std::endl);
+	ENG_LOG_DEBUG("Available Vulkan Extensions:" << std::endl);
 	for (const auto& extension: availableExtensions) {
-		ENG_LOG_INFO('\t' << extension.extensionName << std::endl);
+		ENG_LOG_DEBUG('\t' << extension.extensionName << std::endl);
 	}
 
 	// Print used extensions
 	auto enabledExtensions = app.instanceFactory->getRequiredExtensions();
 
-	ENG_LOG_INFO("Enabled Vulkan Extensions:" << std::endl);
+	ENG_LOG_DEBUG("Enabled Vulkan Extensions:" << std::endl);
 	for (auto extension : enabledExtensions) {
-		ENG_LOG_INFO('\t' << extension << std::endl);
+		ENG_LOG_DEBUG('\t' << extension << std::endl);
 	}
 	return os;
 }
@@ -441,7 +441,7 @@ void VkRenderer::createFaceColorBuffers(const uint32_t number_of_faces)
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
-		ENG_LOG_DEBUG("Creating FaceColor buffer " << i << " of size " << bufferSize << std::endl);
+		ENG_LOG_TRACE("Creating FaceColor buffer " << i << " of size " << bufferSize << std::endl);
 		faceColorBuffers.emplace_back(device, physicalDevice, sizeof(glm::vec4), bufferSize,
 			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		vkMapMemory(device, faceColorBuffers[i].bufferMemory, 0, bufferSize, 0, &faceColorBuffersMapped[i]);
@@ -696,7 +696,7 @@ void VkRenderer::writeDescriptorSets(const ENG::Node& node)
 		}
 
 		assert(i < node.descriptorSetIds.size());
-		ENG_LOG_INFO("attempt update descriptorsets" << std::endl);
+		ENG_LOG_DEBUG("attempt update descriptorsets" << std::endl);
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}

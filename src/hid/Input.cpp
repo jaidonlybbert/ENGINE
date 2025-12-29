@@ -35,7 +35,7 @@ void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const d
 void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	// Print the scroll offsets
-	printf("Scroll Offset - X: %.2f, Y: %.2f\n", xoffset, yoffset);
+	ENG_LOG_TRACE("Scroll Offset - X: %.2f, Y: %.2f\n", xoffset, yoffset);
 
 	static double dx, dy = 0.f;
 	static const auto invert_x = true;
@@ -67,7 +67,7 @@ void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 		// auto& fovy = camera.perspective.yfov;
 		// fovy += 0.1 * yoffset;
 		// if (static_cast<float>(fovy) < 0.1) fovy = 0.1; // Prevent zooming too far out
-		// printf("FOV: %.2f\n", fovy);
+		// ENG_LOG_TRACE("FOV: %.2f" << std::endl << fovy << std::endl);
 	}
 	else
 	{
@@ -83,19 +83,19 @@ void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 		// glm::vec3 rotatedForward = cam_quat * forward;
 
 		// Output the result
-		// std::cout << "Forward vector: ("
+		// ENG_LOG_TRACE("Forward vector: ("
 		// 	<< rotatedForward.x << ", "
 		// 	<< rotatedForward.y << ", "
-		// 	<< rotatedForward.z << ")" << std::endl;
+		// 	<< rotatedForward.z << ")" << std::endl);
 
 		// Move camera forward or backward
 		// camera_position[0] += rotatedForward[0] * 0.1f;
 		// camera_position[1] += rotatedForward[1] * 0.1f;
 		// camera_position[2] += rotatedForward[2] * 0.1f;
-		// std::cout << "Camera position: ("
+		// ENG_LOG_TRACE("Camera position: ("
 		// 	<< camera_position[0] << ", "
 		// 	<< camera_position[1] << ", "
-		// 	<< camera_position[2] << ")" << std::endl;
+		// 	<< camera_position[2] << ")" << std::endl);
 	}
 }
 

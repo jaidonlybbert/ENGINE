@@ -2,6 +2,7 @@
 #include<iostream>
 #include<string.h>
 #include "renderer/vk/Instance.hpp"
+#include "logger/Logging.hpp"
 
 namespace ENG
 {
@@ -35,7 +36,19 @@ VKAPI_ATTR VkBool32 VKAPI_CALL InstanceFactory::debugCallback(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData) {
 
-	std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+	if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+	{
+		ENG_LOG_ERROR("Validation layer ERROR: " << pCallbackData->pMessage << std::endl);
+	}
+	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+		ENG_LOG_ERROR("Validation layer WARNING: " << pCallbackData->pMessage << std::endl);
+	}
+	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+		ENG_LOG_INFO("Validation layer INFO: " << pCallbackData->pMessage << std::endl);
+	}
+	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
+		ENG_LOG_TRACE("Validation layer VERBOSE: " << pCallbackData->pMessage << std::endl);
+	}
 
 	return VK_FALSE;
 }
@@ -156,24 +169,24 @@ bool InstanceFactory::checkValidationLayerSupport() {
 	std::vector<VkLayerProperties> availableLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-	std::cout << "Available layers: " << std::endl;
+	ENG_LOG_DEBUG("Available layers: " << std::endl);
 	for (const auto& layerProperties: availableLayers)
 	{
-		std::cout << layerProperties.layerName << std::endl;
+		ENG_LOG_DEBUG(layerProperties.layerName << std::endl);
 	}
 
 	for (const char* layerName : validationLayers) {
 		bool layerFound = false;
 		for (const auto& layerProperties: availableLayers) {
 			if (strcmp(layerName, layerProperties.layerName) == 0) {
-				std::cout << "Layer found: " << layerName << std::endl;
+				ENG_LOG_DEBUG("Layer found: " << layerName << std::endl);
 				layerFound = true;
 				break;
 			}
 		}
 
 		if (!layerFound) {
-			std::cout << "Layer not found: " << layerName << std::endl;
+			ENG_LOG_DEBUG("Layer not found: " << layerName << std::endl);
 			return false;
 		}
 	}

@@ -11,6 +11,7 @@
 #include "renderer/vk/Buffer.hpp"
 #include "renderer/vk/Command.hpp"
 #include "scene/Primitives.hpp"
+#include "logger/Logging.hpp"
 
 namespace tinygltf {
 class Accessor;
@@ -65,7 +66,7 @@ namespace ENG
 
 		void createVertexBuffer(const VkQueue& graphicsQueue)
 		{
-			std::cout << "Entering create vertex buffer" << std::endl;
+			ENG_LOG_TRACE("Entering create vertex buffer" << std::endl);
 			const auto vert_size = sizeof(vertices[0]);
 			const VkDeviceSize bufferSize = vert_size * vertices.size();
 
@@ -85,18 +86,18 @@ namespace ENG
 
 			if (commands == nullptr)
 			{
-				std::cout << "mesh.hpp - commands is nullptr!" << std::endl;
+				ENG_LOG_ERROR("mesh.hpp - commands is nullptr!" << std::endl);
 				return;
 			}
 			commands->copyBuffer(graphicsQueue, stagingBuffer.buffer, vertexBuffer->buffer, bufferSize);
-			std::cout << "Vertex buffer created successfully" << std::endl;
+			ENG_LOG_TRACE("Vertex buffer created successfully" << std::endl);
 		}
 
 		void createIndexBuffer(const VkQueue& graphicsQueue)
 		{
 			size_t idx_size = sizeof(indices[0]);
 			VkDeviceSize bufferSize = idx_size * indices.size();
-			std::cout << "buffer size: " << bufferSize << std::endl;
+			ENG_LOG_TRACE("buffer size: " << bufferSize << std::endl);
 
 			const ENG::Buffer stagingBuffer{ device, physicalDevice, idx_size, bufferSize,
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
@@ -115,7 +116,7 @@ namespace ENG
 
 			commands->copyBuffer(graphicsQueue, stagingBuffer.buffer, indexBuffer->buffer, bufferSize);
 
-			std::cout << "idx buffer created successfully" << std::endl;
+			ENG_LOG_TRACE("idx buffer created successfully" << std::endl);
 		}
 	};
 } // end namespace

@@ -12,20 +12,31 @@
 class Application {
 
 public:
-	std::vector<std::function<void(void)>> initFunctions;
-	std::vector<std::function<asio::awaitable<void>(void)>> coroutineFunctions;
-	std::vector<std::function<void(void)>> dedicatedThreadFunctions;
-	std::vector<std::function<void(void)>> shutdownListeners;
-	std::vector<std::thread> dedicatedThreads;
-	std::function<void(void)> mainThreadFunction;
 	inline static asio::io_context io_ctx;
+	std::function<void(void)> mainThreadFunction;
 
 	Application() = default;
+
+	void registerInitFunction(const std::string name, std::function<void(void)> fun);
+	void registerCoroutineFunction(const std::string name, std::function<asio::awaitable<void>(void)> fun);
+	void registerDedicatedThread(const std::string name, std::function<void(void)> fun);
+	void start();
+	void shutdown();
+
+private:
+	asio::signal_set signals{ io_ctx, SIGINT, SIGTERM };
+	std::vector<std::function<void(void)>> initFunctions;
+	std::vector<std::exception_ptr> initErrors;
+	std::vector<std::function<asio::awaitable<void>(void)>> coroutineFunctions;
+	std::vector<std::exception_ptr> coroutineErrors;
+	std::vector<std::function<void(void)>> dedicatedThreadFunctions;
+	std::vector<std::exception_ptr> dedicatedThreadErrors;
+	std::vector<std::function<void(void)>> shutdownListeners;
+	std::vector<std::thread> dedicatedThreads;
 
 	void queueInitFunctions();
 	void spawnCoroutines();
 	void setSignalInterruptCallback();
 	void startDedicatedThreads();
-	void start();
-	void shutdown();
+	void printRecordedExceptions(std::vector<std::exception_ptr> errs, const std::string& category);
 };

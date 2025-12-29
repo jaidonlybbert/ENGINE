@@ -2,6 +2,7 @@
 #include "vulkan/vulkan_core.h"
 #include "tiny_gltf.h"
 #include "scene/Mesh.hpp"
+#include "logger/Logging.hpp"
 
 namespace ENG
 {
@@ -82,7 +83,7 @@ namespace ENG
 		const tinygltf::Model& model,
 		const tinygltf::Primitive& primitive,
 		const VkQueue& graphicsQueue) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {
-		std::cout << "debug PosColTex mesh entry" << std::endl;
+		ENG_LOG_DEBUG("debug PosColTex mesh entry" << std::endl);
 		const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
 		const auto& col_acc = model.accessors[primitive.attributes.at("COLOR0")];
 		const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
@@ -114,7 +115,7 @@ namespace ENG
 		assert(num_elements == tex_bv.byteLength / tex_size);
 		assert(num_elements == ind_bv.byteLength / ind_size);
 
-		std::cout << "Debug posCoTex pos1 " << std::endl;
+		ENG_LOG_DEBUG("Debug posCoTex pos1 " << std::endl);
 		name = mesh_name;
 		vertices.resize(num_elements);
 		indices.resize(num_indices);
@@ -136,7 +137,7 @@ namespace ENG
 			indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
 		}
 
-		std::cout << "Debug posCoTex pos2" << std::endl;
+		ENG_LOG_DEBUG("Debug posCoTex pos2" << std::endl);
 
 		createVertexBuffer(graphicsQueue);
 		createIndexBuffer(graphicsQueue);

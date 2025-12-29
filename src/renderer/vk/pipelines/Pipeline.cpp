@@ -2,6 +2,7 @@
 #include<iostream>
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
 #include "renderer/vk/pipelines/Pipeline.hpp"
+#include "logger/Logging.hpp"
 #include "scene/Mesh.hpp"
 
 namespace ENG {
@@ -50,7 +51,7 @@ const VkPipelineLayout& Pipeline::getPipelineLayout() const {
 
 void Pipeline::createShaderStages(const ShaderFactory& shader_fac)
 {
-	std::cout << "Create shaders from base class" << std::endl;
+	ENG_LOG_DEBUG("Create shaders from base class" << std::endl);
 }
 
 void Pipeline::createDynamicStateInfo() {

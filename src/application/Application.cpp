@@ -1,4 +1,5 @@
 #include "application/Application.hpp"
+#include "logger/Logging.hpp"
 
 #include<vector>
 #include<functional>
@@ -9,7 +10,54 @@
 #include "asio/io_context.hpp"
 #include "asio/co_spawn.hpp"
 #include "asio/detached.hpp"
-#include "asio/signal_set.hpp"
+
+void Application::registerInitFunction(const std::string name, std::function<void(void)> fun)
+{
+	initErrors.emplace_back(nullptr);
+	std::exception_ptr& this_error = initErrors.back();
+	initFunctions.emplace_back([fun, name, &this_error]() {
+		try {
+			fun();
+		}
+		catch (std::exception e) {
+			std::stringstream s;
+			s << "Caught exception in init thread [" << name << "]: " << e.what() << std::endl;
+			this_error = std::make_exception_ptr(std::runtime_error(s.str()));
+		}
+		});
+}
+
+void Application::registerCoroutineFunction(const std::string name, std::function<asio::awaitable<void>(void)> fun)
+{
+	coroutineErrors.emplace_back(nullptr);
+	std::exception_ptr& this_error = coroutineErrors.back();
+	coroutineFunctions.emplace_back([name, fun, &this_error]() {
+		try {
+			 return fun();
+		}
+		catch (std::exception e) {
+			std::stringstream s;
+			s << "Caught exception in coroutine [" << name << "]: " << e.what() << std::endl;
+			this_error = std::make_exception_ptr(std::runtime_error(s.str()));
+		}
+		});
+}
+
+void Application::registerDedicatedThread(const std::string name, std::function<void(void)> fun) {
+	dedicatedThreadErrors.emplace_back(nullptr);
+	std::exception_ptr& this_error = dedicatedThreadErrors.back();
+	dedicatedThreadFunctions.emplace_back([name, fun, &this_error]() {
+		try {
+			return fun();
+		}
+		catch (std::exception e) {
+			std::stringstream s;
+			s << "Caught exception in dedicated thread [" << name << "]: " << e.what() << std::endl;
+			this_error = std::make_exception_ptr(std::runtime_error(s.str()));
+		}
+		});
+}
+
 
 void Application::queueInitFunctions() {
 	for (auto& fun : initFunctions) {
@@ -24,13 +72,14 @@ void Application::spawnCoroutines() {
 }
 
 void Application::setSignalInterruptCallback() {
-	asio::signal_set signals(io_ctx, SIGINT, SIGTERM);
-	signals.async_wait([&](auto, auto){ shutdown(); });
+	signals.async_wait([&](auto, auto){
+		shutdown(); 
+		});
 }
 
 void Application::startDedicatedThreads() {
 	// Add background thread to run the async context
-	dedicatedThreadFunctions.emplace_back([]() { io_ctx.run(); });
+	registerDedicatedThread("io_context.run()", []() { io_ctx.run(); });
 	dedicatedThreads.reserve(dedicatedThreadFunctions.size());
 	for (auto& fun : dedicatedThreadFunctions) {
 		dedicatedThreads.emplace_back(fun);
@@ -44,26 +93,61 @@ void Application::start() {
 	startDedicatedThreads();
 
 	try {
+		// MacOS requires certain calls to be made through the main thread
+		// other OSs may have similar requirements
 		mainThreadFunction();
 	}
 	catch (std::exception e) {
+		ENG_LOG_ERROR("Exception in main thread: " << e.what());
 		shutdown();
 	}
 }
 
 void Application::shutdown() {
 	for (auto& lst : shutdownListeners) {
-		lst();
-	}
-
-	if (!io_ctx.stopped()) {
-		io_ctx.stop();
-	}
-	
-	for (auto& thd : dedicatedThreads) {
-		if (thd.joinable()) {
-			thd.join();
+		try {
+			lst();
+		}
+		catch (std::exception& e) {
+			ENG_LOG_ERROR("Exception in shutdown listener: " << e.what() << std::endl);
 		}
 	}
 
+	if (!io_ctx.stopped()) {
+		try {
+			io_ctx.stop();
+		}
+		catch (std::exception& e) {
+			ENG_LOG_ERROR("Exeption in io_ctx.stop(): " << e.what() << std::endl);
+		}
+	}
+
+	for (auto& thd : dedicatedThreads) {
+		if (thd.joinable()) {
+			try {
+				thd.join();
+			}
+			catch (std::exception& e) {
+				ENG_LOG_ERROR("Exception calling join on a thread: " << e.what() << std::endl);
+			}
+		}
+	}
+
+	printRecordedExceptions(initErrors, "init");
+	printRecordedExceptions(coroutineErrors, "coroutine");
+	printRecordedExceptions(dedicatedThreadErrors, "dedicated");
+}
+
+void Application::printRecordedExceptions(std::vector<std::exception_ptr> errs, const std::string& category)
+{
+	for (auto& err : errs) {
+		if (err) {
+			try {
+				std::rethrow_exception(err);
+			}
+			catch (std::exception& e) {
+				ENG_LOG_ERROR("Exception was recorded in " << category << " thread: " << e.what() << std::endl);
+			}
+		}
+	}
 }

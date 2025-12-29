@@ -338,7 +338,6 @@ void initializeWorldScene(VkRenderer& app) {
 	app.sceneState.graph.root = &attachmentPoint;
 	app.sceneState.graph.root->name = "Root";
 
-	// ENG_LOG_INFO("GLTF path: " << gltf_dir.native().c_str() << std::endl);
 	load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
 	auto& cameraNode = app.sceneState.graph.nodes.at(app.sceneState.activeCameraNodeIdx);
 
@@ -365,22 +364,22 @@ void initializeWorldScene(VkRenderer& app) {
 		app.createDescriptorSets(node);
 	}
 
-	ENG_LOG_INFO("PosColTex Meshes loaded:" << std::endl);
+	ENG_LOG_DEBUG("PosColTex Meshes loaded:" << std::endl);
 	for (const auto& mesh : app.sceneState.posColTexMeshes)
 	{
-		ENG_LOG_INFO("\t" << mesh.name << std::endl);
+		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
 	}
 
-	ENG_LOG_INFO("PosNorTex Meshes loaded:" << std::endl);
+	ENG_LOG_DEBUG("PosNorTex Meshes loaded:" << std::endl);
 	for (const auto& mesh : app.sceneState.posNorTexMeshes)
 	{
-		ENG_LOG_INFO("\t" << mesh.name << std::endl);
+		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
 	}
 
-	ENG_LOG_INFO("PosBB Meshes loaded:" << std::endl);
+	ENG_LOG_DEBUG("PosBB Meshes loaded:" << std::endl);
 	for (const auto& mesh : app.sceneState.posMeshes)
 	{
-		ENG_LOG_INFO("\t" << mesh.name << std::endl);
+		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
 	}
 
 	ENG_LOG_INFO("Finished loading data" << std::endl);

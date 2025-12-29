@@ -3,6 +3,7 @@
 #include<set>
 #include "vulkan/vulkan_core.h"
 #include "renderer/vk/PhysicalDevice.hpp"
+#include "logger/Logging.hpp"
 
 namespace ENG
 {
@@ -20,16 +21,16 @@ bool PhysicalDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, 
 			availableExtensions.data());
 
-	std::cout << "Available Ext" << std::endl;
-	for (auto ext : availableExtensions) {
-		std::cout << ext.extensionName << std::endl;
+	ENG_LOG_DEBUG("Available Ext" << std::endl);
+	for (auto& ext : availableExtensions) {
+		ENG_LOG_DEBUG(ext.extensionName << std::endl);
 	}
 
 	std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-	std::cout << "Required Ext" << std::endl;
-	for (auto ext : requiredExtensions) {
-		std::cout << ext << std::endl;
+	ENG_LOG_DEBUG("Required Ext" << std::endl);
+	for (auto& ext : requiredExtensions) {
+		ENG_LOG_DEBUG(ext << std::endl);
 	}
 
 	for (const auto& extension : availableExtensions) {
@@ -96,8 +97,6 @@ SwapChainSupportDetails PhysicalDevice::querySwapChainSupport(const VkPhysicalDe
 
 bool PhysicalDevice::isDeviceSuitable(VkPhysicalDevice device, const VkSurfaceKHR &surface) {
 	VkPhysicalDeviceProperties deviceProperties;
-	// std::cout << deviceProperties.sType << std::endl;
-	// std::cout << VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 << std::endl;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
 	VkPhysicalDeviceFeatures deviceFeatures;
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
@@ -109,7 +108,7 @@ bool PhysicalDevice::isDeviceSuitable(VkPhysicalDevice device, const VkSurfaceKH
 
 	bool swapChainAdequate = false;
 	if (extensionsSupported) {
-		std::cout << "Extensions supported" << std::endl;
+		ENG_LOG_DEBUG("Extensions supported" << std::endl);
 		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
 		swapChainAdequate = !swapChainSupport.formats.empty() && 
 			!swapChainSupport.presentModes.empty();
@@ -132,7 +131,7 @@ void PhysicalDevice::pickPhysicalDevice(const VkInstance& instance, VkPhysicalDe
 	std::vector<VkPhysicalDevice> devices(deviceCount);
 	vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-	std::cout << "Device count: " << deviceCount << std::endl;
+	ENG_LOG_DEBUG("Device count: " << deviceCount << std::endl);
 
 	for (const auto& device : devices) {
 		if (isDeviceSuitable(device, surface)) {

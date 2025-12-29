@@ -10,6 +10,7 @@
 #include "asio/post.hpp"
 #include "asio/io_context.hpp"
 #include "asio/co_spawn.hpp"
+#include "asio/awaitable.hpp"
 #include "asio/detached.hpp"
 
 #include "renderer/vk/Renderer.hpp"
@@ -17,6 +18,7 @@
 #include "sockets/SocketSessionServer.h"
 #include "scenes/SceneWorld.hpp"
 #include "hid/Input.hpp"
+#include "application/Application.hpp"
 
 
 void stop(asio::io_context& io_context) {
@@ -28,9 +30,9 @@ void stop(asio::io_context& io_context) {
 }
 
 
-void recordCommandsForSceneGraph(VkRenderer& app, VkCommandBuffer& commandBuffer)
+void recordCommandsForSceneGraph(VkRenderer& renderer, VkCommandBuffer& commandBuffer)
 {
-	for (const auto& node : app.sceneState.graph.nodes)
+	for (const auto& node : renderer.sceneState.graph.nodes)
 	{
 		if (!node.shaderId.has_value())
 		{
@@ -51,17 +53,17 @@ void recordCommandsForSceneGraph(VkRenderer& app, VkCommandBuffer& commandBuffer
 			continue;
 		}
 		ENG_LOG_TRACE("Drawing " << node.name << std::endl);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, app.pipelineFactory->getVkPipeline(shaderId));
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipelineFactory->getVkPipeline(shaderId));
 
 		// During scene switching/loading, nodes will be in a partially loaded state not ready to be rendered
-		if (app.currentFrame > node.descriptorSetIds.size()) {
+		if (renderer.currentFrame > node.descriptorSetIds.size()) {
 			ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has no descriptor sets" << std::endl);
 			continue;
 		}
 
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, app.pipelineFactory->getVkPipelineLayout(shaderId),
-			  0, 1, &app.descriptorSets.get(node.descriptorSetIds.at(app.currentFrame)), 0, nullptr);
-		vkCmdPushConstants(commandBuffer, app.pipelineFactory->getVkPipelineLayout(shaderId), VK_SHADER_STAGE_VERTEX_BIT, 0,
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipelineFactory->getVkPipelineLayout(shaderId),
+			  0, 1, &renderer.descriptorSets.get(node.descriptorSetIds.at(renderer.currentFrame)), 0, nullptr);
+		vkCmdPushConstants(commandBuffer, renderer.pipelineFactory->getVkPipelineLayout(shaderId), VK_SHADER_STAGE_VERTEX_BIT, 0,
 			sizeof(uint32_t), &node.nodeId);
 
 
@@ -153,9 +155,9 @@ void initWindow(VkRenderer& app) {
 int main() {
 	
 	try {
-		printf("Starting app\n");
-		// ENG_LOG_TRACE("Application path: " << install_dir.native().c_str() << std::endl);
+		ENG_LOG_INFO("Starting app" << std::endl);
 
+		Application app;
 		VkRenderer renderer;
 		Gui gui;
 
@@ -163,46 +165,28 @@ int main() {
 		renderer.registerInitializationFunction([&renderer]() {renderer.initVulkan();});
 		renderer.registerInitializationFunction([&renderer]() {renderer.initGui();});
 		renderer.registerInitializationFunction([]() {initLua();});
-
 		renderer.initialize();
 
 		renderer.registerRenderStateUpdater([&renderer, &gui]() {gui.drawGUI(renderer.sceneState);});
 
-		ENG_LOG_INFO(renderer);
+		ENG_LOG_DEBUG(renderer);
 
-		asio::io_context io_context;
-
-		asio::post(io_context, [&renderer] () {
-			renderer.initializeScene(initializeWorldScene);
-		});
-
-
-		co_spawn(io_context,
-			listener(tcp::acceptor(io_context, { tcp::v4(), 8080 })),
-			detached);
-
-		std::cout << "Server listening on port 8080..." << std::endl;
-
-		asio::signal_set signals(io_context, SIGINT, SIGTERM);
-		signals.async_wait([&](auto, auto){ stop(io_context); });
-
-		// Run in background thread
-		std::thread io_thread([&io_context]() {
-			io_context.run();
-		});
+		app.registerInitFunction("renderer.initializeScene()", [&renderer]() { renderer.initializeScene(initializeWorldScene); });
+		app.registerCoroutineFunction("listener(tcp::acceptor)", []() {
+			return listener(tcp::acceptor(Application::io_ctx, { tcp::v4(), 8080 }));
+			});
+		ENG_LOG_DEBUG("Server listening on port 8080..." << std::endl);
 
 		renderer.registerCommandRecorder([&renderer](VkCommandBuffer commandBuffer) {
 			recordCommandsForSceneGraph(renderer, commandBuffer);
-		});
-		renderer.run(); 
+			});
 
-		// Graceful shutdown sequence
-		stop(io_context);
+		app.mainThreadFunction = [&renderer]() {renderer.run(); };
 
-		if (io_thread.joinable()) {
-			io_thread.join();    // Wait for io thread to finish
-		}
+		app.start();
 
+		//// Graceful shutdown sequence
+		app.shutdown();
 
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;

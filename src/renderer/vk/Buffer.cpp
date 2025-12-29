@@ -3,6 +3,7 @@
 #include "vulkan/vulkan_core.h"
 #include "renderer/vk/Device.hpp"
 #include "renderer/vk/Buffer.hpp"
+#include "logger/Logging.hpp"
 
 namespace ENG
 {
@@ -15,7 +16,7 @@ Buffer::Buffer(const VkDevice &device, const VkPhysicalDevice &physicalDevice, c
 
 Buffer::~Buffer()
 {
-	std::cout << "Buffer destruction! at address " << &buffer << std::endl;
+	ENG_LOG_TRACE("Buffer destruction! at address " << &buffer << std::endl);
 	vkDestroyBuffer(device, buffer, nullptr);
 	vkFreeMemory(device, bufferMemory, nullptr);
 }
