@@ -1,4 +1,5 @@
 import os
+import shutil
 import platform
 import subprocess
 import argparse
@@ -23,13 +24,21 @@ def main():
     parser.add_argument(
         "--profile", type=str, default="default",
         help="Conan profile")
+    parser.add_argument(
+        "--graphviz", action="store_true",
+        help="Generate a graphviz .dot file for dependency graph visualization")
     args = parser.parse_args()
+
     source_dir = os.path.abspath(".")
+    docs_dir = os.path.join(source_dir, "docs")
     build_dir = os.path.join(source_dir, "build")
+    graphviz_dir = os.path.join(build_dir, "graphviz")
 
     print(f"CWD: {source_dir}")
 
     os.makedirs(build_dir, exist_ok=True)
+    os.makedirs(docs_dir, exist_ok=True)
+    os.makedirs(graphviz_dir, exist_ok=True)
 
     # Install dependencies using conanfile.py
     run_command(
@@ -44,13 +53,24 @@ def main():
              ], cwd=source_dir, env=env)
 
     # Configure with CMake using the generated toolchain
-    run_command(
-            ["cmake", "--preset", args.preset,
-         f"-DCMAKE_BUILD_TYPE={args.buildtype}"], cwd=source_dir, env=env)
+    config_args = ["cmake", "--preset", args.preset, f"-DCMAKE_BUILD_TYPE={args.buildtype}"]
+
+    if args.graphviz:
+        config_args.append("--graphviz=build/graphviz/graph.dot")
+
+    run_command(config_args, cwd=source_dir, env=env)
 
     # Build the project
     run_command(
             ["cmake", "--build", "--preset", args.preset], cwd=source_dir, env=env)
+
+    # Generate .dot file for dependency graph visualization
+    if args.graphviz:
+        # convert graphviz to svg
+        run_command(["dot", "-Tsvg", "-o", "graph.svg", "graph.dot"], cwd=graphviz_dir, env=env)
+        svg_path = os.path.join(graphviz_dir, "graph.svg")
+        shutil.copy(svg_path, docs_dir)
+
 
     # Run the executable
     executable = "Engine.exe" if "Windows" in platform.platform() else "Engine"

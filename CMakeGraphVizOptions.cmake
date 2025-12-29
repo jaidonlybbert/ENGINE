@@ -1,0 +1,11 @@
+set(GRAPHVIZ_GRAPH_NAME "${CMAKE_PROJECT_NAME}")
+
+# Target filtering (default: include everything)
+set(GRAPHVIZ_GENERATE_PER_TARGET TRUE)
+set(GRAPHVIZ_GENERATE_DEPENDERS TRUE)
+set(GRAPHVIZ_GENERATE_DEPENDENCIES TRUE)
+
+# Include/exclude patterns (default: include all)
+set(GRAPHVIZ_IGNORE_TARGETS "")
+set(GRAPHVIZ_EXTERNAL_LIBS TRUE)
+
