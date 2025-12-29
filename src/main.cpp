@@ -156,24 +156,24 @@ int main() {
 		printf("Starting app\n");
 		// ENG_LOG_TRACE("Application path: " << install_dir.native().c_str() << std::endl);
 
-		VkRenderer app;
+		VkRenderer renderer;
 		Gui gui;
 
-		app.registerInitializationFunction([&app]() {initWindow(app);});
-		app.registerInitializationFunction([&app]() {app.initVulkan();});
-		app.registerInitializationFunction([&app]() {app.initGui();});
-		app.registerInitializationFunction([]() {initLua();});
+		renderer.registerInitializationFunction([&renderer]() {initWindow(renderer);});
+		renderer.registerInitializationFunction([&renderer]() {renderer.initVulkan();});
+		renderer.registerInitializationFunction([&renderer]() {renderer.initGui();});
+		renderer.registerInitializationFunction([]() {initLua();});
 
-		app.initialize();
+		renderer.initialize();
 
-		app.registerRenderStateUpdater([&app, &gui]() {gui.drawGUI(app.sceneState);});
+		renderer.registerRenderStateUpdater([&renderer, &gui]() {gui.drawGUI(renderer.sceneState);});
 
-		ENG_LOG_INFO(app);
+		ENG_LOG_INFO(renderer);
 
 		asio::io_context io_context;
 
-		asio::post(io_context, [&app] () {
-			app.initializeScene(initializeWorldScene);
+		asio::post(io_context, [&renderer] () {
+			renderer.initializeScene(initializeWorldScene);
 		});
 
 
@@ -191,10 +191,10 @@ int main() {
 			io_context.run();
 		});
 
-		app.registerCommandRecorder([&app](VkCommandBuffer commandBuffer) {
-			recordCommandsForSceneGraph(app, commandBuffer);
+		renderer.registerCommandRecorder([&renderer](VkCommandBuffer commandBuffer) {
+			recordCommandsForSceneGraph(renderer, commandBuffer);
 		});
-		app.run(); 
+		renderer.run(); 
 
 		// Graceful shutdown sequence
 		stop(io_context);
