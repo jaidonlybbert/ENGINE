@@ -1,7 +1,6 @@
 include(CMakePrintHelpers)
 include(FetchContent)
 
-# Modify these!
 set(ENG_PUBLISHER "ENGINE_PUBLISHER")
 set(ENG_PROJECT_NAME "ENGINE")
 set(ENG_PROJECT_VERSION "0.0.1")
@@ -65,18 +64,15 @@ target_sources(shader_compile PRIVATE ${shaders})
 # Compile and link cpp source
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in EngineConfig.hpp)
 
-file(GLOB IMGUI_SOURCES "${PROJECT_SOURCE_DIR}/third_party/imgui/*.cpp")
 file(GLOB_RECURSE SOURCE_FILES CMAKE_CONFIGURE_DEPENDS  "${PROJECT_SOURCE_DIR}/src/*.cpp")
 file(GLOB_RECURSE HEADER_FILES CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/*.hpp")
-add_executable(Engine ${SOURCE_FILES} ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
+add_executable(Engine ${SOURCE_FILES})
 target_sources(${PROJECT_NAME} PRIVATE ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
-
 
 # File groups for MSVC IDE integration
 source_group(TREE ${PROJECT_SOURCE_DIR}/src PREFIX "Source" FILES ${SOURCE_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
 source_group(TREE ${PROJECT_SOURCE_DIR}/include PREFIX "Header Files" FILES ${HEADER_FILES})
 source_group("Shaders" FILES ${shaders})
-source_group("ImGui" FILES ${IMGUI_SOURCES})
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -89,23 +85,14 @@ find_package(Vulkan REQUIRED)
 find_package(flatbuffers REQUIRED)
 find_package(asio REQUIRED)
 
-#if (WIN32)
-#	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
-#	target_include_directories(Engine PUBLIC ${WINREG_INCLUDE_DIRS})
-#endif()
-
 add_subdirectory("${PROJECT_SOURCE_DIR}/third_party")
 
 target_include_directories(Engine PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
-target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")
-target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui/backends")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include") 
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include/pipelines")  
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include/primitives")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include/interfaces")
-
-cmake_print_variables(DYLD_LIBRARY_PATH)
 
 target_link_libraries(Engine PRIVATE tinyobjloader::tinyobjloader)
 target_link_libraries(Engine PUBLIC glfw glm::glm)
@@ -116,6 +103,7 @@ target_link_libraries(Engine PRIVATE Vulkan::Vulkan)
 target_link_libraries(Engine PRIVATE flatbuffers::flatbuffers)
 target_link_libraries(Engine PRIVATE asio::asio)
 target_link_libraries(Engine PRIVATE tinygltf)
+target_link_libraries(Engine PRIVATE imgui)
 
 if (WIN32)
 	target_link_libraries(Engine PUBLIC Tracy::TracyClient)
@@ -123,24 +111,10 @@ if (WIN32)
 	target_compile_definitions(Engine PRIVATE _WIN32_WINNT=0x0A00)
 endif()
 
+cmake_print_variables(DYLD_LIBRARY_PATH)
 cmake_print_variables(PROJECT_BINARY_DIR)
 cmake_print_variables(PROJECT_SOURCE_DIR)
 cmake_print_variables(VULKAN_SDK)
 cmake_print_variables(shader_outputs)
 cmake_print_variables(output_spv)
 cmake_print_variables(Engine_INSTALL_DIR)
-
-# Set Install Target
-# if (WIN32)
-# 	install(TARGETS Engine
-# 	    COMPONENT Engine
-# 	    RUNTIME_DEPENDENCIES
-# 	    PRE_EXCLUDE_REGEXES "api-ms-" "ext-ms-"
-# 	    POST_EXCLUDE_REGEXES ".*system32/.*\\.dll"
-# 	    DIRECTORIES $<TARGET_FILE_DIR:Engine>)
-# elseif (APPLE)
-# 	install(TARGETS Engine
-# 	    RUNTIME ARCHIVE LIBRARY RUNTIME 
-# 	    FRAMEWORK DESTINATION ./frameworks
-# 	    BUNDLE PUBLIC_HEADER RESOURCE)
-# endif()
