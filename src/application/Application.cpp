@@ -31,15 +31,17 @@ void Application::registerCoroutineFunction(const std::string name, std::functio
 {
 	coroutineErrors.emplace_back(nullptr);
 	std::exception_ptr& this_error = coroutineErrors.back();
-	coroutineFunctions.emplace_back([name, fun, &this_error]() {
+	coroutineFunctions.emplace_back([name, fun, &this_error]() -> asio::awaitable<void> {
 		try {
-			 return fun();
+			co_await fun();
 		}
-		catch (std::exception e) {
+		catch (std::exception& e) {
 			std::stringstream s;
 			s << "Caught exception in coroutine [" << name << "]: " << e.what() << std::endl;
 			this_error = std::make_exception_ptr(std::runtime_error(s.str()));
 		}
+
+		co_return;
 		});
 }
 

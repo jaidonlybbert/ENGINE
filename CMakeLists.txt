@@ -71,6 +71,7 @@ file(GLOB_RECURSE HEADER_FILES CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/in
 add_executable(Engine ${SOURCE_FILES} ${IMGUI_SOURCES} ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_glfw.cpp ${PROJECT_SOURCE_DIR}/third_party/imgui/backends/imgui_impl_vulkan.cpp)
 target_sources(${PROJECT_NAME} PRIVATE ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
 
+
 # File groups for MSVC IDE integration
 source_group(TREE ${PROJECT_SOURCE_DIR}/src PREFIX "Source" FILES ${SOURCE_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
 source_group(TREE ${PROJECT_SOURCE_DIR}/include PREFIX "Header Files" FILES ${HEADER_FILES})
@@ -88,30 +89,21 @@ find_package(Vulkan REQUIRED)
 find_package(flatbuffers REQUIRED)
 find_package(asio REQUIRED)
 
-if (WIN32)
-	# Tracy profiler doesn't build on ARM64 MacOS, the client does build however,
-	# so maybe another machine could be used for the profiler over the network
-	option(TRACY_ENABLE "" ON)
-	option(TRACY_ON_DEMAND "" ON)
-	add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/tracy")
-endif()
-
 #if (WIN32)
 #	find_path(WINREG_INCLUDE_DIRS "winreg/WinReg.hpp")
 #	target_include_directories(Engine PUBLIC ${WINREG_INCLUDE_DIRS})
 #endif()
 
-set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
-set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
-add_subdirectory("${PROJECT_SOURCE_DIR}/third_party/tinygltf")
+add_subdirectory("${PROJECT_SOURCE_DIR}/third_party")
 
-get_target_property(INCLUDE_DIRS tinyobjloader::tinyobjloader INTERFACE_INCLUDE_DIRECTORIES)
-message("tinyobj include dirs: ${INCLUDE_DIRS}")
 target_include_directories(Engine PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui")
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/third_party/imgui/backends")
-target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/include/pipelines" "${PROJECT_SOURCE_DIR}/include/primitives" "${PROJECT_SOURCE_DIR}/include/interfaces")
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include") 
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include/pipelines")  
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include/primitives")
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/include/interfaces")
 
 cmake_print_variables(DYLD_LIBRARY_PATH)
 
@@ -127,6 +119,8 @@ target_link_libraries(Engine PRIVATE tinygltf)
 
 if (WIN32)
 	target_link_libraries(Engine PUBLIC Tracy::TracyClient)
+	# Target Windows 10 or later
+	target_compile_definitions(Engine PRIVATE _WIN32_WINNT=0x0A00)
 endif()
 
 cmake_print_variables(PROJECT_BINARY_DIR)

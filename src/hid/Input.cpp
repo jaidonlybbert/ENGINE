@@ -35,7 +35,7 @@ void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const d
 void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	// Print the scroll offsets
-	ENG_LOG_TRACE("Scroll Offset - X: %.2f, Y: %.2f\n", xoffset, yoffset);
+	ENG_LOG_TRACE("Scroll Offset - X: " << xoffset << " Y: " << yoffset << std::endl);
 
 	static double dx, dy = 0.f;
 	static const auto invert_x = true;
