@@ -28,16 +28,9 @@ endif()
 
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 
-# Build config header
-set(Engine_INSTALL_DIR ${CMAKE_HOME_DIRECTORY})  # used to resolve paths to assets at runtime
-configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in EngineConfig.hpp)
-
-# file(GLOB_RECURSE SOURCE_FILES CMAKE_CONFIGURE_DEPENDS  "${PROJECT_SOURCE_DIR}/src/*.cpp")
 set(SOURCE_FILES
 	"${PROJECT_SOURCE_DIR}/src/HeaderLibs.cpp"
 	"${PROJECT_SOURCE_DIR}/src/main.cpp"
-	"${PROJECT_SOURCE_DIR}/src/application/Application.cpp"
-	"${PROJECT_SOURCE_DIR}/src/filesystem/FilesystemInterface.cpp"
 	"${PROJECT_SOURCE_DIR}/src/gui/Gui.cpp"
 	"${PROJECT_SOURCE_DIR}/src/hid/Input.cpp"
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Buffer.cpp"
@@ -64,16 +57,14 @@ set(SOURCE_FILES
 	"${PROJECT_SOURCE_DIR}/src/scene/VulkanAdapter.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scenes/ProceduralGeometry.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scenes/SceneWorld.cpp"
-	"${PROJECT_SOURCE_DIR}/src/sockets/CMakeLists.txt"
-	#	"${PROJECT_SOURCE_DIR}/sockets/SocketSessionServer.cpp"
 )
 
 file(GLOB_RECURSE HEADER_FILES CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/*.hpp")
 add_executable(Engine ${SOURCE_FILES})
-target_sources(${PROJECT_NAME} PRIVATE ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
+target_sources(${PROJECT_NAME} PRIVATE ${HEADER_FILES})
 
 # File groups for MSVC IDE integration
-source_group(TREE ${PROJECT_SOURCE_DIR}/src PREFIX "Source" FILES ${SOURCE_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
+source_group(TREE ${PROJECT_SOURCE_DIR}/src PREFIX "Source" FILES ${SOURCE_FILES})
 source_group(TREE ${PROJECT_SOURCE_DIR}/include PREFIX "Header Files" FILES ${HEADER_FILES})
 
 find_package(glfw3 CONFIG REQUIRED)
@@ -89,6 +80,10 @@ find_package(asio REQUIRED)
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/third_party")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/sockets")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/logger")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/application")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/config")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem")
 
 target_include_directories(Engine PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
@@ -108,6 +103,10 @@ target_link_libraries(Engine PRIVATE asio::asio)
 target_link_libraries(Engine PRIVATE tinygltf)
 target_link_libraries(Engine PRIVATE imgui)
 target_link_libraries(Engine PUBLIC sockets)
+target_link_libraries(Engine PUBLIC logger)
+target_link_libraries(Engine PUBLIC application)
+target_link_libraries(Engine PUBLIC engine::config)
+target_link_libraries(Engine PUBLIC engine::filesystem)
 
 if (WIN32)
 	target_link_libraries(Engine PUBLIC Tracy::TracyClient)
