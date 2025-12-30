@@ -26,40 +26,7 @@ if (NOT "$ENV{DYLD_LIBRARY_PATH}" STREQUAL "")
 	cmake_print_variables(DYLD_LIBRARY_PATH)
 endif()
 
-# Compile shaders to SPIR-V with GLSLC
-# Find glslc from Vulkan SDK
-find_program(GLSLC_EXECUTABLE
-    NAMES glslc
-    HINTS
-        ENV VULKAN_SDK
-    PATH_SUFFIXES bin
-    DOC "Path to the glslc shader compiler from the Vulkan SDK"
-    REQUIRED
-)
-
-# Print result
-if(GLSLC_EXECUTABLE)
-    message(STATUS "Found glslc: ${GLSLC_EXECUTABLE}")
-else()
-    message(FATAL_ERROR "glslc not found. Make sure Vulkan SDK is installed and VULKAN_SDK is set.")
-endif()
-
-set(Engine_INSTALL_DIR ${CMAKE_HOME_DIRECTORY})
-set(shader_path ${CMAKE_HOME_DIRECTORY}/shaders/)
-file(GLOB shaders RELATIVE ${CMAKE_SOURCE_DIR} "${shader_path}*.vert"
-	"${shader_path}*.frag")
-foreach(shader ${shaders})
-	set(input_glsl "${CMAKE_HOME_DIRECTORY}/${shader}")
-	set(output_spv "${input_glsl}.spv")
-	add_custom_command(
-		OUTPUT "${output_spv}"
-		COMMAND "${GLSLC_EXECUTABLE}" "${input_glsl}" "-o" "${output_spv}"
-		DEPENDS "${input_glsl}"
-	VERBATIM)
-	list(APPEND shader_outputs ${CMAKE_HOME_DIRECTORY}/${shader}.spv)
-endforeach()
-add_custom_target(shader_compile ALL DEPENDS ${shader_outputs} VERBATIM)
-target_sources(shader_compile PRIVATE ${shaders})
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 
 # Compile and link cpp source
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in EngineConfig.hpp)
@@ -72,7 +39,6 @@ target_sources(${PROJECT_NAME} PRIVATE ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/src
 # File groups for MSVC IDE integration
 source_group(TREE ${PROJECT_SOURCE_DIR}/src PREFIX "Source" FILES ${SOURCE_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
 source_group(TREE ${PROJECT_SOURCE_DIR}/include PREFIX "Header Files" FILES ${HEADER_FILES})
-source_group("Shaders" FILES ${shaders})
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
@@ -115,6 +81,3 @@ cmake_print_variables(DYLD_LIBRARY_PATH)
 cmake_print_variables(PROJECT_BINARY_DIR)
 cmake_print_variables(PROJECT_SOURCE_DIR)
 cmake_print_variables(VULKAN_SDK)
-cmake_print_variables(shader_outputs)
-cmake_print_variables(output_spv)
-cmake_print_variables(Engine_INSTALL_DIR)
