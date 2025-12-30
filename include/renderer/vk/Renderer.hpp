@@ -70,7 +70,7 @@ struct UniformBufferObject {
 
 class VkRenderer {
 public:
-	VkRenderer();
+	VkRenderer(std::vector<std::function<void(void)>> initFunctions);
 	void run();
 	void initialize();
 	void initializeScene(std::function<void(VkRenderer&)> loadFunction);

@@ -158,14 +158,16 @@ int main() {
 		ENG_LOG_INFO("Starting app" << std::endl);
 
 		Application app;
-		VkRenderer renderer;
 		Gui gui;
 
-		renderer.registerInitializationFunction([&renderer]() {initWindow(renderer);});
-		renderer.registerInitializationFunction([&renderer]() {renderer.initVulkan();});
-		renderer.registerInitializationFunction([&renderer]() {renderer.initGui();});
-		renderer.registerInitializationFunction([]() {initLua();});
-		renderer.initialize();
+		VkRenderer renderer{
+			{
+				[&renderer]() {initWindow(renderer);},
+				[&renderer]() {renderer.initVulkan();},
+				[&renderer]() {renderer.initGui();},
+				[]() {initLua();}
+			}
+		};
 
 		renderer.registerRenderStateUpdater([&renderer, &gui]() {gui.drawGUI(renderer.sceneState);});
 
@@ -188,9 +190,10 @@ int main() {
 		//// Graceful shutdown sequence
 		app.shutdown();
 
-	} catch (const std::exception& e) {
-		std::cerr << e.what() << std::endl;
-	    	return EXIT_FAILURE;
+	}
+	catch (const std::exception& e) {
+		ENG_LOG_ERROR("Exception caught by main(): " << e.what() << std::endl);
+		return EXIT_FAILURE;
 	}
 
 	return EXIT_SUCCESS;

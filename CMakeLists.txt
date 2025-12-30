@@ -28,10 +28,46 @@ endif()
 
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 
-# Compile and link cpp source
+# Build config header
+set(Engine_INSTALL_DIR ${CMAKE_HOME_DIRECTORY})  # used to resolve paths to assets at runtime
 configure_file(${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in EngineConfig.hpp)
 
-file(GLOB_RECURSE SOURCE_FILES CMAKE_CONFIGURE_DEPENDS  "${PROJECT_SOURCE_DIR}/src/*.cpp")
+# file(GLOB_RECURSE SOURCE_FILES CMAKE_CONFIGURE_DEPENDS  "${PROJECT_SOURCE_DIR}/src/*.cpp")
+set(SOURCE_FILES
+	"${PROJECT_SOURCE_DIR}/src/HeaderLibs.cpp"
+	"${PROJECT_SOURCE_DIR}/src/main.cpp"
+	"${PROJECT_SOURCE_DIR}/src/application/Application.cpp"
+	"${PROJECT_SOURCE_DIR}/src/filesystem/FilesystemInterface.cpp"
+	"${PROJECT_SOURCE_DIR}/src/gui/Gui.cpp"
+	"${PROJECT_SOURCE_DIR}/src/hid/Input.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Buffer.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Command.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Device.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Image.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Instance.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/PhysicalDevice.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Renderer.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Swapchain.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Utils.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/Pipeline.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelineFactory.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelinePosColTex.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelineUtils.cpp"
+	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/ShaderFactory.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/DFT.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/DrawData.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/Gltf.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/Mesh.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/Mesh2.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/Obj.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/Scene.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/VulkanAdapter.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scenes/ProceduralGeometry.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scenes/SceneWorld.cpp"
+	"${PROJECT_SOURCE_DIR}/src/sockets/CMakeLists.txt"
+	#	"${PROJECT_SOURCE_DIR}/sockets/SocketSessionServer.cpp"
+)
+
 file(GLOB_RECURSE HEADER_FILES CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/*.hpp")
 add_executable(Engine ${SOURCE_FILES})
 target_sources(${PROJECT_NAME} PRIVATE ${HEADER_FILES} ${PROJECT_SOURCE_DIR}/src/EngineConfig.hpp.in)
@@ -52,6 +88,7 @@ find_package(flatbuffers REQUIRED)
 find_package(asio REQUIRED)
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/third_party")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/sockets")
 
 target_include_directories(Engine PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
@@ -70,6 +107,7 @@ target_link_libraries(Engine PRIVATE flatbuffers::flatbuffers)
 target_link_libraries(Engine PRIVATE asio::asio)
 target_link_libraries(Engine PRIVATE tinygltf)
 target_link_libraries(Engine PRIVATE imgui)
+target_link_libraries(Engine PUBLIC sockets)
 
 if (WIN32)
 	target_link_libraries(Engine PUBLIC Tracy::TracyClient)

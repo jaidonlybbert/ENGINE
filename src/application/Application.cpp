@@ -11,6 +11,10 @@
 #include "asio/co_spawn.hpp"
 #include "asio/detached.hpp"
 
+Application::~Application() {
+	shutdown();
+}
+
 void Application::registerInitFunction(const std::string name, std::function<void(void)> fun)
 {
 	initErrors.emplace_back(nullptr);
@@ -106,6 +110,12 @@ void Application::start() {
 }
 
 void Application::shutdown() {
+	// only shutdown once, can be triggered manually (e.g. SIGINT) or by destructor
+	if (isShutdown) {
+		return;
+	}
+	isShutdown = true;
+
 	for (auto& lst : shutdownListeners) {
 		try {
 			lst();

@@ -61,8 +61,9 @@
 
 using namespace ENG;
 
-VkRenderer::VkRenderer() {
-}
+VkRenderer::VkRenderer(std::vector<std::function<void(void)>> initFunctions) : initializationFunctions(std::move(initFunctions)) {
+	initialize();
+};
 
 void VkRenderer::registerInitializationFunction(std::function<void(void)> initFunc) {
 	initializationFunctions.push_back(initFunc);

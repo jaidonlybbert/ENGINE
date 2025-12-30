@@ -14,8 +14,10 @@ class Application {
 public:
 	inline static asio::io_context io_ctx;
 	std::function<void(void)> mainThreadFunction;
+	bool isShutdown{ false };
 
 	Application() = default;
+	~Application();
 
 	void registerInitFunction(const std::string name, std::function<void(void)> fun);
 	void registerCoroutineFunction(const std::string name, std::function<asio::awaitable<void>(void)> fun);
