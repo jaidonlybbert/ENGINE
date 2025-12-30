@@ -42,18 +42,19 @@ def main():
 
     # Install dependencies using conanfile.py
     run_command(
-            ["conan", "install", source_dir, 
-             f"--profile:host={args.profile}", 
-             f"--profile:build={args.profile}",
-             f"--settings:host=build_type={args.buildtype}", 
-             f"--settings:build=build_type={args.buildtype}",
-             "--settings:host=compiler.cppstd=20",
-             "--settings:build=compiler.cppstd=20",
-             "--build", "missing"
-             ], cwd=source_dir, env=env)
+        ["conan", "install", source_dir,
+         f"--profile:host={args.profile}",
+         f"--profile:build={args.profile}",
+         f"--settings:host=build_type={args.buildtype}",
+         f"--settings:build=build_type={args.buildtype}",
+         "--settings:host=compiler.cppstd=20",
+         "--settings:build=compiler.cppstd=20",
+         "--build", "missing"
+         ], cwd=source_dir, env=env)
 
     # Configure with CMake using the generated toolchain
-    config_args = ["cmake", "--preset", args.preset, f"-DCMAKE_BUILD_TYPE={args.buildtype}"]
+    config_args = ["cmake", "--preset", args.preset,
+                   f"-DCMAKE_BUILD_TYPE={args.buildtype}"]
 
     if args.graphviz:
         config_args.append("--graphviz=build/graphviz/graph.dot")
@@ -61,16 +62,20 @@ def main():
     run_command(config_args, cwd=source_dir, env=env)
 
     # Build the project
-    run_command(
+    if "Windows" in platform.platform():
+        run_command(
+            ["cmake", "--build", "--preset", args.preset, "--config", args.buildtype], cwd=source_dir, env=env)
+    else:
+        run_command(
             ["cmake", "--build", "--preset", args.preset], cwd=source_dir, env=env)
 
     # Generate .dot file for dependency graph visualization
     if args.graphviz:
         # convert graphviz to svg
-        run_command(["dot", "-Tsvg", "-o", "graph.svg", "graph.dot"], cwd=graphviz_dir, env=env)
+        run_command(["dot", "-Tsvg", "-o", "graph.svg",
+                    "graph.dot"], cwd=graphviz_dir, env=env)
         svg_path = os.path.join(graphviz_dir, "graph.svg")
         shutil.copy(svg_path, docs_dir)
-
 
     # Run the executable
     executable = "Engine.exe" if "Windows" in platform.platform() else "Engine"
