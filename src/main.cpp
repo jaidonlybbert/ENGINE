@@ -13,6 +13,8 @@
 #include "asio/awaitable.hpp"
 #include "asio/detached.hpp"
 
+#include "tracy/Tracy.hpp"
+
 #include "renderer/vk/Renderer.hpp"
 #include "logger/Logging.hpp"
 #include "sockets/SocketSessionServer.h"
@@ -153,6 +155,30 @@ void initWindow(VkRenderer& app) {
 	glfwSetCursorPosCallback(app.window, mouse_movement_callback);
 }
 
+void gameLoop(VkRenderer& renderer) {
+	while(!glfwWindowShouldClose(renderer.window)) {
+#ifdef _WIN32
+		FrameMarkStart("run_frame");
+#endif
+		//glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
+		ENG_LOG_TRACE("glfwPollEvents" << std::endl);
+		glfwPollEvents();
+		ENG_LOG_TRACE("renderStateUpdaters" << std::endl);
+
+		for (auto& updater : renderer.renderStateUpdaters) {
+			updater();
+		}
+
+		ENG_LOG_TRACE("drawFrame" << std::endl);
+		renderer.drawFrame();
+#ifdef _WIN32
+		FrameMarkEnd("run_frame");
+#endif
+
+	}
+
+	vkDeviceWaitIdle(renderer.device);
+}
 
 int main() {
 	
@@ -187,7 +213,7 @@ int main() {
 			recordCommandsForSceneGraph(renderer, commandBuffer);
 			});
 
-		app.mainThreadFunction = [&renderer]() {renderer.run(); };
+		app.mainThreadFunction = [&renderer]() {gameLoop(renderer); };
 
 		app.start();
 

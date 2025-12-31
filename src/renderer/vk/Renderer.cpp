@@ -76,32 +76,6 @@ void VkRenderer::initialize() {
 }
 
 
-void VkRenderer::run() {
-	while(!glfwWindowShouldClose(window)) {
-#ifdef _WIN32
-		FrameMarkStart("run_frame");
-#endif
-		//glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
-		ENG_LOG_TRACE("glfwPollEvents" << std::endl);
-		glfwPollEvents();
-		ENG_LOG_TRACE("renderStateUpdaters" << std::endl);
-
-		for (auto updater : renderStateUpdaters) {
-			updater();
-		}
-
-		ENG_LOG_TRACE("drawFrame" << std::endl);
-		drawFrame();
-		ENG_LOG_TRACE("process lua" << std::endl);
-#ifdef _WIN32
-		FrameMarkEnd("run_frame");
-#endif
-
-	}
-
-	vkDeviceWaitIdle(device);
-}
-
 void VkRenderer::initializeScene(std::function<void(VkRenderer&)> loadFunction) {
 	std::lock_guard<std::mutex> lock(scene_mtx);
 	sceneReadyToRender = false;

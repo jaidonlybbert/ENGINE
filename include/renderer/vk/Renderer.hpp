@@ -7,8 +7,6 @@
 
 #include "vulkan/vulkan_core.h"
 
-#include "lua.hpp"
-
 #include "renderer/vk/pipelines/Pipeline.hpp"
 #include "renderer/vk/pipelines/PipelineFactory.hpp"
 #include "renderer/vk/Instance.hpp"
@@ -71,7 +69,6 @@ struct UniformBufferObject {
 class VkRenderer {
 public:
 	VkRenderer(std::vector<std::function<void(void)>> initFunctions);
-	void run();
 	void initialize();
 	void initializeScene(std::function<void(VkRenderer&)> loadFunction);
 	~VkRenderer();

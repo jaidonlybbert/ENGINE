@@ -32,5 +32,3 @@ target_link_libraries(engine_vk_renderer PUBLIC tinyobjloader::tinyobjloader)
 target_link_libraries(engine_vk_renderer PUBLIC engine::scene)
 target_link_libraries(engine_vk_renderer PUBLIC glfw)
 target_link_libraries(engine_vk_renderer PUBLIC imgui)
-target_link_libraries(engine_vk_renderer PUBLIC lua::lua)
-
