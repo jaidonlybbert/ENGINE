@@ -31,8 +31,6 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 set(SOURCE_FILES
 	"${PROJECT_SOURCE_DIR}/src/HeaderLibs.cpp"
 	"${PROJECT_SOURCE_DIR}/src/main.cpp"
-	"${PROJECT_SOURCE_DIR}/src/gui/Gui.cpp"
-	"${PROJECT_SOURCE_DIR}/src/hid/Input.cpp"
 )
 
 file(GLOB_RECURSE HEADER_FILES CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/*.hpp")
@@ -65,6 +63,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/guis")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/scene")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/hid")
 
 target_include_directories(Engine PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
@@ -93,6 +92,7 @@ target_link_libraries(Engine PUBLIC engine::filesystem)
 target_link_libraries(Engine PUBLIC engine::gui)
 target_link_libraries(Engine PUBLIC engine::vk::renderer)
 target_link_libraries(Engine PUBLIC engine::scene)
+target_link_libraries(Engine PUBLIC engine::hid)
 
 target_link_libraries(Engine PUBLIC engine::scene::gui)
 target_link_libraries(Engine PUBLIC scenes)
