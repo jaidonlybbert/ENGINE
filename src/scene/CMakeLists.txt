@@ -23,4 +23,5 @@ target_link_libraries(engine_scene PUBLIC tinygltf)
 target_link_libraries(engine_scene PUBLIC engine::logger)
 target_link_libraries(engine_scene PUBLIC tinyobjloader::tinyobjloader)
 target_link_libraries(engine_scene PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(engine_scene PUBLIC glm::glm)
 
