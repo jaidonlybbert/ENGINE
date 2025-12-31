@@ -115,7 +115,6 @@ public:
 	std::mutex scene_mtx;
 	bool sceneReadyToRender = false;
 
-	void registerRenderStateUpdater(std::function<void(void)> renderStateUpdater);
 	void registerInitializationFunction(std::function<void(void)> initFunc);
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 	void initVulkan();

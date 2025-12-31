@@ -836,9 +836,3 @@ void VkRenderer::initGui()
 	init_info.CheckVkResultFn = check_vk_result;
 	ImGui_ImplVulkan_Init(&init_info);
 }
-
-
-void VkRenderer::registerRenderStateUpdater(std::function<void(void)> renderStateUpdater) {
-	renderStateUpdaters.push_back(renderStateUpdater);
-}
-

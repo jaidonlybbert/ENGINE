@@ -155,26 +155,29 @@ void initWindow(VkRenderer& app) {
 	glfwSetCursorPosCallback(app.window, mouse_movement_callback);
 }
 
-void gameLoop(VkRenderer& renderer) {
-	while(!glfwWindowShouldClose(renderer.window)) {
+void profilerMarkStart(const std::string& name)
+{
 #ifdef _WIN32
 		FrameMarkStart("run_frame");
 #endif
-		//glfwGetCursorPos(window, &sceneState.cursor_x, &sceneState.cursor_y);
-		ENG_LOG_TRACE("glfwPollEvents" << std::endl);
-		glfwPollEvents();
-		ENG_LOG_TRACE("renderStateUpdaters" << std::endl);
+}
 
-		for (auto& updater : renderer.renderStateUpdaters) {
-			updater();
-		}
-
-		ENG_LOG_TRACE("drawFrame" << std::endl);
-		renderer.drawFrame();
+void profilerMarkStop(const std::string& name)
+{
 #ifdef _WIN32
 		FrameMarkEnd("run_frame");
 #endif
+}
 
+void gameLoop(VkRenderer& renderer, Gui& gui) {
+	while(!glfwWindowShouldClose(renderer.window)) {
+		profilerMarkStart("run_frame");
+
+		glfwPollEvents();
+		gui.drawGui();
+		renderer.drawFrame();
+
+		profilerMarkStop("run_frame");
 	}
 
 	vkDeviceWaitIdle(renderer.device);
@@ -199,7 +202,6 @@ int main() {
 		};
 
 		gui.registerDrawCall([&renderer, &sceneGui]() {sceneGui.drawGui(renderer.sceneState);});
-		renderer.registerRenderStateUpdater([&renderer, &gui]() {gui.drawGui();});
 
 		ENG_LOG_DEBUG(renderer);
 
@@ -213,7 +215,7 @@ int main() {
 			recordCommandsForSceneGraph(renderer, commandBuffer);
 			});
 
-		app.mainThreadFunction = [&renderer]() {gameLoop(renderer); };
+		app.mainThreadFunction = [&renderer, &gui]() {gameLoop(renderer, gui); };
 
 		app.start();
 
