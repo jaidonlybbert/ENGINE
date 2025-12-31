@@ -33,30 +33,6 @@ set(SOURCE_FILES
 	"${PROJECT_SOURCE_DIR}/src/main.cpp"
 	"${PROJECT_SOURCE_DIR}/src/gui/Gui.cpp"
 	"${PROJECT_SOURCE_DIR}/src/hid/Input.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Buffer.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Command.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Device.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Image.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Instance.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/PhysicalDevice.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Renderer.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Swapchain.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Utils.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/Pipeline.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelineFactory.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelinePosColTex.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelineUtils.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/ShaderFactory.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/DFT.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/DrawData.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/Gltf.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/Mesh.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/Mesh2.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/Obj.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/Scene.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/VulkanAdapter.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scenes/ProceduralGeometry.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scenes/SceneWorld.cpp"
 )
 
 file(GLOB_RECURSE HEADER_FILES CMAKE_CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/include/*.hpp")
@@ -84,6 +60,11 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/logger")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/application")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/config")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/gui")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/guis")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/scene")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer")
 
 target_include_directories(Engine PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(Engine PRIVATE ${Stb_INCLUDE_DIR})
@@ -102,11 +83,19 @@ target_link_libraries(Engine PRIVATE flatbuffers::flatbuffers)
 target_link_libraries(Engine PRIVATE asio::asio)
 target_link_libraries(Engine PRIVATE tinygltf)
 target_link_libraries(Engine PRIVATE imgui)
-target_link_libraries(Engine PUBLIC sockets)
-target_link_libraries(Engine PUBLIC logger)
-target_link_libraries(Engine PUBLIC application)
+target_link_libraries(Engine PRIVATE dynalo)
+
+target_link_libraries(Engine PUBLIC engine::sockets)
+target_link_libraries(Engine PUBLIC engine::logger)
+target_link_libraries(Engine PUBLIC engine::application)
 target_link_libraries(Engine PUBLIC engine::config)
 target_link_libraries(Engine PUBLIC engine::filesystem)
+target_link_libraries(Engine PUBLIC engine::gui)
+target_link_libraries(Engine PUBLIC engine::vk::renderer)
+target_link_libraries(Engine PUBLIC engine::scene)
+
+target_link_libraries(Engine PUBLIC engine::scene::gui)
+target_link_libraries(Engine PUBLIC scenes)
 
 if (WIN32)
 	target_link_libraries(Engine PUBLIC Tracy::TracyClient)

@@ -1,32 +1,13 @@
 #ifndef ENG_GUI
 #define ENG_GUI
-#include<glm/glm.hpp>
+#include<functional>
 
-
-namespace ENG {
-	class Node;
-	class SceneState;
-}
-
-struct GUICameraSettings {
-	glm::vec3 position{0.f};
-	glm::vec3 direction{0.f};
-	float zoom{0.f};
-};
-
-struct GUISettings {
-	GUICameraSettings camera;
-	bool showSettings{true};
-};
-
-
-class Gui
-{
+class Gui {
 public:
-	GUISettings settings;
-	void MySaveFunction();
-	void DrawNodeTree(ENG::Node* node);
-	void drawGUI(ENG::SceneState& sceneState);
+	void registerDrawCall(std::function<void(void)> drawCall);
+	void drawGui();
+	
+private:
+	std::vector<std::function<void(void)>> drawCalls;
 };
-
 #endif

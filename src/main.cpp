@@ -19,6 +19,8 @@
 #include "scenes/SceneWorld.hpp"
 #include "hid/Input.hpp"
 #include "application/Application.hpp"
+#include "guis/SceneGui.hpp"
+#include "gui/Gui.hpp"
 
 
 void stop(asio::io_context& io_context) {
@@ -159,6 +161,7 @@ int main() {
 
 		Application app;
 		Gui gui;
+		SceneGui sceneGui;
 
 		VkRenderer renderer{
 			{
@@ -169,7 +172,8 @@ int main() {
 			}
 		};
 
-		renderer.registerRenderStateUpdater([&renderer, &gui]() {gui.drawGUI(renderer.sceneState);});
+		gui.registerDrawCall([&renderer, &sceneGui]() {sceneGui.drawGui(renderer.sceneState);});
+		renderer.registerRenderStateUpdater([&renderer, &gui]() {gui.drawGui();});
 
 		ENG_LOG_DEBUG(renderer);
 

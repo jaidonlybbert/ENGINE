@@ -1,5 +1,5 @@
 #include "application/Application.hpp"
-#include "Logging.hpp"
+#include "logger/Logging.hpp"
 
 #include<vector>
 #include<functional>
