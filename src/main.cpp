@@ -13,7 +13,9 @@
 #include "asio/awaitable.hpp"
 #include "asio/detached.hpp"
 
+#ifdef _WIN32
 #include "tracy/Tracy.hpp"
+#endif
 
 #include "renderer/vk/Renderer.hpp"
 #include "logger/Logging.hpp"
