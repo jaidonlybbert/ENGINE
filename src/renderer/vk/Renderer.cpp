@@ -271,6 +271,17 @@ void VkRenderer::registerCommandRecorder(std::function<void(VkCommandBuffer)> co
 	commandRecorders.push_back(commandRecorder);
 }
 
+void VkRenderer::registerUniformBufferProducer(std::function<UniformBufferObject()> producer)
+{
+	uniformBufferUpdateFunction = producer;
+}
+
+
+void VkRenderer::registerModelMatrixBufferUpdateFunction(std::function<std::vector<glm::mat4>&()> updateFun)
+{
+	modelMatrixBufferUpdateFunction = updateFun;
+}
+
 void VkRenderer::drawFrame() 
 {
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -291,8 +302,10 @@ void VkRenderer::drawFrame()
 	recordCommandBuffer(commands->commandBuffers[currentFrame], imageIndex);
 
 	if (sceneReadyToRender) {
-		updateUniformBuffer(currentFrame);
-		updateModelMatrixBuffer();
+		assert(uniformBufferUpdateFunction);
+		assert(modelMatrixBufferUpdateFunction);
+		copyUniformBufferToGpu(currentFrame, uniformBufferUpdateFunction());
+		copyModelMatrixBufferToGpu(modelMatrixBufferUpdateFunction());
 	}
 
 	VkSubmitInfo submitInfo{};
@@ -423,77 +436,18 @@ void VkRenderer::createFaceColorBuffers(const uint32_t number_of_faces)
 	}
 }
 
-void VkRenderer::updateModelMatrix(glm::mat4& modelMatrix, const ENG::Node& node)
+void VkRenderer::copyModelMatrixBufferToGpu(const std::vector<glm::mat4>& modelMatrices)
 {
-	// Compute local transform from TRS data
-	modelMatrix = glm::translate(glm::mat4(1.f), node.translation)
-		* glm::mat4_cast(node.rotation)
-		* glm::scale(glm::mat4(1.f), node.scale);
+	const auto& bufferSize = modelMatrices.size() * sizeof(glm::mat4);
+	memcpy(modelMatrixBuffersMapped[currentFrame], modelMatrices.data(), bufferSize);
 }
 
 
-void VkRenderer::updateModelMatrixBuffer()
+void VkRenderer::copyUniformBufferToGpu(const uint32_t currentImage, const UniformBufferObject& ubo)
 {
-	// Compute local transforms first from TRS data
-	for (const auto& node : sceneState.graph.nodes)
-	{
-		assert(node.nodeId < sceneState.modelMatrices.size());
-		updateModelMatrix(sceneState.modelMatrices.at(node.nodeId), node);
-	}
-
-	// Update to global transforms by depth-first traversal of the graph
-	for (auto* node : DFTraversal(sceneState.graph.root))
-	{
-		if (node == sceneState.graph.root)
-		{
-			continue;  // Do not need to do any update on root node
-		}
-
-		// Global transform is computed as the transform of local transform by parents global transform
-		// Depth-first traversal guarantees parent global transform is computed before child is visited
-		assert(node != nullptr && node->nodeId < sceneState.modelMatrices.size());
-		assert(node->parent != nullptr && node->parent->nodeId < sceneState.modelMatrices.size());
-		sceneState.modelMatrices.at(node->nodeId) = sceneState.modelMatrices.at(node->parent->nodeId) * sceneState.modelMatrices.at(node->nodeId);
-		ENG_LOG_TRACE("TRAVERSING NAME: " << node->name << std::endl);
-	}
-
-	const auto& bufferSize = sceneState.modelMatrices.size() * sizeof(glm::mat4);
-	memcpy(modelMatrixBuffersMapped[currentFrame], sceneState.modelMatrices.data(), bufferSize);
-}
-
-void VkRenderer::updateUniformBuffer(uint32_t currentImage) 
-{
-	UniformBufferObject ubo{};
-
-	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
-	auto* cameraPtr = get_active_camera(sceneState);
-
-	// The global translation is stored in the last column
-	const glm::vec3& cam_pos = glm::vec3(sceneState.modelMatrices.at(cameraNode.nodeId)[3]);
-	const glm::vec3& up = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(0., 1., 0., 0.);
-	const glm::vec3& right = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(1., 0., 0., 0.);
-
-	ubo.view = glm::lookAt(cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(up));
-	//const auto& cam_rot = camera_node.rotation;
-	//if (cam_rot.size() == 4)
-	//{
-	//	auto quat1 = glm::quat(cam_rot[3], cam_rot[0], cam_rot[1], cam_rot[2]);
-	//	ubo.view = glm::mat4_cast(quat1);
-	//	ubo.view[0][3] = glm_cam_pos.x;
-	//	ubo.view[1][3] = glm_cam_pos.y;
-	//	ubo.view[2][3] = glm_cam_pos.z;
-	//}
-
-	const auto fovy = cameraPtr->fovy;
-	const auto aspect = cameraPtr->aspect;
-	const auto znear = cameraPtr->znear;
-	const auto zfar = cameraPtr->zfar;
-	ubo.proj = glm::perspective(fovy, aspect, znear, zfar);
-	ubo.proj[1][1] *= -1;
-	ENG_LOG_TRACE("Projection matrix set" << std::endl);
-
 	memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
+
 
 void VkRenderer::createDescriptorPool() 
 {

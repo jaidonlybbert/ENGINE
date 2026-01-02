@@ -111,6 +111,8 @@ public:
 	std::vector<std::function<void(VkCommandBuffer)>> commandRecorders;
 	std::vector<std::function<void(void)>> initializationFunctions;
 	std::vector<std::function<void(void)>> renderStateUpdaters;
+	std::function<UniformBufferObject(void)> uniformBufferUpdateFunction;
+	std::function<std::vector<glm::mat4>&(void)> modelMatrixBufferUpdateFunction;
 
 	std::mutex scene_mtx;
 	bool sceneReadyToRender = false;
@@ -132,11 +134,13 @@ public:
 	void createModelMatrices();
 	void createFaceIdBuffers(const uint32_t number_of_faces);
 	void createFaceColorBuffers(const uint32_t number_of_faces);
-	void updateModelMatrix(glm::mat4& modelMatrix, const ENG::Node& node);
 
+	void registerUniformBufferProducer(std::function<UniformBufferObject(void)> producer);
+	void registerModelMatrixBufferUpdateFunction(std::function<std::vector<glm::mat4>&(void)> bufferUpdater);
 
-	void updateModelMatrixBuffer();
-	void updateUniformBuffer(uint32_t currentImage);
+	void copyModelMatrixBufferToGpu(const std::vector<glm::mat4>& modelMatrices);
+	void copyUniformBufferToGpu(const uint32_t currentImage, const UniformBufferObject& ubo);
+
 	void createDescriptorPool();
 
 	VkWriteDescriptorSet createDescriptorWriteModelMatrix(
