@@ -70,13 +70,10 @@ class VkRenderer {
 public:
 	VkRenderer(std::vector<std::function<void(void)>> initFunctions);
 	void initialize();
-	void initializeScene(std::function<void(VkRenderer&)> loadFunction);
 	~VkRenderer();
 	void cleanupGui();
 	friend std::ostream& operator<<(std::ostream& os, VkRenderer& app);
 
-	SceneState sceneState;
-	GameState gameState;
 	GLFWwindow* window;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device;
@@ -131,7 +128,7 @@ public:
 	/// <summary>
 	/// Must be called after all nodes are loaded
 	/// </summary>
-	void createModelMatrices();
+	void createModelMatrices(const size_t size_bytes);
 	void createFaceIdBuffers(const uint32_t number_of_faces);
 	void createFaceColorBuffers(const uint32_t number_of_faces);
 

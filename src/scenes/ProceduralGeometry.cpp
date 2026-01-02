@@ -173,8 +173,9 @@ pmp::SurfaceMesh create_dodecahedron()
 	return mesh;
 }
 
-ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
-	VkRenderer& app)
+ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(
+	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
+	VkRenderer& app, SceneState& sceneState)
 {
 		std::vector<VertexPosNorCol> vertices;
 		std::vector<uint32_t> indices;
@@ -209,14 +210,14 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(const pmp::SurfaceMesh& mesh, const st
 			vertices.emplace_back(vert2);
 		}
 
-		auto& pmpMesh = app.sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), mesh_name, vertices, indices, app.graphicsQueue);
-		auto& pmpNode = app.sceneState.graph.nodes.emplace_back();
+		auto& pmpMesh = sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), mesh_name, vertices, indices, app.graphicsQueue);
+		auto& pmpNode = sceneState.graph.nodes.emplace_back();
 		pmpNode.name = node_name;
-		pmpNode.nodeId = app.sceneState.graph.nodes.size() - 1;
-		pmpNode.parent = app.sceneState.graph.root;
+		pmpNode.nodeId = sceneState.graph.nodes.size() - 1;
+		pmpNode.parent = sceneState.graph.root;
 		pmpNode.mesh = &pmpMesh;
 		pmpNode.shaderId = "Goldberg";
-		app.sceneState.graph.root->children.push_back(&pmpNode);
+		sceneState.graph.root->children.push_back(&pmpNode);
 
 		return &pmpMesh;
 }

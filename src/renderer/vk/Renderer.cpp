@@ -76,20 +76,10 @@ void VkRenderer::initialize() {
 }
 
 
-void VkRenderer::initializeScene(std::function<void(VkRenderer&)> loadFunction) {
-	std::lock_guard<std::mutex> lock(scene_mtx);
-	sceneReadyToRender = false;
-	loadFunction(*this);
-	sceneReadyToRender = true;
-}
 
 VkRenderer::~VkRenderer() {
 	faceColorBuffers.clear();
 	faceIdMapBuffers.clear();
-	sceneState.posColTexMeshes.clear();
-	sceneState.posNorTexMeshes.clear();
-	sceneState.posMeshes.clear();
-	sceneState.posNorColMeshes.clear();
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
@@ -388,12 +378,9 @@ void VkRenderer::createUniformBuffers()
 	}
 }
 
-/// <summary>
-/// Must be called after all nodes are loaded
-/// </summary>
-void VkRenderer::createModelMatrices()
+void VkRenderer::createModelMatrices(const size_t size_bytes)
 {
-	VkDeviceSize bufferSize = sizeof(glm::mat4) * sceneState.graph.nodes.size();
+	VkDeviceSize bufferSize = size_bytes;
 	modelMatrixBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 	modelMatrixBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
 
@@ -583,7 +570,7 @@ void VkRenderer::writeDescriptorSets(const ENG::Node& node)
 		assert(modelMatrixBuffers[i].buffer != nullptr);
 		modelMatrixBufferInfo.buffer = modelMatrixBuffers[i].buffer;
 		modelMatrixBufferInfo.offset = 0;
-		modelMatrixBufferInfo.range = sizeof(glm::mat4) * sceneState.modelMatrices.size();
+		modelMatrixBufferInfo.range = modelMatrixBuffers[i].total_size_bytes;
 
 		VkDescriptorBufferInfo faceColorMatrixBufferInfo{};
 		assert(faceColorBuffers[i].buffer != nullptr);

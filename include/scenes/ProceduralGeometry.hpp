@@ -24,5 +24,5 @@ pmp::SurfaceMesh create_hexahedron();
 pmp::SurfaceMesh create_icosahedron();
 pmp::SurfaceMesh create_dodecahedron();
 ENG::Mesh<ENG::VertexPosNorCol>* load_pmp_mesh(
-	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, VkRenderer& app);
+	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, VkRenderer& app, SceneState& sceneState);
 void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh);

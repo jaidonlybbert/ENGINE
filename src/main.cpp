@@ -37,9 +37,9 @@ void stop(asio::io_context& io_context) {
 }
 
 
-void recordCommandsForSceneGraph(VkRenderer& renderer, VkCommandBuffer& commandBuffer)
+void recordCommandsForSceneGraph(VkRenderer& renderer, VkCommandBuffer& commandBuffer, SceneState& sceneState)
 {
-	for (const auto& node : renderer.sceneState.graph.nodes)
+	for (const auto& node : sceneState.graph.nodes)
 	{
 		if (!node.shaderId.has_value())
 		{
@@ -145,13 +145,13 @@ void initLua() {
 
 #include "gui/Gui.hpp"
 
-void initWindow(VkRenderer& app) {
+void initWindow(VkRenderer& app, SceneState& sceneState) {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	app.window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-	glfwSetWindowUserPointer(app.window, &app.sceneState);
+	glfwSetWindowUserPointer(app.window, &sceneState);
 	glfwSetFramebufferSizeCallback(app.window, app.framebufferResizeCallback);
-	glfwGetCursorPos(app.window, &app.sceneState.cursor_x, &app.sceneState.cursor_y);
+	glfwGetCursorPos(app.window, &sceneState.cursor_x, &sceneState.cursor_y);
 	glfwSetScrollCallback(app.window, mouse_scroll_callback);
 	glfwSetKeyCallback(app.window, key_callback);
 	glfwSetMouseButtonCallback(app.window, mouse_button_callback);
@@ -259,39 +259,42 @@ int main() {
 		ENG_LOG_INFO("Starting app" << std::endl);
 
 		Application app;
+		SceneState sceneState;
 		Gui gui;
 		SceneGui sceneGui;
 
 		VkRenderer renderer{
 			{
-				[&renderer]() {initWindow(renderer);},
+				[&renderer, &sceneState]() {initWindow(renderer, sceneState);},
 				[&renderer]() {renderer.initVulkan();},
 				[&renderer]() {renderer.initGui();},
 				[]() {initLua();}
 			}
 		};
 
-		gui.registerDrawCall([&renderer, &sceneGui]() {sceneGui.drawGui(renderer.sceneState);});
+		gui.registerDrawCall([&sceneGui, &sceneState]() {sceneGui.drawGui(sceneState);});
 
 		ENG_LOG_DEBUG(renderer);
 
-		app.registerInitFunction("renderer.initializeScene()", [&renderer]() { renderer.initializeScene(initializeWorldScene); });
+		app.registerInitFunction("renderer.initializeScene()", [&renderer, &sceneState]() { 
+			renderer.sceneReadyToRender = false;
+			initializeWorldScene(renderer, sceneState);
+			renderer.sceneReadyToRender = true;
+			});
 		app.registerCoroutineFunction("listener(tcp::acceptor)", []() {
 			return listener(tcp::acceptor(Application::io_ctx, { tcp::v4(), 8080 }));
 			});
 		ENG_LOG_DEBUG("Server listening on port 8080..." << std::endl);
 
-		renderer.registerCommandRecorder([&renderer](VkCommandBuffer commandBuffer) {
-			recordCommandsForSceneGraph(renderer, commandBuffer);
+		renderer.registerCommandRecorder([&renderer, &sceneState](VkCommandBuffer commandBuffer) {
+			recordCommandsForSceneGraph(renderer, commandBuffer, sceneState);
 			});
-
-		renderer.registerUniformBufferProducer([&renderer]() -> UniformBufferObject {
-			return createUniformBufferObject(renderer.sceneState);
+		renderer.registerUniformBufferProducer([&sceneState]() -> UniformBufferObject {
+			return createUniformBufferObject(sceneState);
 			});
-
-		renderer.registerModelMatrixBufferUpdateFunction([&renderer]() -> std::vector<glm::mat4>&{
-			updateModelMatrices(renderer.sceneState);
-			return renderer.sceneState.modelMatrices;
+		renderer.registerModelMatrixBufferUpdateFunction([&sceneState]() -> std::vector<glm::mat4>&{
+			updateModelMatrices(sceneState);
+			return sceneState.modelMatrices;
 			});
 
 

@@ -1,10 +1,10 @@
 #include "scenes/ProceduralGeometry.hpp"
 
-void create_world_polyhedra(VkRenderer& app)
+void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 {
 	// Seed randomizer
 	// first: 20398475
-	app.gameState.randomizer.seed(20398475);
+	sceneState.randomizer.seed(20398475);
 
 	// Create triangulated goldberg polyhedra including faceIds
 	{
@@ -49,7 +49,7 @@ void create_world_polyhedra(VkRenderer& app)
 		// Choose a random 5 pentagons to be continents
 		std::vector<size_t> samples;
 		std::vector<size_t> choices{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
-		std::sample(choices.begin(), choices.end(), std::back_inserter(samples), 5, app.gameState.randomizer);
+		std::sample(choices.begin(), choices.end(), std::back_inserter(samples), 5, sceneState.randomizer);
 
 		std::uniform_real_distribution<float> randFloatDistribution(0.f, 1.f);
 		// Grow continents (mark faces as land) according to parameters
@@ -86,7 +86,7 @@ void create_world_polyhedra(VkRenderer& app)
 				// If unvisited, assign climate randomly and if land, push halfedge to stack, move to face, continue
 				else if (climate[f.idx()] == UNVISITED)
 				{
-					if (randFloatDistribution(app.gameState.randomizer) < continentGrowthFactor)
+					if (randFloatDistribution(sceneState.randomizer) < continentGrowthFactor)
 					{
 						climate[f.idx()] = LAND;
 						landStack.push({ start_h, h });
@@ -195,7 +195,7 @@ void create_world_polyhedra(VkRenderer& app)
 			primitiveToFaceIdMap.push_back(faceId[f]);
 			ENG_LOG_TRACE("POST TRIANGULURIZATION FACEID: " << faceId[f] << std::endl);
 		}
-		load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", app);
+		load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", app, sceneState);
 
 		app.createFaceIdBuffers(mesh.faces_size());
 		const auto& bufferSize = primitiveToFaceIdMap.size() * sizeof(uint32_t);
@@ -206,7 +206,7 @@ void create_world_polyhedra(VkRenderer& app)
 	}
 }
 
-void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bbName)
+void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bbName, SceneState& sceneState)
 {
 	if (node == nullptr)
 	{
@@ -257,17 +257,17 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 		0, 4, 1, 5, 2, 6, 3, 7
 	};
 
-	auto& bbMesh = app.sceneState.posMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), bbName, bbVertices, bbIndices, app.graphicsQueue);
-	auto& bbNode = app.sceneState.graph.nodes.emplace_back();
+	auto& bbMesh = sceneState.posMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), bbName, bbVertices, bbIndices, app.graphicsQueue);
+	auto& bbNode = sceneState.graph.nodes.emplace_back();
 	bbNode.name = bbName;
-	bbNode.nodeId = app.sceneState.graph.nodes.size() - 1;
+	bbNode.nodeId = sceneState.graph.nodes.size() - 1;
 	bbNode.parent = node;
 	bbNode.mesh = &bbMesh;
 	bbNode.shaderId = "PosBB";
 	node->children.push_back(&bbNode);
 }
 
-void create_tetrahedron_no_pmp(VkRenderer& app)
+void create_tetrahedron_no_pmp(VkRenderer& app, SceneState& sceneState)
 {
 	std::vector<VertexPosNorCol> tetraVertices {
 		{ {1.,  1.,  1.} },
@@ -314,70 +314,70 @@ void create_tetrahedron_no_pmp(VkRenderer& app)
 	}
 
 
-	auto& tetraMesh = app.sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), "TetrahedronMesh", tetraVerticesDuplicated, tetraIndices, app.graphicsQueue);
-	auto& tetraNode = app.sceneState.graph.nodes.emplace_back();
+	auto& tetraMesh = sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), "TetrahedronMesh", tetraVerticesDuplicated, tetraIndices, app.graphicsQueue);
+	auto& tetraNode = sceneState.graph.nodes.emplace_back();
 	tetraNode.name = "Tetrahedron";
-	tetraNode.nodeId = app.sceneState.graph.nodes.size() - 1;
-	tetraNode.parent = app.sceneState.graph.root;
+	tetraNode.nodeId = sceneState.graph.nodes.size() - 1;
+	tetraNode.parent = sceneState.graph.root;
 	tetraNode.mesh = &tetraMesh;
 	tetraNode.shaderId = "PosNorCol";
-	app.sceneState.graph.root->children.push_back(&tetraNode);
+	sceneState.graph.root->children.push_back(&tetraNode);
 }
 
 
-void initializeWorldScene(VkRenderer& app) {
+void initializeWorldScene(VkRenderer& app, SceneState& sceneState) {
 	// TODO: implement pools to avoid reference invalidation on reallocation problem
-	app.sceneState.posColTexMeshes.reserve(100);
-	app.sceneState.posNorTexMeshes.reserve(100);
-	app.sceneState.posMeshes.reserve(100);
-	app.sceneState.posNorColMeshes.reserve(100);
-	app.sceneState.graph.nodes.reserve(100);
-	app.sceneState.graph.cameras.reserve(10);
+	sceneState.posColTexMeshes.reserve(100);
+	sceneState.posNorTexMeshes.reserve(100);
+	sceneState.posMeshes.reserve(100);
+	sceneState.posNorColMeshes.reserve(100);
+	sceneState.graph.nodes.reserve(100);
+	sceneState.graph.cameras.reserve(10);
 
-	auto& attachmentPoint = app.sceneState.graph.nodes.emplace_back();
-	app.sceneState.graph.root = &attachmentPoint;
-	app.sceneState.graph.root->name = "Root";
+	auto& attachmentPoint = sceneState.graph.nodes.emplace_back();
+	sceneState.graph.root = &attachmentPoint;
+	sceneState.graph.root->name = "Root";
 
-	load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), app.sceneState, attachmentPoint);
-	auto& cameraNode = app.sceneState.graph.nodes.at(app.sceneState.activeCameraNodeIdx);
+	load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), sceneState, attachmentPoint);
+	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
 	const auto& meshName = std::string("Room");
-	ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), app.sceneState, attachmentPoint);
+	ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), sceneState, attachmentPoint);
 
 	// Create bounding box around Suzanne
-	auto* suzanneNode = find_node_by_name(app.sceneState.graph, "Suzanne");
-	addBoundingBoxChild(suzanneNode, app, "SuzanneBoundingBox");
+	auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
+	addBoundingBoxChild(suzanneNode, app, "SuzanneBoundingBox", sceneState);
 
 	// Create Tetrahedron
-	create_tetrahedron_no_pmp(app);
+	create_tetrahedron_no_pmp(app, sceneState);
 
 	// Create world mesh
-	create_world_polyhedra(app);
+	create_world_polyhedra(app, sceneState);
 
 	// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
-	app.sceneState.modelMatrices.resize(app.sceneState.graph.nodes.size());
+	sceneState.modelMatrices.resize(sceneState.graph.nodes.size());
 
-	app.createModelMatrices();
+	app.createModelMatrices(sizeof(glm::mat4) * sceneState.graph.nodes.size());
 
-	for (auto& node : app.sceneState.graph.nodes)
+	for (auto& node : sceneState.graph.nodes)
 	{
 		app.createDescriptorSets(node);
 	}
 
 	ENG_LOG_DEBUG("PosColTex Meshes loaded:" << std::endl);
-	for (const auto& mesh : app.sceneState.posColTexMeshes)
+	for (const auto& mesh : sceneState.posColTexMeshes)
 	{
 		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
 	}
 
 	ENG_LOG_DEBUG("PosNorTex Meshes loaded:" << std::endl);
-	for (const auto& mesh : app.sceneState.posNorTexMeshes)
+	for (const auto& mesh : sceneState.posNorTexMeshes)
 	{
 		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
 	}
 
 	ENG_LOG_DEBUG("PosBB Meshes loaded:" << std::endl);
-	for (const auto& mesh : app.sceneState.posMeshes)
+	for (const auto& mesh : sceneState.posMeshes)
 	{
 		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
 	}
@@ -391,17 +391,17 @@ void initializeWorldScene(VkRenderer& app) {
 	{
 		suzanneNode->visible = false;
 	}
-	auto* suzanneBoundingBoxNode = find_node_by_name(app.sceneState.graph, "SuzanneBoundingBox");
+	auto* suzanneBoundingBoxNode = find_node_by_name(sceneState.graph, "SuzanneBoundingBox");
 	if (suzanneBoundingBoxNode != nullptr)
 	{
 		suzanneBoundingBoxNode->visible = false;
 	}
-	auto* roomNode = find_node_by_name(app.sceneState.graph, "Room");
+	auto* roomNode = find_node_by_name(sceneState.graph, "Room");
 	if (roomNode != nullptr)
 	{
 		roomNode->visible = false;
 	}
-	auto* tetrahedronNode = find_node_by_name(app.sceneState.graph, "Tetrahedron");
+	auto* tetrahedronNode = find_node_by_name(sceneState.graph, "Tetrahedron");
 	if (tetrahedronNode != nullptr)
 	{
 		tetrahedronNode->visible = false;
@@ -410,5 +410,5 @@ void initializeWorldScene(VkRenderer& app) {
 	camera->fovy = 0.7;
 
 	cameraNode.translation = glm::vec3(0., 0., 2.);
-	app.sceneState.activeNodeIdx = 3;
+	sceneState.activeNodeIdx = 3;
 }
