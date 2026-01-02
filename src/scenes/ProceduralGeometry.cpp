@@ -215,7 +215,8 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(
 		pmpNode.name = node_name;
 		pmpNode.nodeId = sceneState.graph.nodes.size() - 1;
 		pmpNode.parent = sceneState.graph.root;
-		pmpNode.mesh = &pmpMesh;
+		pmpNode.mesh_idx = sceneState.posNorColMeshes.size() - 1;
+		pmpNode.mesh_type = "VertexPosNorCol";
 		pmpNode.shaderId = "Goldberg";
 		sceneState.graph.root->children.push_back(&pmpNode);
 

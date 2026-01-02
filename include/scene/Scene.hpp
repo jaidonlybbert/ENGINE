@@ -2,6 +2,7 @@
 #define ENG_SCENE
 #include<optional>
 #include<random>
+#include<chrono>
 
 #include "tiny_gltf.h"
 #define GLM_FORCE_RADIANS
@@ -16,7 +17,7 @@ using namespace tinygltf;
 namespace ENG
 {
 
-class Camera : public Component {
+class Camera {
 public:
 	Camera(const tinygltf::Camera& camera) {
 		fovy = static_cast<float>(camera.perspective.yfov);
@@ -46,9 +47,9 @@ public:
 	std::vector<Node*> children;
 	std::vector<size_t> descriptorSetIds;
 	std::optional<std::string> shaderId;
-	Component* mesh { nullptr };
-	Component* kinematic { nullptr };
-	Component* camera { nullptr };
+	std::optional<std::string> mesh_type;
+	std::optional<std::size_t> mesh_idx;
+	Camera* camera { nullptr };
 	bool visible{ true };
 };
 
@@ -75,6 +76,7 @@ struct SceneState {
 	std::vector<glm::mat4> modelMatrices;
 
 	std::mt19937 randomizer;
+	std::chrono::steady_clock::time_point previousPredictionTime;
 
 	~SceneState() {
 		posColTexMeshes.clear();

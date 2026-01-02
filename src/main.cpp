@@ -17,7 +17,11 @@
 #include "tracy/Tracy.hpp"
 #endif
 
+#include "nlohmann/json.hpp"
+#include "glm/gtc/type_ptr.hpp"
+
 #include "renderer/vk/Renderer.hpp"
+#include "renderer/vk_adapter/VkAdapter.hpp"
 #include "logger/Logging.hpp"
 #include "sockets/SocketSessionServer.h"
 #include "scenes/SceneWorld.hpp"
@@ -27,6 +31,7 @@
 #include "gui/Gui.hpp"
 #include "scene/DFT.hpp"
 
+#include "lua.hpp"
 
 void stop(asio::io_context& io_context) {
 	if (io_context.stopped()) {
@@ -36,100 +41,6 @@ void stop(asio::io_context& io_context) {
 	io_context.stop();
 }
 
-
-void recordCommandsForSceneGraph(VkRenderer& renderer, VkCommandBuffer& commandBuffer, SceneState& sceneState)
-{
-	for (const auto& node : sceneState.graph.nodes)
-	{
-		if (!node.shaderId.has_value())
-		{
-			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no shaderId" << std::endl);
-			continue;
-		}
-		const auto& shaderId = node.shaderId.value();
-
-		if (node.mesh == nullptr)
-		{	
-			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no mesh" << std::endl);
-			continue;
-		}
-
-		if (!node.visible)
-		{
-			ENG_LOG_TRACE("Skipping draw for " << node.name << "due to visibility set to false" << std::endl);
-			continue;
-		}
-		ENG_LOG_TRACE("Drawing " << node.name << std::endl);
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipelineFactory->getVkPipeline(shaderId));
-
-		// During scene switching/loading, nodes will be in a partially loaded state not ready to be rendered
-		if (renderer.currentFrame > node.descriptorSetIds.size()) {
-			ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has no descriptor sets" << std::endl);
-			continue;
-		}
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderer.pipelineFactory->getVkPipelineLayout(shaderId),
-			  0, 1, &renderer.descriptorSets.get(node.descriptorSetIds.at(renderer.currentFrame)), 0, nullptr);
-		vkCmdPushConstants(commandBuffer, renderer.pipelineFactory->getVkPipelineLayout(shaderId), VK_SHADER_STAGE_VERTEX_BIT, 0,
-			sizeof(uint32_t), &node.nodeId);
-
-
-		auto* meshPtr = node.mesh;
-		if (dynamic_cast<ENG::Mesh<ENG::VertexPosColTex>*>(meshPtr))
-		{
-			auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosColTex>*>(meshPtr);
-			VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
-		}
-		else if (dynamic_cast<ENG::Mesh<ENG::VertexPosNorTex>*>(meshPtr))
-		{	
-			ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
-			auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosNorTex>*>(meshPtr);
-			VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
-		}
-		else if (dynamic_cast<ENG::Mesh<ENG::VertexPos>*>(meshPtr))
-		{
-			ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
-			auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPos>*>(meshPtr);
-			assert(castPtr != nullptr);
-			assert(castPtr->vertexBuffer != nullptr);
-			assert(castPtr->vertexBuffer->buffer != nullptr);
-			assert(castPtr->indexBuffer != nullptr);
-			assert(castPtr->indexBuffer->buffer != nullptr);
-			VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
-
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, castPtr->indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(castPtr->indices.size()), 1, 0, 0, 0);
-		}
-		else if (dynamic_cast<ENG::Mesh<ENG::VertexPosNorCol>*>(meshPtr))
-		{
-			ENG_LOG_TRACE("Cast for " << node.name << " success" << std::endl);
-			auto* castPtr = dynamic_cast<ENG::Mesh<ENG::VertexPosNorCol>*>(meshPtr);
-			assert(castPtr != nullptr);
-			assert(castPtr->vertexBuffer != nullptr);
-			assert(castPtr->vertexBuffer->buffer != nullptr);
-			assert(castPtr->indexBuffer != nullptr);
-			assert(castPtr->indexBuffer->buffer != nullptr);
-			VkBuffer vertexBuffers[] = {castPtr->vertexBuffer->buffer};
-
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdDraw(commandBuffer, static_cast<uint32_t>(castPtr->vertices.size()), 1, 0, 0);
-		}
-	}
-}
-
-
-#include "lua.hpp"
 
 lua_State* luaState;
 void initLua() {
@@ -143,7 +54,138 @@ void initLua() {
 	}
 }
 
-#include "gui/Gui.hpp"
+enum Action : uint32_t 
+{
+	PrimaryAction,
+	SecondaryAction,
+	PivotView
+};
+
+std::unordered_map<uint32_t, Action> MouseKeyMap{
+	{ GLFW_MOUSE_BUTTON_LEFT, Action::PrimaryAction},
+	{ GLFW_MOUSE_BUTTON_RIGHT, Action::SecondaryAction},
+	{ GLFW_MOUSE_BUTTON_MIDDLE, Action::PivotView},
+};
+
+enum EventType : uint32_t
+{
+	CLIENT_HID_EVENT,
+	SERVER_SCENE_STATE_UPDATE_EVENT
+};
+
+struct ClientHidEvent
+{
+	EventType event_type{ EventType::CLIENT_HID_EVENT };
+	uint32_t actions{ 0 };  // button inputs as a 4 byte array key/button mapping will be configurable
+	double look_dx{ 0. };  // cursor x movement or right joystick
+	double look_dy{ 0. };  // cursor y movement or right joystick
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(ClientHidEvent, event_type, actions, look_dx, look_dy)
+};
+
+inline void to_json(nlohmann::json& j, const glm::mat4& m) {
+    j = nlohmann::json::array();
+    for (int i = 0; i < 16; ++i)
+        j.push_back(glm::value_ptr(m)[i]);
+}
+
+inline void from_json(const nlohmann::json& j, glm::mat4& m) {
+    for (int i = 0; i < 16; ++i)
+        glm::value_ptr(m)[i] = j.at(i).get<float>();
+}
+
+struct ServerSceneStateUpdateEvent
+{
+	EventType eventType{ EventType::SERVER_SCENE_STATE_UPDATE_EVENT };
+	// std::vector<glm::mat4> modelMatrices;
+	//glm::mat4 modelMatrices;
+	//std::chrono::steady_clock::time_point serverTime;
+
+	NLOHMANN_DEFINE_TYPE_INTRUSIVE(ServerSceneStateUpdateEvent, eventType) //modelMatrices)
+};
+
+std::deque<nlohmann::json> clientSideEventSendQueue;
+std::deque<nlohmann::json> clientSideEventReceiveQueue;
+std::deque<nlohmann::json> serverSideEventSendQueue;
+std::deque<nlohmann::json> serverSideEventReceiveQueue;
+
+void sendEventClientToServer(nlohmann::json event_serialized) {
+	clientSideEventSendQueue.push_back(event_serialized);
+}
+
+void sendEventServerToClient(nlohmann::json event_serialized) {
+	serverSideEventSendQueue.push_back(event_serialized);
+}
+
+std::vector<glm::mat4> clientSidePredictCurrentModelMatrices(
+	const std::vector<glm::mat4>& previousPrediction, 
+	const std::vector<glm::mat4>& serverInput,
+	const std::chrono::steady_clock::time_point previousTime,
+	const std::chrono::steady_clock::time_point serverTime)
+{
+	const auto currentTime = std::chrono::steady_clock::now();
+
+	// TODO: some kind of kalman filter - for now take server state
+	return serverInput;
+}
+
+void serverSceneStateUpdateEventHandler(const ServerSceneStateUpdateEvent&& event_, SceneState& sceneState)
+{
+	const auto& modelMatrices = { glm::mat4() };// event_.modelMatrices;
+	// const auto& server_time = std::move(event_.serverTime);
+	const auto server_time = std::chrono::steady_clock::now();
+
+	sceneState.modelMatrices = clientSidePredictCurrentModelMatrices(
+		sceneState.modelMatrices, 
+		modelMatrices,
+		sceneState.previousPredictionTime,
+		server_time);
+}
+
+void dispatchEventFromServer(nlohmann::json serializedEvent, SceneState& sceneState)
+{
+	EventType event_type = static_cast<EventType>(serializedEvent.at("eventType").get<uint32_t>());
+
+	switch (event_type)
+	{
+		case EventType::SERVER_SCENE_STATE_UPDATE_EVENT:
+		{
+			serverSceneStateUpdateEventHandler(serializedEvent.get<ServerSceneStateUpdateEvent>(), sceneState);
+			break;
+		}
+		default:
+			ENG_LOG_ERROR("Client received event type " << event_type << " which is not a handled type." << std::endl);
+			break;
+	}
+	return;
+}
+
+void dispatchEventFromClient(nlohmann::json serializedEvent)
+{
+	return;
+}
+
+void consumeServerEvent(SceneState& sceneState) {
+	if (clientSideEventReceiveQueue.empty())
+	{
+		return;
+	}
+	nlohmann::json serializedEvent = clientSideEventReceiveQueue.front();
+	clientSideEventReceiveQueue.pop_front();
+
+	dispatchEventFromServer(serializedEvent, sceneState);
+}
+
+void consumeClientEvent() {
+	if (serverSideEventReceiveQueue.empty())
+	{
+		return;
+	}
+	nlohmann::json serializedEvent = serverSideEventReceiveQueue.front();
+	serverSideEventReceiveQueue.pop_front();
+
+	dispatchEventFromClient(serializedEvent);
+}
 
 void initWindow(VkRenderer& app, SceneState& sceneState) {
 	glfwInit();

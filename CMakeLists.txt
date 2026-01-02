@@ -91,6 +91,7 @@ target_link_libraries(Engine PUBLIC engine::config)
 target_link_libraries(Engine PUBLIC engine::filesystem)
 target_link_libraries(Engine PUBLIC engine::gui)
 target_link_libraries(Engine PUBLIC engine::vk::renderer)
+target_link_libraries(Engine PUBLIC engine::vk::adapter)
 target_link_libraries(Engine PUBLIC engine::scene)
 target_link_libraries(Engine PUBLIC engine::hid)
 

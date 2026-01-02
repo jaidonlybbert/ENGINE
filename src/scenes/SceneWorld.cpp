@@ -213,23 +213,28 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 		return;
 	}
 		
-	const auto* mesh = checked_cast<ENG::Component, ENG::Mesh<VertexPosNorTex>>(node->mesh);
-	const auto& minXIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+	if (!node->mesh_idx.has_value())
+	{
+		ENG_LOG_ERROR("Attempted to create bounding box on node " << node->name << " which has no mesh index");
+		return;
+	}
+	const auto& mesh = sceneState.posNorTexMeshes.at(node->mesh_idx.value());
+	const auto& minXIt = std::min_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
 		return (rhs.pos.x < lhs.pos.x);
 	});
-	const auto& minYIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+	const auto& minYIt = std::min_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
 		return (rhs.pos.y < lhs.pos.y);
 	});
-	const auto& minZIt = std::min_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+	const auto& minZIt = std::min_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
 		return (rhs.pos.z < lhs.pos.z);
 	});
-	const auto& maxXIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+	const auto& maxXIt = std::max_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
 		return (rhs.pos.x < lhs.pos.x);
 	});
-	const auto& maxYIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+	const auto& maxYIt = std::max_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
 		return (rhs.pos.y < lhs.pos.y);
 	});
-	const auto& maxZIt = std::max_element(mesh->vertices.begin(), mesh->vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
+	const auto& maxZIt = std::max_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
 		return (rhs.pos.z < lhs.pos.z);
 	});
 
@@ -262,7 +267,8 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 	bbNode.name = bbName;
 	bbNode.nodeId = sceneState.graph.nodes.size() - 1;
 	bbNode.parent = node;
-	bbNode.mesh = &bbMesh;
+	bbNode.mesh_type = "VertexPos";
+	bbNode.mesh_idx = sceneState.posMeshes.size() - 1;
 	bbNode.shaderId = "PosBB";
 	node->children.push_back(&bbNode);
 }
@@ -319,7 +325,8 @@ void create_tetrahedron_no_pmp(VkRenderer& app, SceneState& sceneState)
 	tetraNode.name = "Tetrahedron";
 	tetraNode.nodeId = sceneState.graph.nodes.size() - 1;
 	tetraNode.parent = sceneState.graph.root;
-	tetraNode.mesh = &tetraMesh;
+	tetraNode.mesh_type = "VertexPosNorCol";
+	tetraNode.mesh_idx = sceneState.posNorColMeshes.size() - 1;
 	tetraNode.shaderId = "PosNorCol";
 	sceneState.graph.root->children.push_back(&tetraNode);
 }
@@ -406,7 +413,7 @@ void initializeWorldScene(VkRenderer& app, SceneState& sceneState) {
 	{
 		tetrahedronNode->visible = false;
 	}
-	auto* camera = checked_cast<ENG::Component, ENG::Camera>(cameraNode.camera);
+	auto* camera = cameraNode.camera;
 	camera->fovy = 0.7;
 
 	cameraNode.translation = glm::vec3(0., 0., 2.);

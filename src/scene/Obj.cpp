@@ -54,8 +54,8 @@ void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, E
 	}
 
 	auto& mesh = sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, name, vertices, indices, graphicsQueue);
-	auto* meshPtr = dynamic_cast<Component*>(&mesh);
-	newNode.mesh = meshPtr;
+	newNode.mesh_idx = sceneState.posColTexMeshes.size() - 1;
+	newNode.mesh_type = "VertexPosColTex";
 }
 
 } // end namespace

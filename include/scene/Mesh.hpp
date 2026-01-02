@@ -22,18 +22,10 @@ class Model;
 namespace ENG
 {
 
-	class Component {
-		/*
-		 * Base class for components associated with Entities
-		 */
-	public:
-		virtual ~Component() {};
-	};
-
 	static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc);
 
 	template <typename T>
-	class Mesh : public Component {
+	class Mesh {
 
 	public:
 		Mesh() {}
