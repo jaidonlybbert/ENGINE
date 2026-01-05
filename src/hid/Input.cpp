@@ -1,6 +1,8 @@
 #include "GLFW/glfw3.h"
 #include "scene/Scene.hpp"
 #include "logger/Logging.hpp"
+#include "events/Event.hpp"
+#include "hid/Input.hpp"
 #include<iostream>
 
 
@@ -47,18 +49,15 @@ void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 	xoffset = invert_x ? -xoffset : xoffset;
 	yoffset = invert_y ? -yoffset : yoffset;
 
-	auto* sceneState = static_cast<ENG::SceneState*>(glfwGetWindowUserPointer(window));
+	auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
 
 	const auto& shift_state = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT);
 
-	if (sceneState->activeNodeIdx >= sceneState->graph.nodes.size())
-	{
-		ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
-		return;
-	}
-	auto& activeNode = sceneState->graph.nodes.at(sceneState->activeNodeIdx);
-
-	node_rotation_follows_input_preserve_y_as_up(activeNode, xoffset, yoffset);
+	ClientHidEvent hidEvent{};
+	hidEvent.look_dx = xoffset;
+	hidEvent.look_dy = yoffset;
+	hidEvent.actions.push_back(Action::NODE_ROTATION_PRESERVE_Y_AS_UP);
+	windowUserData->eventQueue.push_back(hidEvent);
 
 	if (shift_state == GLFW_PRESS)
 	{
@@ -104,26 +103,33 @@ void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	static double dx, dy = 0.f;
 
-	auto* sceneState = static_cast<ENG::SceneState*>(glfwGetWindowUserPointer(window));
+	auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
 	const auto& middle_mouse_state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
+
 	if (middle_mouse_state == GLFW_PRESS)
 	{
 		ENG_LOG_TRACE("Middle mouse down" << std::endl);
-		dx = xpos - sceneState->cursor_x;
-		dy = ypos - sceneState->cursor_y;
-		sceneState->cursor_x = xpos;
-		sceneState->cursor_y = ypos;
+		dx = xpos - windowUserData->cursor_x;
+		dy = ypos - windowUserData->cursor_y;
+		windowUserData->cursor_x = xpos;
+		windowUserData->cursor_y = ypos;
 
-		ENG_LOG_TRACE("dx: " << dx << " dy: " << dx << std::endl);
+		ClientHidEvent hidEvent{};
+		hidEvent.look_dx = dx;
+		hidEvent.look_dy = dy;
+		hidEvent.actions.push_back(Action::NODE_ROTATION_PRESERVE_Y_AS_UP);
+		windowUserData->eventQueue.push_back(hidEvent);
 
-		if (sceneState->activeNodeIdx >= sceneState->graph.nodes.size())
-		{
-			ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
-			return;
-		}
-		auto& activeNode = sceneState->graph.nodes.at(sceneState->activeNodeIdx);
+		//ENG_LOG_TRACE("dx: " << dx << " dy: " << dx << std::endl);
 
-		node_rotation_follows_input(activeNode, dx, dy);
+		//if (sceneState->activeNodeIdx >= sceneState->graph.nodes.size())
+		//{
+		//	ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
+		//	return;
+		//}
+		//auto& activeNode = sceneState->graph.nodes.at(sceneState->activeNodeIdx);
+
+		//node_rotation_follows_input(activeNode, dx, dy);
 	}
 	else 
 	{
@@ -141,13 +147,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_T && action == GLFW_PRESS)
 	{
 		ENG_LOG_TRACE("Toggle settings window visibility" << std::endl);
-		auto* sceneState = static_cast<ENG::SceneState*>(glfwGetWindowUserPointer(window));
+		auto* sceneState = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
 		// settings.showSettings = !settings.showSettings;
 	}
 	if (key == GLFW_KEY_E && action == GLFW_PRESS)
 	{
 		ENG_LOG_TRACE("E key down" << std::endl);
-		auto* sceneState = static_cast<ENG::SceneState*>(glfwGetWindowUserPointer(window));
+		auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
 		// auto& camera_rotation = sceneState->graph.nodes[sceneState->activeCameraNodeIdx].rotation;
 		// auto cam_quat = glm::quat(camera_rotation[3], camera_rotation[0], camera_rotation[1], camera_rotation[2]);
 		// rotate 3 degrees around x-axis when E is pressed
@@ -162,7 +168,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_R && action == GLFW_PRESS)
 	{
 		ENG_LOG_TRACE("R key down" << std::endl);
-		auto* sceneState = static_cast<ENG::SceneState*>(glfwGetWindowUserPointer(window));
+		auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
 		// auto& test_rot = sceneState->test_model;
 		// rotate 3 degrees around y-axis when E is pressed
 		// auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -172,13 +178,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	auto* sceneState = static_cast<ENG::SceneState*>(glfwGetWindowUserPointer(window));
+	auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
 
 	if (button == GLFW_MOUSE_BUTTON_MIDDLE)
 	{
 		if (action == GLFW_PRESS) // && initial_press)
 		{
-			glfwGetCursorPos(window, &sceneState->cursor_x, &sceneState->cursor_y);
+			glfwGetCursorPos(window, &windowUserData->cursor_x, &windowUserData->cursor_y);
 			ENG_LOG_TRACE("Middle mouse initial press" << std::endl);
 		}
 		else // action is GLFW_RELEASE

@@ -9,4 +9,8 @@ if (WIN32)
 	target_compile_definitions(engine_hid PRIVATE _WIN32_WINNT=0x0A00)
 endif()
 
-target_link_libraries(engine_hid PUBLIC glfw engine::scene engine::logger)
+target_link_libraries(engine_hid PUBLIC 
+	glfw 
+	engine::scene 
+	engine::logger
+	engine::events)

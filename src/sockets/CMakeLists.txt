@@ -10,4 +10,4 @@ if (WIN32)
 endif()
 
 find_package(asio REQUIRED)
-target_link_libraries(engine_sockets PUBLIC asio::asio)
+target_link_libraries(engine_sockets PUBLIC asio::asio engine::events)

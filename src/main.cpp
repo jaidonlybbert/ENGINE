@@ -30,6 +30,7 @@
 #include "guis/SceneGui.hpp"
 #include "gui/Gui.hpp"
 #include "scene/DFT.hpp"
+#include "events/Event.hpp"
 
 #include "lua.hpp"
 
@@ -53,35 +54,6 @@ void initLua() {
 		throw std::runtime_error("Failed running test lua script from string");
 	}
 }
-
-enum Action : uint32_t 
-{
-	PrimaryAction,
-	SecondaryAction,
-	PivotView
-};
-
-std::unordered_map<uint32_t, Action> MouseKeyMap{
-	{ GLFW_MOUSE_BUTTON_LEFT, Action::PrimaryAction},
-	{ GLFW_MOUSE_BUTTON_RIGHT, Action::SecondaryAction},
-	{ GLFW_MOUSE_BUTTON_MIDDLE, Action::PivotView},
-};
-
-enum EventType : uint32_t
-{
-	CLIENT_HID_EVENT,
-	SERVER_SCENE_STATE_UPDATE_EVENT
-};
-
-struct ClientHidEvent
-{
-	EventType event_type{ EventType::CLIENT_HID_EVENT };
-	uint32_t actions{ 0 };  // button inputs as a 4 byte array key/button mapping will be configurable
-	double look_dx{ 0. };  // cursor x movement or right joystick
-	double look_dy{ 0. };  // cursor y movement or right joystick
-
-	NLOHMANN_DEFINE_TYPE_INTRUSIVE(ClientHidEvent, event_type, actions, look_dx, look_dy)
-};
 
 inline void to_json(nlohmann::json& j, const glm::mat4& m) {
     j = nlohmann::json::array();
@@ -187,13 +159,13 @@ void consumeClientEvent() {
 	dispatchEventFromClient(serializedEvent);
 }
 
-void initWindow(VkRenderer& app, SceneState& sceneState) {
+void initWindow(VkRenderer& app, WindowUserData& windowUserData) {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	app.window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-	glfwSetWindowUserPointer(app.window, &sceneState);
+	glfwSetWindowUserPointer(app.window, &windowUserData);
 	glfwSetFramebufferSizeCallback(app.window, app.framebufferResizeCallback);
-	glfwGetCursorPos(app.window, &sceneState.cursor_x, &sceneState.cursor_y);
+	glfwGetCursorPos(app.window, &windowUserData.cursor_x, &windowUserData.cursor_y);
 	glfwSetScrollCallback(app.window, mouse_scroll_callback);
 	glfwSetKeyCallback(app.window, key_callback);
 	glfwSetMouseButtonCallback(app.window, mouse_button_callback);
@@ -281,11 +253,32 @@ void updateModelMatrices(SceneState& sceneState)
 	}
 }
 
-void gameLoop(VkRenderer& renderer, Gui& gui) {
+void handleHidEvent(const ClientHidEvent& hidEvent, SceneState& sceneState) {
+	if (sceneState.activeNodeIdx >= sceneState.graph.nodes.size())
+	{
+		ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
+		return;
+	}
+	auto& activeNode = sceneState.graph.nodes.at(sceneState.activeNodeIdx);
+
+	node_rotation_follows_input_preserve_y_as_up(activeNode, hidEvent.look_dx, hidEvent.look_dy);
+}
+
+void handleEvents(std::deque<ClientHidEvent>& eventQueue, SceneState& sceneState) {
+	while (!eventQueue.empty())
+	{
+		const auto& clientEvent = eventQueue.front();
+		handleHidEvent(clientEvent, sceneState);
+		eventQueue.pop_front();
+	}
+}
+
+void gameLoop(VkRenderer& renderer, Gui& gui, WindowUserData& windowUserData, SceneState& sceneState) {
 	while(!glfwWindowShouldClose(renderer.window)) {
 		profilerMarkStart("run_frame");
 
 		glfwPollEvents();
+		handleEvents(windowUserData.eventQueue, sceneState);
 		gui.drawGui();
 		renderer.drawFrame();
 
@@ -301,19 +294,28 @@ int main() {
 		ENG_LOG_INFO("Starting app" << std::endl);
 
 		Application app;
-		SceneState sceneState;
 		Gui gui;
 		SceneGui sceneGui;
+		WindowUserData windowUserData;
 
 		VkRenderer renderer{
 			{
-				[&renderer, &sceneState]() {initWindow(renderer, sceneState);},
+				[&renderer, &windowUserData]() {initWindow(renderer, windowUserData);},
 				[&renderer]() {renderer.initVulkan();},
 				[&renderer]() {renderer.initVulkanMemoryAllocator();},
 				[&renderer]() {renderer.initGui();},
 				[]() {initLua();}
+			},
+			{
+				[]() {lua_close(luaState); },
+				[&renderer]() { renderer.cleanupGui(); },
+				[&renderer]() { renderer.cleanupVulkanMemoryAllocator(); },
+				[&renderer]() { renderer.cleanupVulkan(); },
+				[&renderer]() { renderer.cleanupWindow(); }
 			}
 		};
+
+		SceneState sceneState;
 
 		gui.registerDrawCall([&sceneGui, &sceneState]() {sceneGui.drawGui(sceneState);});
 
@@ -324,6 +326,7 @@ int main() {
 			initializeWorldScene(renderer, sceneState);
 			renderer.sceneReadyToRender = true;
 			});
+
 		app.registerCoroutineFunction("listener(tcp::acceptor)", []() {
 			return listener(tcp::acceptor(Application::io_ctx, { tcp::v4(), 8080 }));
 			});
@@ -341,7 +344,9 @@ int main() {
 			});
 
 
-		app.mainThreadFunction = [&renderer, &gui]() {gameLoop(renderer, gui); };
+		app.mainThreadFunction = [&renderer, &gui, &windowUserData, &sceneState]() {
+			gameLoop(renderer, gui, windowUserData, sceneState); 
+		};
 
 		app.start();
 

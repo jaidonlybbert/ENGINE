@@ -69,11 +69,15 @@ struct UniformBufferObject {
 
 class VkRenderer {
 public:
-	VkRenderer(std::vector<std::function<void(void)>> initFunctions);
+	VkRenderer(std::vector<std::function<void(void)>> initFunctions,
+		std::vector<std::function<void(void)>> cleanupFunctions);
 	void initVulkanMemoryAllocator();
 	void initialize();
 	~VkRenderer();
 	void cleanupGui();
+	void cleanupVulkanMemoryAllocator();
+	void cleanupVulkan();
+	void cleanupWindow();
 	friend std::ostream& operator<<(std::ostream& os, VkRenderer& app);
 
 	GLFWwindow* window;
@@ -110,6 +114,7 @@ public:
 	std::unique_ptr<ENG::Swapchain> swapchain;
 	std::vector<std::function<void(VkCommandBuffer)>> commandRecorders;
 	std::vector<std::function<void(void)>> initializationFunctions;
+	std::vector<std::function<void(void)>> cleanupFunctions;
 	std::vector<std::function<void(void)>> renderStateUpdaters;
 	std::function<UniformBufferObject(void)> uniformBufferUpdateFunction;
 	std::function<std::vector<glm::mat4>&(void)> modelMatrixBufferUpdateFunction;

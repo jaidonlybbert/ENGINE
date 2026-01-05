@@ -58,7 +58,11 @@
 
 using namespace ENG;
 
-VkRenderer::VkRenderer(std::vector<std::function<void(void)>> initFunctions) : initializationFunctions(std::move(initFunctions)) {
+VkRenderer::VkRenderer(
+	std::vector<std::function<void(void)>> initFunctions,
+	std::vector<std::function<void(void)>> cleanFunctions
+) : initializationFunctions(std::move(initFunctions)), cleanupFunctions(std::move(cleanFunctions))
+{
 	initialize();
 };
 
@@ -89,25 +93,31 @@ void VkRenderer::initialize() {
 }
 
 VkRenderer::~VkRenderer() {
-	vmaDestroyAllocator(allocator);
 	faceColorBuffers.clear();
 	faceIdMapBuffers.clear();
+	uniformBuffers.clear();
+	modelMatrixBuffers.clear();
 
-	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
+	ENG_LOG_DEBUG("Calling renderer cleanup" << std::endl);
+	for (auto& fun : cleanupFunctions)
+	{
+		fun();
+	}
+}
 
-	cleanupGui();
+void VkRenderer::cleanupVulkanMemoryAllocator() 
+{
+	vmaDestroyAllocator(allocator);
+}
 
+void VkRenderer::cleanupVulkan()
+{
 	swapchain->cleanupSwapChain(device);
-
 	vkDestroySampler(device, textureSampler, nullptr);
 	vkDestroyImageView(device, textureImageView, nullptr);
 	vkDestroyImage(device, textureImage, nullptr);
 	vkFreeMemory(device, textureImageMemory, nullptr);
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-	uniformBuffers.clear();
-	modelMatrixBuffers.clear();
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -125,12 +135,19 @@ VkRenderer::~VkRenderer() {
 	vkDestroySurfaceKHR(instanceFactory->instance, surface, nullptr);
 	vkDestroyDevice(device, nullptr);
 	vkDestroyInstance(instanceFactory->instance, nullptr);
+
+}
+
+void VkRenderer::cleanupWindow()
+{
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
 
-
 void VkRenderer::cleanupGui() {
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 	vkDestroyDescriptorPool(device, imguiPool, nullptr);
 }
 
