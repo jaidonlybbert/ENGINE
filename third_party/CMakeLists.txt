@@ -33,4 +33,4 @@ target_link_libraries(imgui PUBLIC Vulkan::Vulkan)
 target_link_libraries(imgui PUBLIC glfw)
 
 # ---- dynalo ---- #
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/dynalo")
+# add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/dynalo")

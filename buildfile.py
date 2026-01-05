@@ -3,6 +3,7 @@ import shutil
 import platform
 import subprocess
 import argparse
+from buildscripts.buildenv import set_mac_env
 
 
 def run_command(cmd, cwd=None, env=None):
@@ -66,6 +67,7 @@ def main():
         run_command(
             ["cmake", "--build", "--preset", args.preset, "--config", args.buildtype], cwd=source_dir, env=env)
     else:
+        set_mac_env(env, source_dir)
         run_command(
             ["cmake", "--build", "--preset", args.preset], cwd=source_dir, env=env)
 

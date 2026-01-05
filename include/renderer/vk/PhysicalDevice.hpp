@@ -10,7 +10,7 @@ namespace ENG
 static const std::vector<const char*> deviceExtensions {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 #ifdef __APPLE__
-		// Support for MoltenVK for macOS
+		// Support for MoltenVK for macOS, disabled for KosmicKrisp
 		"VK_KHR_portability_subset"
 		// VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
 #endif

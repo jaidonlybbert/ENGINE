@@ -25,7 +25,11 @@ void Device::createLogicalDevice(const VkSurfaceKHR &surface, const VkPhysicalDe
 
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+#ifdef _WIN32
+	// Use of gl_PrimitiveID requires this on Windows or an error is thrown
+	// on MacOS with MoltenVK this is not required
 	deviceFeatures.geometryShader = VK_TRUE;
+#endif
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

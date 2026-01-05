@@ -1,13 +1,13 @@
 #version 450
 
-layout(binding = 0) uniform UniformBufferObject {
-    mat4 model;
-    mat4 view;
-    mat4 proj;
+layout(binding = 0) readonly uniform UniformBufferObject {
+        mat4 model;
+        mat4 view;
+        mat4 proj;
 } ubo;
 
-layout(binding = 1) buffer ModelMatrices {
-    mat4 model[];
+layout(binding = 1) readonly buffer ModelMatrices {
+        mat4 model[];
 };
 
 layout(location = 0) in vec3 inPosition;
@@ -19,17 +19,17 @@ layout(location = 1) out vec3 fragPos;
 layout(location = 2) out vec3 fragColor;
 
 layout(push_constant) uniform PushConstants {
-    uint nodeIndex;
+        uint nodeIndex;
 };
 
 void main() {
-    // world-space position
-    fragPos = vec3(model[nodeIndex] * vec4(inPosition, 1.0));
+        // world-space position
+        fragPos = vec3(model[nodeIndex] * vec4(inPosition, 1.0));
 
-    // transform normals
-    fragNormal = mat3(transpose(inverse(model[nodeIndex]))) * inNormal;
+        // transform normals
+        fragNormal = mat3(transpose(inverse(model[nodeIndex]))) * inNormal;
 
-    fragColor = inColor;
+        fragColor = inColor;
 
-    gl_Position = ubo.proj * ubo.view * vec4(fragPos, 1.0);
+        gl_Position = ubo.proj * ubo.view * vec4(fragPos, 1.0);
 }

@@ -13,7 +13,7 @@ public:
 		auto* devMemoryPtr = this->allocateDeviceMemory(size_bytes, swap_count);
 		std::shared_ptr<T> devSPtr(
 			static_cast<T*>(devMemoryPtr),
-			[](T* p) {
+			[this](T* p) {
 				ENG_LOG_TRACE("Cleaning up memory at " << p << std::endl);
 				this->deallocateDeviceMemory(p);
 			}

@@ -10,7 +10,7 @@ class VkAdapter : RenderAdapterI
 
 	void* allocateDeviceMemory(const std::size_t size_bytes, const std::size_t swap_count) override
 	{
-
+		return nullptr;
 	}
 
 	void deallocateDeviceMemory(void* devMemoryPtr) override

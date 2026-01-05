@@ -4,3 +4,4 @@ build
 CMakeUserPresets.json
 imgui.ini
 *.swp
+*_icd.json

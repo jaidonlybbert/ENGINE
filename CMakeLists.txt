@@ -19,11 +19,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_HOME_DIRECTORY}/build/
 
 if (NOT "$ENV{VULKAN_SDK}" STREQUAL "")
 	set(VULKAN_SDK "$ENV{VULKAN_SDK}" CACHE INTERNAL "Copied from environment variable")
+	cmake_print_variables(VULKAN_SDK)
 endif()
 
 if (NOT "$ENV{DYLD_LIBRARY_PATH}" STREQUAL "")
 	set(DYLD_LIBRARY_PATH "$ENV{DYLD_LIBRARY_PATH}" CACHE INTERNAL "Copied from environment variable")
 	cmake_print_variables(DYLD_LIBRARY_PATH)
+endif()
+
+if (NOT "$ENV{VK_DRIVER_FILES}" STREQUAL "")
+	set(VK_DRIVER_FILES "$ENV{VK_DRIVER_FILES}" CACHE INTERNAL "Copied from environment variable")
+	cmake_print_variables(VK_DRIVER_FILES)
 endif()
 
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/shaders")
@@ -84,7 +90,7 @@ target_link_libraries(Engine PRIVATE flatbuffers::flatbuffers)
 target_link_libraries(Engine PRIVATE asio::asio)
 target_link_libraries(Engine PRIVATE tinygltf)
 target_link_libraries(Engine PRIVATE imgui)
-target_link_libraries(Engine PRIVATE dynalo)
+# target_link_libraries(Engine PRIVATE dynalo)
 target_link_libraries(Engine PRIVATE GPUOpen::VulkanMemoryAllocator)
 
 target_link_libraries(Engine PUBLIC engine::sockets)

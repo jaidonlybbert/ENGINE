@@ -15,20 +15,20 @@ layout(location = 2) in vec2 fragTexCoord;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    vec4 texColor = texture(texSampler, fragTexCoord);
+        vec4 texColor = texture(texSampler, fragTexCoord);
 
-    // Normal vector
-    vec3 N = normalize(fragNormal);
-    // Vector from vertex to light source
-    // vec3 L = normalize(light.lightPos - fragPos);
-    vec3 L = normalize(vec3(2.0, 2.0, 2.0) - fragPos);
-    // Diffuse element of intensity
-    float diff = max(dot(N, L), 0.0);
+        // Normal vector
+        vec3 N = normalize(fragNormal);
+        // Vector from vertex to light source
+        // vec3 L = normalize(light.lightPos - fragPos);
+        vec3 L = normalize(vec3(2.0, 2.0, 2.0) - fragPos);
+        // Diffuse element of intensity
+        float diff = max(dot(N, L), 0.0);
 
-    // vec3 diffuse = diff * light.lightCol;
-    vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
-    vec4 result = vec4(diffuse, 1.0) * texColor;
-    // Final color
-    outColor = result;
-    // outColor = vec4(1.0, 1.0, 1.0, 1.0);
+        // vec3 diffuse = diff * light.lightCol;
+        vec3 diffuse = diff * vec3(1.0, 1.0, 1.0);
+        vec4 result = vec4(diffuse, 1.0) * texColor;
+        // Final color
+        outColor = result;
+        // outColor = vec4(1.0, 1.0, 1.0, 1.0);
 }
