@@ -1,5 +1,24 @@
 #include "scene/Scene.hpp"
 #include "renderer/vk/Renderer.hpp"
+#include "renderer/RendererI.hpp"
+
+class VkAdapter : RenderAdapterI
+{
+
+	std::vector<void*> mappedDevicePtrs;
+	std::vector<VkBuffer> vkBuffers;
+
+	void* allocateDeviceMemory(const std::size_t size_bytes, const std::size_t swap_count) override
+	{
+
+	}
+
+	void deallocateDeviceMemory(void* devMemoryPtr) override
+	{
+
+	}
+};
+
 
 template <typename T>
 void validateMesh(const ENG::Mesh<T>& mesh)

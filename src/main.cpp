@@ -309,6 +309,7 @@ int main() {
 			{
 				[&renderer, &sceneState]() {initWindow(renderer, sceneState);},
 				[&renderer]() {renderer.initVulkan();},
+				[&renderer]() {renderer.initVulkanMemoryAllocator();},
 				[&renderer]() {renderer.initGui();},
 				[]() {initLua();}
 			}

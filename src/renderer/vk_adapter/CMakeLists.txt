@@ -9,4 +9,8 @@ if (WIN32)
 	target_compile_definitions(engine_vk_adapter PRIVATE _WIN32_WINNT=0x0A00)
 endif()
 
-target_link_libraries(engine_vk_adapter PUBLIC Vulkan::Vulkan engine::scene engine::vk::renderer)
+target_link_libraries(engine_vk_adapter PUBLIC 
+	Vulkan::Vulkan 
+	GPUOpen::VulkanMemoryAllocator
+	engine::scene 
+	engine::vk::renderer)

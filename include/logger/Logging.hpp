@@ -1,5 +1,6 @@
 #pragma once
 #include<string_view>
+#include<iostream>
 static constexpr int ENG_LOG_LEVEL{3};
 static constexpr std::string_view ENG_LOG_ERROR_TAG{"ENG_LOG_ERROR"};
 static constexpr std::string_view ENG_LOG_INFO_TAG{"ENG_LOG_INFO"};

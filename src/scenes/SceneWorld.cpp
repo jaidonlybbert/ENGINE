@@ -177,6 +177,9 @@ void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 			faceColors[i] = colorMap[climate[i]];
 		}
 
+		// renderAdapter->allocateMemory(facecount * sizeof(glm::vec4), )
+		// renderAdapter->writeMappedMemory(faceColors.data(), facecount * sizeof(glm::vec4));
+
 		app.createFaceColorBuffers(facecount);
 		const auto& colorBufferSize = faceColors.size() * sizeof(glm::vec4);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)

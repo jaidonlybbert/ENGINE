@@ -10,3 +10,6 @@
 #define TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE
 #define TINYGLTF_NO_INCLUDE_STB_IMAGE
 #include "tiny_gltf.h"
+
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"

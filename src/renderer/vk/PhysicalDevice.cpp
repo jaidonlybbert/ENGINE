@@ -117,7 +117,11 @@ bool PhysicalDevice::isDeviceSuitable(VkPhysicalDevice device, const VkSurfaceKH
 	VkPhysicalDeviceFeatures supportedFeatures;
 	vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+	return indices.isComplete() && 
+		extensionsSupported && 
+		swapChainAdequate && 
+		supportedFeatures.samplerAnisotropy &&
+		supportedFeatures.geometryShader;
 }
 
 void PhysicalDevice::pickPhysicalDevice(const VkInstance& instance, VkPhysicalDevice &physicalDevice, const VkSurfaceKHR &surface) {

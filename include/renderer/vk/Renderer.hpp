@@ -6,6 +6,7 @@
 #include<functional>
 
 #include "vulkan/vulkan_core.h"
+#include "vk_mem_alloc.h"
 
 #include "renderer/vk/pipelines/Pipeline.hpp"
 #include "renderer/vk/pipelines/PipelineFactory.hpp"
@@ -69,6 +70,7 @@ struct UniformBufferObject {
 class VkRenderer {
 public:
 	VkRenderer(std::vector<std::function<void(void)>> initFunctions);
+	void initVulkanMemoryAllocator();
 	void initialize();
 	~VkRenderer();
 	void cleanupGui();
@@ -77,6 +79,7 @@ public:
 	GLFWwindow* window;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device;
+	VmaAllocator allocator;
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 	VkSurfaceKHR surface;

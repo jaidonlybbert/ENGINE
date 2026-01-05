@@ -1,6 +1,7 @@
 #include<stdexcept>
 #include<iostream>
 #include "vulkan/vulkan_core.h"
+#include "vk_mem_alloc.h"
 #include "renderer/vk/Device.hpp"
 #include "renderer/vk/Buffer.hpp"
 #include "logger/Logging.hpp"

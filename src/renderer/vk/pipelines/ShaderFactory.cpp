@@ -3,6 +3,7 @@
 #include<assert.h>
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
 #include "filesystem/FilesystemInterface.hpp"
+#include "logger/Logging.hpp"
 
 static std::vector<char> readFile(const std::filesystem::path& filepath) {
 	std::ifstream file(filepath.native(), std::ios::ate | std::ios::binary);
@@ -67,6 +68,7 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
 	get_filepaths();
 
 	for (size_t i = 0; i < filepaths.size(); ++i) {
+		ENG_LOG_INFO("Creating module for " << filepaths.at(i) << std::endl);
 		modules.push_back(createShaderModule(device, readFile(filepaths.at(i))));
 	}
 
@@ -98,6 +100,8 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
 		{"PosNorCol", {&stages.at(6), &stages.at(7)}},
 		{"Goldberg",  {&stages.at(8), &stages.at(9)}}
 	};
+
+	ENG_LOG_INFO("Loaded all shader modules" << std::endl);
 }
 
 ShaderFactory::~ShaderFactory() {

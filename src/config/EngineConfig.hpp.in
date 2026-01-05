@@ -1,4 +1,5 @@
 // Configuration options for Engine project
+#define Engine_VK_API_VERSION VK_API_VERSION_1_3
 #define Engine_NAME "@PROJECT_NAME@"
 #define Engine_VERSION_MAJOR @Engine_VERSION_MAJOR@
 #define Engine_VERSION_MINOR @Engine_VERSION_MINOR@

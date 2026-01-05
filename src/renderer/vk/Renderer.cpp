@@ -1,3 +1,5 @@
+// stdlib includes
+#include<chrono>
 #include<iostream>
 #include<iterator>
 #include<stack>
@@ -17,47 +19,42 @@
 #include<filesystem>
 #include<random>
 
+// third-party includes
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <chrono>
 #include "vulkan/vulkan_core.h"
+#include<vk_mem_alloc.h>
 #include "GLFW/glfw3.h"
-
 #include<tiny_gltf.h>
 #include<tiny_obj_loader.h>
 #include<stb_image.h>
-
 #ifdef _WIN32
 #include "tracy/Tracy.hpp"
 #endif
-
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
-
+// project includes
+#include "logger/Logging.hpp"
 #include "EngineConfig.hpp"
+#include "filesystem/FilesystemInterface.hpp"
+#include "gui/Gui.hpp"
+
+// renderer includes
 #include "renderer/vk/Utils.hpp"
-#include "scene/Mesh.hpp"
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
 #include "renderer/vk/pipelines/PipelineFactory.hpp"
-#include "filesystem/FilesystemInterface.hpp"
 #include "renderer/vk/Command.hpp"
 #include "renderer/vk/Swapchain.hpp"
 #include "renderer/vk/Device.hpp"
 #include "renderer/vk/PhysicalDevice.hpp"
 #include "renderer/vk/Image.hpp"
-#include "scene/Obj.hpp"
-#include "scene/Scene.hpp"
-#include "scene/Gltf.hpp"
 #include "renderer/vk/Instance.hpp"
 #include "renderer/vk/Buffer.hpp"
-#include "logger/Logging.hpp"
-#include "gui/Gui.hpp"
 #include "renderer/vk/Renderer.hpp"
-#include "scene/DFT.hpp"
 
 using namespace ENG;
 
@@ -69,15 +66,30 @@ void VkRenderer::registerInitializationFunction(std::function<void(void)> initFu
 	initializationFunctions.push_back(initFunc);
 }
 
+void VkRenderer::initVulkanMemoryAllocator() {
+	VmaVulkanFunctions vulkanFunctions = {};
+	vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+	vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
+	VmaAllocatorCreateInfo allocatorCreateInfo = {};
+	allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+	allocatorCreateInfo.vulkanApiVersion = Engine_VK_API_VERSION;
+	allocatorCreateInfo.physicalDevice = physicalDevice;
+	allocatorCreateInfo.device = device;
+	allocatorCreateInfo.instance = instanceFactory->instance;
+	allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+
+	vmaCreateAllocator(&allocatorCreateInfo, &allocator);
+}
+
 void VkRenderer::initialize() {
 	for (auto& initFunc : initializationFunctions) {
 		initFunc();
 	}
 }
 
-
-
 VkRenderer::~VkRenderer() {
+	vmaDestroyAllocator(allocator);
 	faceColorBuffers.clear();
 	faceIdMapBuffers.clear();
 
