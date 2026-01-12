@@ -4,6 +4,11 @@
 namespace ENG
 {
 
+Node& get_node_by_id(SceneGraph& sceneGraph, const size_t nodeId)
+{
+	return sceneGraph.nodes.at(nodeId);
+}
+
 glm::mat4 transformation_matrix(const Node& node)
 {
 	glm::mat4 model_matrix = glm::mat4(1.0f);

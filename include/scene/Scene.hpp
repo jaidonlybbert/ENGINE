@@ -59,7 +59,10 @@ struct SceneGraph {
 	Node* root{ nullptr };
 	std::vector<Node> nodes;
 	std::vector<Camera> cameras;
+
 };
+
+Node& get_node_by_id(SceneGraph& sceneGraph, const size_t nodeId);
 
 struct SceneState {
 	SceneGraph graph;

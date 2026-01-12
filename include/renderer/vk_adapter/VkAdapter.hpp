@@ -1,6 +1,17 @@
+#pragma once
 #include "scene/Scene.hpp"
 #include "renderer/vk/Renderer.hpp"
 #include "renderer/RendererI.hpp"
+
+struct alignas(CACHE_LINE_SIZE) DrawData
+{
+	VkDescriptorSet descriptorSets[MAX_FRAMES_IN_FLIGHT];
+	VkBuffer vertexBuffers[1];
+	VkDeviceSize vertexBufferOffsets[1];
+	VkBuffer indexBuffer;
+	uint32_t numberOfElements;
+};
+
 
 class VkAdapter : RenderAdapterI
 {

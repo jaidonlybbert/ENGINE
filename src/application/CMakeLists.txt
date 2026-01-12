@@ -1,5 +1,6 @@
 add_library(engine_application STATIC
-	"${CMAKE_CURRENT_SOURCE_DIR}/Application.cpp")
+	"${CMAKE_CURRENT_SOURCE_DIR}/Application.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/ConcurrentQueue.cpp")
 add_library(engine::application ALIAS engine_application)
 
 target_include_directories(engine_application PUBLIC "${PROJECT_SOURCE_DIR}/include")

@@ -1,4 +1,6 @@
 #include "scenes/ProceduralGeometry.hpp"
+#include "scene/Mesh.hpp"
+#include "application/ConcurrentQueue.hpp"
 
 void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 {
@@ -276,7 +278,8 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 	node->children.push_back(&bbNode);
 }
 
-void create_tetrahedron_no_pmp(VkRenderer& app, SceneState& sceneState)
+
+void create_tetrahedron_no_pmp2(SceneState& sceneState, ConcurrentQueue<BindHostMeshDataEvent>& bindEvents)
 {
 	std::vector<VertexPosNorCol> tetraVertices {
 		{ {1.,  1.,  1.} },
@@ -322,20 +325,55 @@ void create_tetrahedron_no_pmp(VkRenderer& app, SceneState& sceneState)
 		}
 	}
 
-
-	auto& tetraMesh = sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), "TetrahedronMesh", tetraVerticesDuplicated, tetraIndices, app.graphicsQueue);
 	auto& tetraNode = sceneState.graph.nodes.emplace_back();
 	tetraNode.name = "Tetrahedron";
 	tetraNode.nodeId = sceneState.graph.nodes.size() - 1;
 	tetraNode.parent = sceneState.graph.root;
-	tetraNode.mesh_type = "VertexPosNorCol";
-	tetraNode.mesh_idx = sceneState.posNorColMeshes.size() - 1;
-	tetraNode.shaderId = "PosNorCol";
 	sceneState.graph.root->children.push_back(&tetraNode);
+
+	bindEvents.push(
+		BindHostMeshDataEvent{
+			HostMeshData{
+				std::move(tetraVerticesDuplicated),
+				std::move(tetraIndices),
+				"VertexPosNorCol",
+				"PosNorCol"
+			},
+			tetraNode.nodeId
+		}
+	);
 }
 
 
-void initializeWorldScene(VkRenderer& app, SceneState& sceneState) {
+void init_for_vulkan_tetrahedron(VkRenderer& renderer, SceneState& sceneState, ConcurrentQueue<BindHostMeshDataEvent>& bindEvents)
+{
+	while (!bindEvents.empty())
+	{
+		const auto bindEvent = bindEvents.pop();
+
+		const auto& mesh = bindEvent.meshData;
+		auto& node = get_node_by_id(sceneState.graph, bindEvent.nodeId);
+
+		if (std::holds_alternative<std::vector<VertexPosNorCol>>(mesh.vertexBuffer))
+		{
+			auto& tetraMesh = sceneState.posNorColMeshes.emplace_back(
+				renderer.device, renderer.physicalDevice, renderer.commands.get(), 
+				"TetrahedronMesh", 
+				std::get<std::vector<VertexPosNorCol>>(mesh.vertexBuffer), 
+				mesh.indexBuffer, 
+				renderer.graphicsQueue);
+
+			node.mesh_type = "VertexPosNorCol";
+			node.mesh_idx = sceneState.posNorColMeshes.size() - 1;
+			node.shaderId = "PosNorCol";
+		}
+
+
+	}
+
+}
+
+void initializeWorldScene(VkRenderer& renderer, SceneState& sceneState) {
 	// TODO: implement pools to avoid reference invalidation on reallocation problem
 	sceneState.posColTexMeshes.reserve(100);
 	sceneState.posNorTexMeshes.reserve(100);
@@ -348,30 +386,39 @@ void initializeWorldScene(VkRenderer& app, SceneState& sceneState) {
 	sceneState.graph.root = &attachmentPoint;
 	sceneState.graph.root->name = "Root";
 
-	load_gltf(app.device, app.physicalDevice, app.graphicsQueue, app.commands.get(), get_gltf_dir(), sceneState, attachmentPoint);
+	load_gltf(renderer.device, renderer.physicalDevice, renderer.graphicsQueue, 
+		renderer.commands.get(), get_gltf_dir(), sceneState, attachmentPoint);
 	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
 	const auto& meshName = std::string("Room");
-	ENG::loadModel(app.device, app.physicalDevice, app.commands.get(), meshName, app.graphicsQueue, get_model_dir(), sceneState, attachmentPoint);
+	ENG::loadModel(renderer.device, renderer.physicalDevice, renderer.commands.get(), meshName, 
+		renderer.graphicsQueue, get_model_dir(), sceneState, attachmentPoint);
 
 	// Create bounding box around Suzanne
 	auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
-	addBoundingBoxChild(suzanneNode, app, "SuzanneBoundingBox", sceneState);
+	addBoundingBoxChild(suzanneNode, renderer, "SuzanneBoundingBox", sceneState);
 
 	// Create Tetrahedron
-	create_tetrahedron_no_pmp(app, sceneState);
+	// create_tetrahedron_no_pmp(renderer, sceneState);
+
+	ConcurrentQueue<BindHostMeshDataEvent> meshBindEventQueue{};
+	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
+	create_tetrahedron_no_pmp2(sceneState, meshBindEventQueue);
+	ENG_LOG_INFO("Init for vulkan tetrahedron2" << std::endl);
+	init_for_vulkan_tetrahedron(renderer, sceneState, meshBindEventQueue);
+	ENG_LOG_INFO("complete tetrahedron2" << std::endl);
 
 	// Create world mesh
-	create_world_polyhedra(app, sceneState);
+	create_world_polyhedra(renderer, sceneState);
 
 	// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 	sceneState.modelMatrices.resize(sceneState.graph.nodes.size());
 
-	app.createModelMatrices(sizeof(glm::mat4) * sceneState.graph.nodes.size());
+	renderer.createModelMatrices(sizeof(glm::mat4) * sceneState.graph.nodes.size());
 
 	for (auto& node : sceneState.graph.nodes)
 	{
-		app.createDescriptorSets(node);
+		renderer.createDescriptorSets(node);
 	}
 
 	ENG_LOG_DEBUG("PosColTex Meshes loaded:" << std::endl);

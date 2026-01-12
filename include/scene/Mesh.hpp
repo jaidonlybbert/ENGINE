@@ -6,6 +6,7 @@
 #include<iostream>
 #include<memory>
 #include<cstring>
+#include<variant>
 #include "vulkan/vulkan_core.h"
 #include "glm/glm.hpp"
 #include "renderer/vk/Buffer.hpp"
@@ -21,6 +22,20 @@ class Model;
 
 namespace ENG
 {
+	struct HostMeshData {
+		std::variant<
+			std::vector<VertexPosColTex>,
+			std::vector<VertexPosNorCol>
+		> vertexBuffer;
+		std::vector<uint32_t> indexBuffer;
+		std::string meshType;
+		std::string shaderId;
+	};
+
+	struct BindHostMeshDataEvent {
+		HostMeshData meshData;
+		uint32_t nodeId;
+	};
 
 	static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc);
 

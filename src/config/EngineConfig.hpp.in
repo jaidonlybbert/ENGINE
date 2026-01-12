@@ -12,5 +12,6 @@
 #define WIDTH static_cast<uint32_t>(1600)
 #define HEIGHT static_cast<uint32_t>(1200)
 #define ENABLE_VALIDATION_LAYERS true
+#define CACHE_LINE_SIZE 64
 #define DEREF_OR_DIE(ptr) ({ if (ptr == nullptr) { throw std::runtime_error("nullptr dereference!"); } *(ptr);}) 
 #define CAST_OR_DIE(ptr) ({ if (ptr == nullptr) { throw std::runtime_error("ptr is null!"); } ptr;})

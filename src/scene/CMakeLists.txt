@@ -1,12 +1,12 @@
 add_library(engine_scene STATIC
 	"${PROJECT_SOURCE_DIR}/src/scene/DFT.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/DrawData.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Gltf.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Mesh.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Mesh2.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Obj.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Scene.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/VulkanAdapter.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scene/Node.cpp"
 )
 add_library(engine::scene ALIAS engine_scene)
 
