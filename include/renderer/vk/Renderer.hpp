@@ -69,13 +69,11 @@ struct UniformBufferObject {
 
 class VkRenderer {
 public:
-	VkRenderer(std::vector<std::function<void(void)>> initFunctions,
+	VkRenderer(bool& framebufferResized, std::vector<std::function<void(void)>> initFunctions,
 		std::vector<std::function<void(void)>> cleanupFunctions);
-	void initVulkanMemoryAllocator();
 	void initialize();
 	~VkRenderer();
 	void cleanupGui();
-	void cleanupVulkanMemoryAllocator();
 	void cleanupVulkan();
 	void cleanupWindow();
 	friend std::ostream& operator<<(std::ostream& os, VkRenderer& app);
@@ -83,7 +81,6 @@ public:
 	GLFWwindow* window;
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device;
-	VmaAllocator allocator;
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 	VkSurfaceKHR surface;
@@ -91,8 +88,8 @@ public:
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
-	bool framebufferResized = false;
 	uint32_t currentFrame = 0;
+	bool& framebufferResized;
 	std::vector<ENG::Buffer> uniformBuffers;
 	std::vector<void*> uniformBuffersMapped;
 	std::vector<ENG::Buffer> modelMatrixBuffers;
@@ -123,7 +120,6 @@ public:
 	bool sceneReadyToRender = false;
 
 	void registerInitializationFunction(std::function<void(void)> initFunc);
-	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 	void initVulkan();
 	VkShaderModule createShaderModule(const std::vector<char>& code);
 	void createSurface();
@@ -131,6 +127,9 @@ public:
 	void registerCommandRecorder(std::function<void(VkCommandBuffer)> commandRecorder);
 	void drawFrame();
 	void createSyncObjects();
+	void createRenderFinishedSemaphores();
+	void destroyRenderFinishedSemaphores();
+	void recreateRenderFinishedSemaphores();
 	void createUniformBuffers();
 
 	/// <summary>
@@ -147,6 +146,20 @@ public:
 	void copyUniformBufferToGpu(const uint32_t currentImage, const UniformBufferObject& ubo);
 
 	void createDescriptorPool();
+
+	VkWriteDescriptorSet createWriteDescriptorSet(
+		const VkDescriptorSet descriptorSet,
+		const VkDescriptorBufferInfo bufferInfo,
+		const VkDescriptorType descriptorType,
+		const size_t bindingIdx
+	);
+
+	VkWriteDescriptorSet createWriteDescriptorSet(
+		const VkDescriptorSet descriptorSet,
+		const VkDescriptorImageInfo imageInfo,
+		const VkDescriptorType descriptorType,
+		const size_t bindingIdx
+	);
 
 	VkWriteDescriptorSet createDescriptorWriteModelMatrix(
 		const ENG::Node& node, 
@@ -178,8 +191,9 @@ public:
 		const size_t bindingIdx,
 		const VkDescriptorBufferInfo& bufferInfo);
 
-	void writeDescriptorSets(const ENG::Node& node);
+	void writeDescriptorSets(const std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId);
 	void createDescriptorSets(ENG::Node& node);
+	void createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId);
 	void createTextureImage();
 	void createTextureImageView();
 	void createTextureSampler();

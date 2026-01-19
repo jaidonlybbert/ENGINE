@@ -193,3 +193,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		}
 	}
 }
+
+void framebufferResizeCallback(GLFWwindow* window, int width, int height) 
+{
+	auto* userData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
+	userData->windowResized = true;
+}
+

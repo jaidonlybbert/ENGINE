@@ -31,6 +31,7 @@ public:
 	float zfar {0.f};
 };
 
+
 class Node {
 	/*
 	 * Base class entities in a scene graph
@@ -49,6 +50,8 @@ public:
 	std::optional<std::string> shaderId;
 	std::optional<std::string> mesh_type;
 	std::optional<std::size_t> mesh_idx;
+	std::optional<std::size_t> draw_data_idx;
+	std::uint32_t propertyFlags{ 0 };
 	Camera* camera { nullptr };
 	bool visible{ true };
 };

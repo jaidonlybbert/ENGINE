@@ -143,7 +143,11 @@ bool load_gltf(const VkDevice& device,
 			sceneState.activeCameraNodeIdx = idx;
 			ENG_LOG_DEBUG("Camera node set with idx: " << idx << std::endl);
 		}
-		load_gltf_node(device, physicalDevice, graphicsQueue, commands, node, sceneState, newNode, model);
+
+		if (node.name == "main_camera")
+		{
+			load_gltf_node(device, physicalDevice, graphicsQueue, commands, node, sceneState, newNode, model);
+		}
 	}
 
 	// Iterate again now that all nodes are loaded, and update parent-child relationships

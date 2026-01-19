@@ -31,7 +31,7 @@ void Application::registerInitFunction(const std::string name, std::function<voi
 		});
 }
 
-void Application::registerCoroutineFunction(const std::string name, std::function<asio::awaitable<void>(void)> fun)
+void Application::registerCoroutine(const std::string name, std::function<asio::awaitable<void>(void)> fun)
 {
 	coroutineErrors.emplace_back(nullptr);
 	std::exception_ptr& this_error = coroutineErrors.back();

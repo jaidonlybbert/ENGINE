@@ -16,12 +16,25 @@ void initForVulkan(
 
 void recordDrawDataCommand(
 	VkCommandBuffer& commandBuffer,
-	DrawData drawData
+	DrawData drawData,
+	const bool indexedDraw
 )
 {
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, drawData.vertexBuffers, drawData.vertexBufferOffsets);
-	vkCmdBindIndexBuffer(commandBuffer, drawData.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdDrawIndexed(commandBuffer, drawData.numberOfElements, 1, 0, 0, 0);
+	if (!drawData.bufferAllocationInfo.has_value()) {
+		ENG_LOG_ERROR("Attempted to record draw data command for drawdata without buffer allocation info" << std::endl);
+	}
+	auto& allocationInfo = drawData.bufferAllocationInfo.value();
+
+	if (indexedDraw)
+	{
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, allocationInfo.vertexBuffers, allocationInfo.vertexBufferOffsets);
+		vkCmdBindIndexBuffer(commandBuffer, allocationInfo.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(commandBuffer, allocationInfo.indexCount, 1, 0, 0, 0);
+	}
+	else {
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, allocationInfo.vertexBuffers, allocationInfo.vertexBufferOffsets);
+		vkCmdDraw(commandBuffer, allocationInfo.vertexAllocationInfo.size, 1, 0, 0);
+	}
 }
 
 void recordDrawMeshCommand(
@@ -57,18 +70,58 @@ void recordDrawMeshCommand(
 		assert(mesh_idx < sceneState.posNorColMeshes.size());
 		auto& mesh = sceneState.posNorColMeshes.at(mesh_idx);
 		validateMesh(mesh);
-		VkBuffer vertexBuffers[] = {mesh.vertexBuffer->buffer};
-		VkDeviceSize offsets[] = {0};
+		VkBuffer vertexBuffers[] = { mesh.vertexBuffer->buffer };
+		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 		vkCmdDraw(commandBuffer, static_cast<uint32_t>(mesh.vertices.size()), 1, 0, 0);
 	}
 }
 
 
-void recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuffer& commandBuffer, SceneState& sceneState)
+void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuffer& commandBuffer, SceneState& sceneState)
 {
 	for (const auto& node : sceneState.graph.nodes)
 	{
+		if (!node.draw_data_idx.has_value())
+		{
+			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no DrawData" << std::endl);
+			continue;
+		}
+		auto* drawDataPtr = getDrawDataFromIdx(node.draw_data_idx.value());
+
+		if (!drawDataPtr)
+		{
+			ENG_LOG_ERROR("Attempted to get draw data for index that does not exist" << std::endl);
+			continue;
+		}
+
+		if (!
+			((drawDataPtr->initFlags & DrawDataInitializationFlags::VERTEX_BUFFERS) && 
+			(drawDataPtr->initFlags & DrawDataInitializationFlags::INDEX_BUFFERS)))
+		{
+			ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has unbound draw data" << std::endl);
+			continue;
+		}
+
+		if (!drawDataPtr->descriptorSets.has_value())
+		{
+			ENG_LOG_DEBUG("Skipping draw call for " << node.name << " without descriptor sets" << std::endl);
+			continue;
+		}
+
+		const auto& descriptorSets = drawDataPtr->descriptorSets.value();
+		if (descriptorSets.size() != MAX_FRAMES_IN_FLIGHT)
+		{
+			ENG_LOG_DEBUG("Skipping draw call for " << node.name << " missing descriptor sets" << std::endl);
+			continue;
+		}
+
+		if (!(drawDataPtr->initFlags & DrawDataInitializationFlags::DESCRIPTOR_SETS))
+		{
+			ENG_LOG_DEBUG("Skipping draw call for " << node.name << " uninitialized descriptor sets" << std::endl);
+			continue;
+		}
+
 		if (!node.shaderId.has_value())
 		{
 			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no shaderId" << std::endl);
@@ -76,30 +129,17 @@ void recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuffer& command
 		}
 		const auto& shaderId = node.shaderId.value();
 
-		if (!node.mesh_idx.has_value() || !node.mesh_type.has_value())
-		{	
-			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no mesh" << std::endl);
-			continue;
-		}
-
 		if (!node.visible)
 		{
 			ENG_LOG_TRACE("Skipping draw for " << node.name << "due to visibility set to false" << std::endl);
 			continue;
 		}
+
 		ENG_LOG_TRACE("Drawing " << node.name << std::endl);
 		vkCmdBindPipeline(
 				commandBuffer, 
 				VK_PIPELINE_BIND_POINT_GRAPHICS, 
 				renderer.pipelineFactory->getVkPipeline(shaderId));
-
-		// During scene switching/loading, nodes will be in a partially loaded state not ready to be rendered
-
-		if (renderer.currentFrame > node.descriptorSetIds.size()) {
-			ENG_LOG_DEBUG(
-				"Skipping draw for " << node.name << " which has no descriptor sets" << std::endl);
-			continue;
-		}
 
 		vkCmdBindDescriptorSets(
 				commandBuffer, 
@@ -107,7 +147,7 @@ void recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuffer& command
 				renderer.pipelineFactory->getVkPipelineLayout(shaderId),
 				0, 
 				1, 
-				&renderer.descriptorSets.get(node.descriptorSetIds.at(renderer.currentFrame)), 
+				descriptorSets.data(),
 				0, 
 				nullptr);
 
@@ -119,10 +159,8 @@ void recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuffer& command
 				sizeof(uint32_t), 
 				&node.nodeId);
 
-
-		auto& mesh_type = node.mesh_type.value();
-		auto mesh_idx = node.mesh_idx.value();
-		recordDrawMeshCommand(commandBuffer, mesh_type, mesh_idx, sceneState);
+		const auto indexedDraw = shaderId == "PosNorCol" ? false : true;
+		recordDrawDataCommand(commandBuffer, *drawDataPtr, indexedDraw);
 	}
 
 

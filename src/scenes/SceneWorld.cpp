@@ -1,5 +1,7 @@
+#include <optional>
 #include "scenes/ProceduralGeometry.hpp"
 #include "scene/Mesh.hpp"
+#include "renderer/vk_adapter/VkAdapter.hpp"
 #include "application/ConcurrentQueue.hpp"
 
 void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
@@ -279,7 +281,7 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 }
 
 
-void create_tetrahedron_no_pmp2(SceneState& sceneState, ConcurrentQueue<BindHostMeshDataEvent>& bindEvents)
+void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<BindHostMeshDataEvent>& meshBindQueue)
 {
 	std::vector<VertexPosNorCol> tetraVertices {
 		{ {1.,  1.,  1.} },
@@ -331,7 +333,7 @@ void create_tetrahedron_no_pmp2(SceneState& sceneState, ConcurrentQueue<BindHost
 	tetraNode.parent = sceneState.graph.root;
 	sceneState.graph.root->children.push_back(&tetraNode);
 
-	bindEvents.push(
+	meshBindQueue.push(
 		BindHostMeshDataEvent{
 			HostMeshData{
 				std::move(tetraVerticesDuplicated),
@@ -345,35 +347,53 @@ void create_tetrahedron_no_pmp2(SceneState& sceneState, ConcurrentQueue<BindHost
 }
 
 
-void init_for_vulkan_tetrahedron(VkRenderer& renderer, SceneState& sceneState, ConcurrentQueue<BindHostMeshDataEvent>& bindEvents)
+
+
+void init_for_vulkan_tetrahedron(
+	VkAdapter& adapter,
+	SceneState& sceneState,
+	ConcurrentQueue<BindHostMeshDataEvent>& bindEvents
+)
 {
 	while (!bindEvents.empty())
 	{
-		const auto bindEvent = bindEvents.pop();
+		auto bindEvent = bindEvents.pop();
 
-		const auto& mesh = bindEvent.meshData;
+		auto& hostMesh = bindEvent.meshData;
 		auto& node = get_node_by_id(sceneState.graph, bindEvent.nodeId);
 
-		if (std::holds_alternative<std::vector<VertexPosNorCol>>(mesh.vertexBuffer))
+		if (std::holds_alternative<std::vector<VertexPosNorCol>>(hostMesh.vertexBuffer))
 		{
-			auto& tetraMesh = sceneState.posNorColMeshes.emplace_back(
-				renderer.device, renderer.physicalDevice, renderer.commands.get(), 
-				"TetrahedronMesh", 
-				std::get<std::vector<VertexPosNorCol>>(mesh.vertexBuffer), 
-				mesh.indexBuffer, 
-				renderer.graphicsQueue);
 
-			node.mesh_type = "VertexPosNorCol";
-			node.mesh_idx = sceneState.posNorColMeshes.size() - 1;
-			node.shaderId = "PosNorCol";
+			const auto drawIdx = adapter.emplaceDrawData(
+				{
+					DrawDataInitializationFlags::CLEAR,
+					{bindEvent.nodeId},
+					{std::nullopt},  // no descriptor sets
+					adapter.create_draw_data(
+						std::move(std::get<std::vector<VertexPosNorCol>>(hostMesh.vertexBuffer)),
+						std::move(hostMesh.indexBuffer)
+					),
+				}
+			);
+
+			auto* drawDataPtr = adapter.getDrawDataFromIdx(drawIdx);
+			assert(drawDataPtr);
+
+			adapter.commandCompletionHandlerQueue.push([drawDataPtr, &node] {
+				drawDataPtr->initFlags |= DrawDataInitializationFlags::INDEX_BUFFERS;
+				drawDataPtr->initFlags |= DrawDataInitializationFlags::VERTEX_BUFFERS; 
+				ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
+			});
+
+			node.mesh_type = bindEvent.meshData.meshType;
+			node.shaderId = bindEvent.meshData.shaderId;
+			node.draw_data_idx = drawIdx;
 		}
-
-
 	}
-
 }
 
-void initializeWorldScene(VkRenderer& renderer, SceneState& sceneState) {
+void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState) {
 	// TODO: implement pools to avoid reference invalidation on reallocation problem
 	sceneState.posColTexMeshes.reserve(100);
 	sceneState.posNorTexMeshes.reserve(100);
@@ -390,26 +410,26 @@ void initializeWorldScene(VkRenderer& renderer, SceneState& sceneState) {
 		renderer.commands.get(), get_gltf_dir(), sceneState, attachmentPoint);
 	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
-	const auto& meshName = std::string("Room");
-	ENG::loadModel(renderer.device, renderer.physicalDevice, renderer.commands.get(), meshName, 
-		renderer.graphicsQueue, get_model_dir(), sceneState, attachmentPoint);
+	//const auto& meshName = std::string("Room");
+	//ENG::loadModel(renderer.device, renderer.physicalDevice, renderer.commands.get(), meshName, 
+	//	renderer.graphicsQueue, get_model_dir(), sceneState, attachmentPoint);
 
 	// Create bounding box around Suzanne
-	auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
-	addBoundingBoxChild(suzanneNode, renderer, "SuzanneBoundingBox", sceneState);
+	//auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
+	//addBoundingBoxChild(suzanneNode, renderer, "SuzanneBoundingBox", sceneState);
 
 	// Create Tetrahedron
 	// create_tetrahedron_no_pmp(renderer, sceneState);
 
 	ConcurrentQueue<BindHostMeshDataEvent> meshBindEventQueue{};
 	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
-	create_tetrahedron_no_pmp2(sceneState, meshBindEventQueue);
+	create_tetrahedron_no_pmp(sceneState, meshBindEventQueue);
 	ENG_LOG_INFO("Init for vulkan tetrahedron2" << std::endl);
-	init_for_vulkan_tetrahedron(renderer, sceneState, meshBindEventQueue);
+	init_for_vulkan_tetrahedron(adapter, sceneState, meshBindEventQueue);
 	ENG_LOG_INFO("complete tetrahedron2" << std::endl);
 
 	// Create world mesh
-	create_world_polyhedra(renderer, sceneState);
+	//create_world_polyhedra(renderer, sceneState);
 
 	// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 	sceneState.modelMatrices.resize(sceneState.graph.nodes.size());
@@ -418,7 +438,20 @@ void initializeWorldScene(VkRenderer& renderer, SceneState& sceneState) {
 
 	for (auto& node : sceneState.graph.nodes)
 	{
-		renderer.createDescriptorSets(node);
+		if (node.draw_data_idx.has_value())
+		{
+			auto* drawDataPtr = adapter.getDrawDataFromIdx(node.draw_data_idx.value());
+			if (drawDataPtr)
+			{
+				adapter.createDescriptorSets(*drawDataPtr, sceneState.graph);
+				drawDataPtr->initFlags |= DrawDataInitializationFlags::DESCRIPTOR_SETS;
+				ENG_LOG_INFO("Created descriptor sets for " << node.name << std::endl);
+			}
+		}
+		else
+		{
+			renderer.createDescriptorSets(node);
+		}
 	}
 
 	ENG_LOG_DEBUG("PosColTex Meshes loaded:" << std::endl);
@@ -444,25 +477,25 @@ void initializeWorldScene(VkRenderer& renderer, SceneState& sceneState) {
 	ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
 
 	// custom settings overrides
-	if (suzanneNode != nullptr)
-	{
-		suzanneNode->visible = false;
-	}
-	auto* suzanneBoundingBoxNode = find_node_by_name(sceneState.graph, "SuzanneBoundingBox");
-	if (suzanneBoundingBoxNode != nullptr)
-	{
-		suzanneBoundingBoxNode->visible = false;
-	}
-	auto* roomNode = find_node_by_name(sceneState.graph, "Room");
-	if (roomNode != nullptr)
-	{
-		roomNode->visible = false;
-	}
-	auto* tetrahedronNode = find_node_by_name(sceneState.graph, "Tetrahedron");
-	if (tetrahedronNode != nullptr)
-	{
-		tetrahedronNode->visible = false;
-	}
+	//if (suzanneNode != nullptr)
+	//{
+	//	suzanneNode->visible = false;
+	//}
+	//auto* suzanneBoundingBoxNode = find_node_by_name(sceneState.graph, "SuzanneBoundingBox");
+	//if (suzanneBoundingBoxNode != nullptr)
+	//{
+	//	suzanneBoundingBoxNode->visible = false;
+	//}
+	//auto* roomNode = find_node_by_name(sceneState.graph, "Room");
+	//if (roomNode != nullptr)
+	//{
+	//	roomNode->visible = false;
+	//}
+	//auto* tetrahedronNode = find_node_by_name(sceneState.graph, "Tetrahedron");
+	//if (tetrahedronNode != nullptr)
+	//{
+	//	tetrahedronNode->visible = false;
+	//}
 	auto* camera = cameraNode.camera;
 	camera->fovy = 0.7;
 

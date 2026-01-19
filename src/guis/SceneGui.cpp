@@ -64,15 +64,6 @@ void SceneGui::drawGui(ENG::SceneState& sceneState)
 		ImGui::InputFloat3("Camera position", &cameraNode.translation.x);
 		ImGui::InputFloat3("Camera rotation", &cameraNode.rotation.x);
 		
-		auto* roomPtr = find_node_by_name(sceneState.graph, "Room");
-		ImGui::Text("Room properties");
-		ImGui::SliderFloat4("Rotation", &(roomPtr->rotation.x), 0.f, 3.1f);
-		ImGui::SliderFloat3("Location", &(roomPtr->translation.x), 0.f, 3.1f);
-		auto* suzannePtr = find_node_by_name(sceneState.graph, "Suzanne");
-		assert(roomPtr != nullptr);
-		assert(suzannePtr != nullptr);
-		ImGui::Checkbox("Room visible", &roomPtr->visible);
-		ImGui::Checkbox("Suzanne visible", &suzannePtr->visible);
 		ImGui::Text("IDX: Name");
 		for (auto& node : sceneState.graph.nodes) {
 			ImGui::Text("%d: %s", node.nodeId, node.name.c_str());

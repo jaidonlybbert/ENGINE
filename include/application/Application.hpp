@@ -20,7 +20,7 @@ public:
 	~Application();
 
 	void registerInitFunction(const std::string name, std::function<void(void)> fun);
-	void registerCoroutineFunction(const std::string name, std::function<asio::awaitable<void>(void)> fun);
+	void registerCoroutine(const std::string name, std::function<asio::awaitable<void>(void)> fun);
 	void registerDedicatedThread(const std::string name, std::function<void(void)> fun);
 	void start();
 	void shutdown();

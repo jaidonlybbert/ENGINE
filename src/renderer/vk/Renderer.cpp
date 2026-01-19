@@ -59,9 +59,10 @@
 using namespace ENG;
 
 VkRenderer::VkRenderer(
+	bool& framebufferResized,
 	std::vector<std::function<void(void)>> initFunctions,
 	std::vector<std::function<void(void)>> cleanFunctions
-) : initializationFunctions(std::move(initFunctions)), cleanupFunctions(std::move(cleanFunctions))
+) : framebufferResized(framebufferResized), initializationFunctions(std::move(initFunctions)), cleanupFunctions(std::move(cleanFunctions))
 {
 	initialize();
 };
@@ -70,21 +71,6 @@ void VkRenderer::registerInitializationFunction(std::function<void(void)> initFu
 	initializationFunctions.push_back(initFunc);
 }
 
-void VkRenderer::initVulkanMemoryAllocator() {
-	VmaVulkanFunctions vulkanFunctions = {};
-	vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
-	vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
-
-	VmaAllocatorCreateInfo allocatorCreateInfo = {};
-	allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
-	allocatorCreateInfo.vulkanApiVersion = Engine_VK_API_VERSION;
-	allocatorCreateInfo.physicalDevice = physicalDevice;
-	allocatorCreateInfo.device = device;
-	allocatorCreateInfo.instance = instanceFactory->instance;
-	allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
-
-	vmaCreateAllocator(&allocatorCreateInfo, &allocator);
-}
 
 void VkRenderer::initialize() {
 	for (auto& initFunc : initializationFunctions) {
@@ -105,10 +91,6 @@ VkRenderer::~VkRenderer() {
 	}
 }
 
-void VkRenderer::cleanupVulkanMemoryAllocator() 
-{
-	vmaDestroyAllocator(allocator);
-}
 
 void VkRenderer::cleanupVulkan()
 {
@@ -120,9 +102,12 @@ void VkRenderer::cleanupVulkan()
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
 		vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
 		vkDestroyFence(device, inFlightFences[i], nullptr);
+	}
+
+	for (auto& s : renderFinishedSemaphores) {
+		vkDestroySemaphore(device, s, nullptr);
 	}
 
 	commands.reset();
@@ -181,12 +166,6 @@ std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
 		ENG_LOG_DEBUG('\t' << extension << std::endl);
 	}
 	return os;
-}
-
-void VkRenderer::framebufferResizeCallback(GLFWwindow* window, int width, int height) 
-{
-	auto app = reinterpret_cast<VkRenderer*>(glfwGetWindowUserPointer(window));
-	app->framebufferResized = true;
 }
 
 void VkRenderer::initVulkan() 
@@ -296,23 +275,25 @@ void VkRenderer::registerUniformBufferProducer(std::function<UniformBufferObject
 }
 
 
-void VkRenderer::registerModelMatrixBufferUpdateFunction(std::function<std::vector<glm::mat4>&()> updateFun)
+void VkRenderer::registerModelMatrixBufferUpdateFunction(std::function<std::vector<glm::mat4>& ()> updateFun)
 {
 	modelMatrixBufferUpdateFunction = updateFun;
 }
 
-void VkRenderer::drawFrame() 
+void VkRenderer::drawFrame()
 {
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 	uint32_t imageIndex;
 
-	VkResult result = vkAcquireNextImageKHR(device, swapchain->swapChain, UINT64_MAX, 
+	VkResult result = vkAcquireNextImageKHR(device, swapchain->swapChain, UINT64_MAX,
 		imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 		swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
+		recreateRenderFinishedSemaphores();
 		return;
-	} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
@@ -331,19 +312,21 @@ void VkRenderer::drawFrame()
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-	VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
-	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+	VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &(commands->commandBuffers[currentFrame]);
 
-	VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+	VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[imageIndex] };
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+	auto* submitInfoPtr = &submitInfo;
+	auto inFlightFence = inFlightFences[currentFrame];
+	if (vkQueueSubmit(graphicsQueue, 1, submitInfoPtr, inFlightFence) != VK_SUCCESS) {
 		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
@@ -353,7 +336,7 @@ void VkRenderer::drawFrame()
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = {swapchain->swapChain};
+	VkSwapchainKHR swapChains[] = { swapchain->swapChain };
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &imageIndex;
@@ -364,17 +347,46 @@ void VkRenderer::drawFrame()
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
 		framebufferResized = false;
 		swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
-	} else if (result != VK_SUCCESS) {
+		recreateRenderFinishedSemaphores();
+	}
+	else if (result != VK_SUCCESS) {
 		throw std::runtime_error("failed to present swap chain image!");
 	}
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
+void VkRenderer::destroyRenderFinishedSemaphores()
+{
+	for (auto& s : renderFinishedSemaphores) {
+		vkDestroySemaphore(device, s, nullptr);
+	}
+}
+
+void VkRenderer::recreateRenderFinishedSemaphores()
+{
+	destroyRenderFinishedSemaphores();
+	createRenderFinishedSemaphores();
+}
+
+void VkRenderer::createRenderFinishedSemaphores()
+{
+	renderFinishedSemaphores.resize(swapchain->swapChainImages.size());
+	VkSemaphoreCreateInfo semaphoreInfo{};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	for (auto i = 0; i < swapchain->swapChainImages.size(); ++i)
+	{
+		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create semaphores!");
+		}
+	}
+}
+
 void VkRenderer::createSyncObjects() 
 {
 	imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-	renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
 	
 	VkSemaphoreCreateInfo semaphoreInfo{};
@@ -386,11 +398,12 @@ void VkRenderer::createSyncObjects()
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
 		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
-			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
 			vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create semaphores!");
 		}
 	}
+	
+	createRenderFinishedSemaphores();
 }
 
 void VkRenderer::createUniformBuffers() 
@@ -485,6 +498,44 @@ void VkRenderer::createDescriptorPool()
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor pool!");
 	}
+}
+
+VkWriteDescriptorSet VkRenderer::createWriteDescriptorSet(
+	const VkDescriptorSet descriptorSet,
+	const VkDescriptorImageInfo imageInfo,
+	const VkDescriptorType descriptorType,
+	const size_t bindingIdx
+)
+{
+	VkWriteDescriptorSet descriptorWrite{};
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = descriptorSet;
+	descriptorWrite.dstBinding = bindingIdx;
+	descriptorWrite.dstArrayElement = 0;
+	descriptorWrite.descriptorType = descriptorType;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pImageInfo = &imageInfo;
+
+	return descriptorWrite;
+}
+
+VkWriteDescriptorSet VkRenderer::createWriteDescriptorSet(
+	const VkDescriptorSet descriptorSet,
+	const VkDescriptorBufferInfo bufferInfo,
+	const VkDescriptorType descriptorType,
+	const size_t bindingIdx
+)
+{
+	VkWriteDescriptorSet descriptorWrite{};
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = descriptorSet;
+	descriptorWrite.dstBinding = bindingIdx;
+	descriptorWrite.dstArrayElement = 0;
+	descriptorWrite.descriptorType = descriptorType;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pBufferInfo = &bufferInfo;
+
+	return descriptorWrite;
 }
 
 VkWriteDescriptorSet VkRenderer::createDescriptorWriteModelMatrix(
@@ -582,9 +633,8 @@ VkWriteDescriptorSet VkRenderer::createDescriptorWriteFaceIdMapBuffer(
 	return descriptorWrite;
 }
 
-void VkRenderer::writeDescriptorSets(const ENG::Node& node) 
+void VkRenderer::writeDescriptorSets(const std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId) 
 {
-	// NOTE: This seems overly complicated and inefficient?
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = uniformBuffers[i].buffer;
@@ -602,50 +652,68 @@ void VkRenderer::writeDescriptorSets(const ENG::Node& node)
 		modelMatrixBufferInfo.offset = 0;
 		modelMatrixBufferInfo.range = modelMatrixBuffers[i].total_size_bytes;
 
-		VkDescriptorBufferInfo faceColorMatrixBufferInfo{};
-		assert(faceColorBuffers[i].buffer != nullptr);
-		faceColorMatrixBufferInfo.buffer = faceColorBuffers[i].buffer;
-		faceColorMatrixBufferInfo.offset = 0;
-		faceColorMatrixBufferInfo.range = faceColorBuffers[i].total_size_bytes;
-
-		VkDescriptorBufferInfo faceIdMapBufferInfo{};
-		assert(faceIdMapBuffers[i].buffer != nullptr);
-		faceIdMapBufferInfo.buffer = faceIdMapBuffers[i].buffer;
-		faceIdMapBufferInfo.offset = 0;
-		faceIdMapBufferInfo.range = faceIdMapBuffers[i].total_size_bytes;
-
-		// TODO: This is just bad..
 		std::vector<VkWriteDescriptorSet> descriptorWrites;
-		if (node.shaderId == "PosBB" || node.shaderId == "PosNorCol")
+		if (shaderId == "PosBB" || shaderId == "PosNorCol")
 		{
 			descriptorWrites = { 
-				createDescriptorWriteUbo(node, i, 0, bufferInfo), 
-				createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo)
+				createWriteDescriptorSet(descriptorSets.at(i), bufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0),
+				createWriteDescriptorSet(descriptorSets.at(i), modelMatrixBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
 			};
 		} 
-		else if (node.shaderId == "Goldberg")
+		else if (shaderId == "Goldberg")
 		{ 
+			VkDescriptorBufferInfo faceColorMatrixBufferInfo{};
+			assert(faceColorBuffers[i].buffer != nullptr);
+			faceColorMatrixBufferInfo.buffer = faceColorBuffers[i].buffer;
+			faceColorMatrixBufferInfo.offset = 0;
+			faceColorMatrixBufferInfo.range = faceColorBuffers[i].total_size_bytes;
+
+			VkDescriptorBufferInfo faceIdMapBufferInfo{};
+			assert(faceIdMapBuffers[i].buffer != nullptr);
+			faceIdMapBufferInfo.buffer = faceIdMapBuffers[i].buffer;
+			faceIdMapBufferInfo.offset = 0;
+			faceIdMapBufferInfo.range = faceIdMapBuffers[i].total_size_bytes;
+
 			descriptorWrites = {
-				createDescriptorWriteUbo(node, i, 0, bufferInfo),
-				createDescriptorWriteModelMatrix(node, i, 1, modelMatrixBufferInfo),
-				createDescriptorWriteFaceColorMatrix(node, i, 2, faceColorMatrixBufferInfo),
-				createDescriptorWriteFaceIdMapBuffer(node, i, 3, faceIdMapBufferInfo)
+				createWriteDescriptorSet(descriptorSets.at(i), bufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0),
+				createWriteDescriptorSet(descriptorSets.at(i), modelMatrixBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
+				createWriteDescriptorSet(descriptorSets.at(i), faceColorMatrixBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2),
+				createWriteDescriptorSet(descriptorSets.at(i), faceIdMapBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3)
 			};
 		}
 		else
 		{
 			descriptorWrites = {
-				createDescriptorWriteUbo(node, i, 0, bufferInfo),
-				createDescriptorWriteSampler(node, i, 1, imageInfo),
-				createDescriptorWriteModelMatrix(node, i, 2, modelMatrixBufferInfo)
+				createWriteDescriptorSet(descriptorSets.at(i), bufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0),
+				createWriteDescriptorSet(descriptorSets.at(i), imageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
+				createWriteDescriptorSet(descriptorSets.at(i), modelMatrixBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2),
 			};
 		}
 
-		assert(i < node.descriptorSetIds.size());
-		ENG_LOG_DEBUG("attempt update descriptorsets" << std::endl);
-
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
+}
+
+void VkRenderer::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSetsP, const std::string& shaderId)
+{
+	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory->getDescriptorSetLayout(shaderId));
+	VkDescriptorSetAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocInfo.descriptorPool = descriptorPool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	allocInfo.pSetLayouts = layouts.data();
+
+	for (auto i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+	{
+		descriptorSetsP.emplace_back();
+	}
+
+	auto &firstSet = descriptorSetsP.at(0);
+	if (vkAllocateDescriptorSets(device, &allocInfo, &firstSet) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets!");
+	}
+
+	writeDescriptorSets(descriptorSetsP, shaderId);
 }
 
 void VkRenderer::createDescriptorSets(ENG::Node& node) 
@@ -674,7 +742,13 @@ void VkRenderer::createDescriptorSets(ENG::Node& node)
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
 
-	writeDescriptorSets(node);
+	std::vector<VkDescriptorSet> descriptorSetVec{};
+	for (auto descriptorSetId : node.descriptorSetIds)
+	{
+		descriptorSetVec.emplace_back(descriptorSets.get(descriptorSetId));
+	}
+
+	writeDescriptorSets(descriptorSetVec, node.shaderId.value());
 }
 
 void VkRenderer::createTextureImage() 

@@ -164,7 +164,7 @@ void initWindow(VkRenderer& app, WindowUserData& windowUserData) {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	app.window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 	glfwSetWindowUserPointer(app.window, &windowUserData);
-	glfwSetFramebufferSizeCallback(app.window, app.framebufferResizeCallback);
+	glfwSetFramebufferSizeCallback(app.window, framebufferResizeCallback);
 	glfwGetCursorPos(app.window, &windowUserData.cursor_x, &windowUserData.cursor_y);
 	glfwSetScrollCallback(app.window, mouse_scroll_callback);
 	glfwSetKeyCallback(app.window, key_callback);
@@ -273,12 +273,27 @@ void handleEvents(std::deque<ClientHidEvent>& eventQueue, SceneState& sceneState
 	}
 }
 
-void gameLoop(VkRenderer& renderer, Gui& gui, WindowUserData& windowUserData, SceneState& sceneState) {
+void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData& windowUserData, SceneState& sceneState) {
 	while(!glfwWindowShouldClose(renderer.window)) {
 		profilerMarkStart("run_frame");
 
 		glfwPollEvents();
 		handleEvents(windowUserData.eventQueue, sceneState);
+
+		// these should probably just be another event
+		if (!adapter.commandRecorderQueue.empty())
+		{
+			adapter.recordCommands();
+			if (!adapter.commandCompletionHandlerQueue.empty())
+			{
+				while (!adapter.commandCompletionHandlerQueue.empty())
+				{
+					auto handler = adapter.commandCompletionHandlerQueue.pop();
+					handler();
+				}
+
+			}
+		}
 		gui.drawGui();
 		renderer.drawFrame();
 
@@ -294,46 +309,49 @@ int main() {
 		ENG_LOG_INFO("Starting app" << std::endl);
 
 		Application app;
-		Gui gui;
-		SceneGui sceneGui;
 		WindowUserData windowUserData;
 
 		VkRenderer renderer{
+			windowUserData.windowResized,
 			{
 				[&renderer, &windowUserData]() {initWindow(renderer, windowUserData);},
 				[&renderer]() {renderer.initVulkan();},
-				[&renderer]() {renderer.initVulkanMemoryAllocator();},
 				[&renderer]() {renderer.initGui();},
 				[]() {initLua();}
 			},
 			{
 				[]() {lua_close(luaState); },
 				[&renderer]() { renderer.cleanupGui(); },
-				[&renderer]() { renderer.cleanupVulkanMemoryAllocator(); },
 				[&renderer]() { renderer.cleanupVulkan(); },
 				[&renderer]() { renderer.cleanupWindow(); }
 			}
 		};
 
+		Gui gui;
 		SceneState sceneState;
+		SceneGui sceneGui;
 
 		gui.registerDrawCall([&sceneGui, &sceneState]() {sceneGui.drawGui(sceneState);});
 
 		ENG_LOG_DEBUG(renderer);
 
-		app.registerInitFunction("renderer.initializeScene()", [&renderer, &sceneState]() { 
+		VkAdapter renderAdapter{ renderer };
+
+		app.registerInitFunction("renderer.initializeScene()", [&renderer, &sceneState, &renderAdapter]() { 
 			renderer.sceneReadyToRender = false;
-			initializeWorldScene(renderer, sceneState);
+			initializeWorldScene(renderer, renderAdapter, sceneState);
 			renderer.sceneReadyToRender = true;
 			});
 
-		app.registerCoroutineFunction("listener(tcp::acceptor)", []() {
+		app.registerCoroutine("listener(tcp::acceptor)", []() {
 			return listener(tcp::acceptor(Application::io_ctx, { tcp::v4(), 8080 }));
 			});
 		ENG_LOG_DEBUG("Server listening on port 8080..." << std::endl);
 
-		renderer.registerCommandRecorder([&renderer, &sceneState](VkCommandBuffer commandBuffer) {
-			recordCommandsForSceneGraph(renderer, commandBuffer, sceneState);
+
+		renderer.registerCommandRecorder([&renderAdapter, &renderer, &sceneState](VkCommandBuffer commandBuffer) {
+			//recordCommandsForSceneGraph(renderer, commandBuffer, sceneState);
+			renderAdapter.recordCommandsForSceneGraph2(renderer, commandBuffer, sceneState);
 			});
 		renderer.registerUniformBufferProducer([&sceneState]() -> UniformBufferObject {
 			return createUniformBufferObject(sceneState);
@@ -344,8 +362,8 @@ int main() {
 			});
 
 
-		app.mainThreadFunction = [&renderer, &gui, &windowUserData, &sceneState]() {
-			gameLoop(renderer, gui, windowUserData, sceneState); 
+		app.mainThreadFunction = [&renderAdapter, &renderer, &gui, &windowUserData, &sceneState]() {
+			gameLoop(renderAdapter, renderer, gui, windowUserData, sceneState); 
 		};
 
 		app.start();
