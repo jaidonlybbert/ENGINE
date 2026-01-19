@@ -95,9 +95,8 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 			continue;
 		}
 
-		if (!
-			((drawDataPtr->initFlags & DrawDataInitializationFlags::VERTEX_BUFFERS) && 
-			(drawDataPtr->initFlags & DrawDataInitializationFlags::INDEX_BUFFERS)))
+		if (!has_property(*drawDataPtr, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED) || 
+			!has_property(*drawDataPtr, DrawDataProperties::INDEX_BUFFERS_INITIALIZED))
 		{
 			ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has unbound draw data" << std::endl);
 			continue;
@@ -116,7 +115,7 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 			continue;
 		}
 
-		if (!(drawDataPtr->initFlags & DrawDataInitializationFlags::DESCRIPTOR_SETS))
+		if (!has_property(*drawDataPtr, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED))
 		{
 			ENG_LOG_DEBUG("Skipping draw call for " << node.name << " uninitialized descriptor sets" << std::endl);
 			continue;
@@ -131,7 +130,7 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 
 		if (!node.visible)
 		{
-			ENG_LOG_TRACE("Skipping draw for " << node.name << "due to visibility set to false" << std::endl);
+			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to visibility set to false" << std::endl);
 			continue;
 		}
 

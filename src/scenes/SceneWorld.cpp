@@ -367,7 +367,7 @@ void init_for_vulkan_tetrahedron(
 
 			const auto drawIdx = adapter.emplaceDrawData(
 				{
-					DrawDataInitializationFlags::CLEAR,
+					DrawDataProperties::CLEAR,
 					{bindEvent.nodeId},
 					{std::nullopt},  // no descriptor sets
 					adapter.create_draw_data(
@@ -381,8 +381,8 @@ void init_for_vulkan_tetrahedron(
 			assert(drawDataPtr);
 
 			adapter.commandCompletionHandlerQueue.push([drawDataPtr, &node] {
-				drawDataPtr->initFlags |= DrawDataInitializationFlags::INDEX_BUFFERS;
-				drawDataPtr->initFlags |= DrawDataInitializationFlags::VERTEX_BUFFERS; 
+				set_property(*drawDataPtr, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
+				set_property(*drawDataPtr, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED); 
 				ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
 			});
 
@@ -444,7 +444,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 			if (drawDataPtr)
 			{
 				adapter.createDescriptorSets(*drawDataPtr, sceneState.graph);
-				drawDataPtr->initFlags |= DrawDataInitializationFlags::DESCRIPTOR_SETS;
+				set_property(*drawDataPtr, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED);
 				ENG_LOG_INFO("Created descriptor sets for " << node.name << std::endl);
 			}
 		}

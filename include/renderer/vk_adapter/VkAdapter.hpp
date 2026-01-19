@@ -5,11 +5,12 @@
 #include "application/ConcurrentQueue.hpp"
 
 
-enum DrawDataInitializationFlags : uint32_t {
+enum DrawDataProperties : uint32_t {
 	CLEAR = 0x0,
-	DESCRIPTOR_SETS = 0x1,
-	VERTEX_BUFFERS = 0x2,
-	INDEX_BUFFERS = 0x4
+	DESCRIPTOR_SETS_INITIALIZED = 0x1,
+	VERTEX_BUFFERS_INITIALIZED = 0x2,
+	INDEX_BUFFERS_INITIALIZED = 0x4,
+	INDEXED_DRAW = 0x8,
 };
 
 struct DrawDataAllocationInfo {
@@ -25,11 +26,21 @@ struct DrawDataAllocationInfo {
 
 struct alignas(CACHE_LINE_SIZE) DrawData
 {
-	uint32_t initFlags{ DrawDataInitializationFlags::CLEAR };
+	uint32_t propertyFlags{ DrawDataProperties::CLEAR };
 	std::optional<uint32_t> nodeId;
 	std::optional<std::vector<VkDescriptorSet>> descriptorSets;
 	std::optional<DrawDataAllocationInfo> bufferAllocationInfo;
 };
+
+inline bool has_property(const DrawData& drawData, const DrawDataProperties propertyEnum)
+{
+	return (drawData.propertyFlags & propertyEnum) != 0;
+}
+
+inline void set_property(DrawData& drawData, const DrawDataProperties propertyEnum)
+{
+	drawData.propertyFlags |= propertyEnum;
+}
 
 
 class VkAdapter : RenderAdapterI
