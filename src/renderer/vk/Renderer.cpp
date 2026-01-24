@@ -25,6 +25,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include "vulkan/vulkan_core.h"
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include<vk_mem_alloc.h>
 #include "GLFW/glfw3.h"
 #include<tiny_gltf.h>

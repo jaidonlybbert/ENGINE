@@ -6,6 +6,9 @@
 #include<functional>
 
 #include "vulkan/vulkan_core.h"
+
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include "vk_mem_alloc.h"
 
 #include "renderer/vk/pipelines/Pipeline.hpp"
