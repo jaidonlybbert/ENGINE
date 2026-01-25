@@ -1,6 +1,7 @@
 #include<vector>
 #include<iostream>
 #include<string.h>
+#include <vulkan/vulkan_core.h>
 #include "renderer/vk/Instance.hpp"
 #include "logger/Logging.hpp"
 
@@ -91,7 +92,7 @@ void InstanceFactory::createInstance() {
 	appInfo.pEngineName = Engine_NAME;
 	appInfo.engineVersion = VK_MAKE_VERSION(Engine_VERSION_MAJOR, 
 			Engine_VERSION_MINOR, Engine_VERSION_PATCH);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
+	appInfo.apiVersion = Engine_VK_API_VERSION;
 
 	// Vulkan Instance Info
 	VkInstanceCreateInfo createInfo{};
@@ -120,10 +121,12 @@ void InstanceFactory::createInstance() {
 	createInfo.flags = createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 	
+	ENG_LOG_INFO("Creating instance" << std::endl);
 	// Create instance
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create instance!");
 	}
+	ENG_LOG_INFO("Instance created" << std::endl);
 	
 }
 
