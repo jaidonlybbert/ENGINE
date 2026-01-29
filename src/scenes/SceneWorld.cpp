@@ -347,17 +347,14 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<BindHostM
 }
 
 
-
-
 void init_for_vulkan_tetrahedron(
 	VkAdapter& adapter,
-	SceneState& sceneState,
-	ConcurrentQueue<BindHostMeshDataEvent>& bindEvents
+	SceneState& sceneState
 )
 {
-	while (!bindEvents.empty())
+	while (!adapter.meshBindEventQueue.empty())
 	{
-		auto bindEvent = bindEvents.pop();
+		auto bindEvent = adapter.meshBindEventQueue.pop();
 
 		auto& hostMesh = bindEvent.meshData;
 		auto& node = get_node_by_id(sceneState.graph, bindEvent.nodeId);
@@ -425,7 +422,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	create_tetrahedron_no_pmp(sceneState, adapter.meshBindEventQueue);
 
 	ENG_LOG_INFO("Init for vulkan tetrahedron2" << std::endl);
-	init_for_vulkan_tetrahedron(adapter, sceneState, adapter.meshBindEventQueue);
+	init_for_vulkan_tetrahedron(adapter, sceneState);
 	ENG_LOG_INFO("complete tetrahedron2" << std::endl);
 
 	// Create world mesh
