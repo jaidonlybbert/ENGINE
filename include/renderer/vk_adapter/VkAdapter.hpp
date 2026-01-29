@@ -55,6 +55,7 @@ public:
 	std::vector<DrawData> drawDataBuffer;
 	ConcurrentQueue<std::function<void(void)>> commandCompletionHandlerQueue;
 	ConcurrentQueue<std::function<void(VkCommandBuffer)>> commandRecorderQueue;
+	ConcurrentQueue<BindHostMeshDataEvent> meshBindEventQueue{};
 
 	VkAdapter(VkRenderer& renderer) : renderer(renderer)
 	{

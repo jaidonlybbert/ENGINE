@@ -410,9 +410,9 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 		renderer.commands.get(), get_gltf_dir(), sceneState, attachmentPoint);
 	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
-	//const auto& meshName = std::string("Room");
-	//ENG::loadModel(renderer.device, renderer.physicalDevice, renderer.commands.get(), meshName, 
-	//	renderer.graphicsQueue, get_model_dir(), sceneState, attachmentPoint);
+	// const auto& meshName = std::string("Room");
+	// ENG::loadModel(renderer.device, renderer.physicalDevice, renderer.commands.get(), meshName, 
+	// 	renderer.graphicsQueue, get_model_dir(), sceneState, attachmentPoint);
 
 	// Create bounding box around Suzanne
 	//auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
@@ -421,11 +421,11 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	// Create Tetrahedron
 	// create_tetrahedron_no_pmp(renderer, sceneState);
 
-	ConcurrentQueue<BindHostMeshDataEvent> meshBindEventQueue{};
 	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
-	create_tetrahedron_no_pmp(sceneState, meshBindEventQueue);
+	create_tetrahedron_no_pmp(sceneState, adapter.meshBindEventQueue);
+
 	ENG_LOG_INFO("Init for vulkan tetrahedron2" << std::endl);
-	init_for_vulkan_tetrahedron(adapter, sceneState, meshBindEventQueue);
+	init_for_vulkan_tetrahedron(adapter, sceneState, adapter.meshBindEventQueue);
 	ENG_LOG_INFO("complete tetrahedron2" << std::endl);
 
 	// Create world mesh
