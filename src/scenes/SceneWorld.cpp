@@ -3,8 +3,9 @@
 #include "scene/Mesh.hpp"
 #include "renderer/vk_adapter/VkAdapter.hpp"
 #include "application/ConcurrentQueue.hpp"
+#include "scenes/SceneWorld.hpp"
 
-void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
+void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
 {
 	// Seed randomizer
 	// first: 20398475
@@ -33,7 +34,7 @@ void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 		const auto& forestgreen = glm::vec4(0.133f, 0.545f, 0.133f, 1.f);
 		const auto& sunset = glm::vec4(0.98f, 0.77f, 0.4f, 1.f);
 
-		std::vector<glm::vec4> colorMap{
+		std::vector<glm::vec4> tileTypeToColorMap{
 			glm::vec4(0.4f, 0.4f, 0.7f, 1.0f),
 			oceanblue,
 			forestgreen
@@ -79,7 +80,7 @@ void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 			while (!landStack.empty())
 			{
 				auto f = mesh.face(mesh.opposite_halfedge(h));  // opposite face from current h
-				ENG_LOG_DEBUG("At iteration " << i++ << " face is " << climate[f.idx()] << std::endl);
+				ENG_LOG_TRACE("At iteration " << i++ << " face is " << climate[f.idx()] << std::endl);
 
 				// If previously visited, simply iterate the halfedge, and re-evaluate next iteration
 				if (climate[f.idx()] == OCEAN || climate[f.idx()] == LAND)
@@ -94,7 +95,7 @@ void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 					{
 						climate[f.idx()] = LAND;
 						landStack.push({ start_h, h });
-						ENG_LOG_DEBUG("PUSH: " << h.idx() << std::endl);
+						ENG_LOG_TRACE("PUSH: " << h.idx() << std::endl);
 						start_h = mesh.opposite_halfedge(h);
 						h = start_h;
 						continue;
@@ -113,7 +114,7 @@ void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 					landStack.pop();
 					start_h = context.start;
 					h = context.current;
-					ENG_LOG_DEBUG("POP: " << h.idx() << std::endl);
+					ENG_LOG_TRACE("POP: " << h.idx() << std::endl);
 				}
 
 			}
@@ -178,17 +179,17 @@ void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 		// paint faces according to climate
 		for (size_t i = 0; i < faceColors.size(); ++i)
 		{
-			faceColors[i] = colorMap[climate[i]];
+			faceColors[i] = tileTypeToColorMap[climate[i]];
 		}
 
 		// renderAdapter->allocateMemory(facecount * sizeof(glm::vec4), )
 		// renderAdapter->writeMappedMemory(faceColors.data(), facecount * sizeof(glm::vec4));
 
-		app.createFaceColorBuffers(facecount);
+		renderer.createFaceColorBuffers(facecount);
 		const auto& colorBufferSize = faceColors.size() * sizeof(glm::vec4);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
-			memcpy(app.faceColorBuffersMapped[i], faceColors.data(), colorBufferSize);
+			memcpy(renderer.faceColorBuffersMapped[i], faceColors.data(), colorBufferSize);
 		}
 
 		triangulate_as_triangle_fan_preserving_face_ids(mesh);
@@ -202,14 +203,16 @@ void create_world_polyhedra(VkRenderer& app, SceneState& sceneState)
 			primitiveToFaceIdMap.push_back(faceId[f]);
 			ENG_LOG_TRACE("POST TRIANGULURIZATION FACEID: " << faceId[f] << std::endl);
 		}
-		load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", app, sceneState);
 
-		app.createFaceIdBuffers(mesh.faces_size());
+		load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", adapter, sceneState, adapter.meshBindEventQueue);
+
+		renderer.createFaceIdBuffers(mesh.faces_size());
 		const auto& bufferSize = primitiveToFaceIdMap.size() * sizeof(uint32_t);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
-			memcpy(app.faceIdMapBuffersMapped[i], primitiveToFaceIdMap.data(), bufferSize);
+			memcpy(renderer.faceIdMapBuffersMapped[i], primitiveToFaceIdMap.data(), bufferSize);
 		}
+
 	}
 }
 
@@ -347,7 +350,7 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<BindHostM
 }
 
 
-void init_for_vulkan_tetrahedron(
+void init_for_vulkan(
 	VkAdapter& adapter,
 	SceneState& sceneState
 )
@@ -421,12 +424,13 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
 	create_tetrahedron_no_pmp(sceneState, adapter.meshBindEventQueue);
 
+	// Create world mesh
+	create_world_polyhedra(renderer, adapter, sceneState);
+
 	ENG_LOG_INFO("Init for vulkan tetrahedron2" << std::endl);
-	init_for_vulkan_tetrahedron(adapter, sceneState);
+	init_for_vulkan(adapter, sceneState);
 	ENG_LOG_INFO("complete tetrahedron2" << std::endl);
 
-	// Create world mesh
-	//create_world_polyhedra(renderer, sceneState);
 
 	// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 	sceneState.modelMatrices.resize(sceneState.graph.nodes.size());

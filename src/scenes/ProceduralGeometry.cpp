@@ -1,6 +1,8 @@
 #include "scene/Mesh.hpp"
 #include "scenes/ProceduralGeometry.hpp"
 #include "renderer/vk/Renderer.hpp"
+#include "renderer/vk_adapter/VkAdapter.hpp"
+#include "application/ConcurrentQueue.hpp"
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/triangulation.h"
 #include "pmp/algorithms/shapes.h"
@@ -173,9 +175,9 @@ pmp::SurfaceMesh create_dodecahedron()
 	return mesh;
 }
 
-ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(
+void load_pmp_mesh(
 	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
-	VkRenderer& app, SceneState& sceneState)
+	VkAdapter& adapter, SceneState& sceneState, ConcurrentQueue<BindHostMeshDataEvent>& meshBindQueue)
 {
 		std::vector<VertexPosNorCol> vertices;
 		std::vector<uint32_t> indices;
@@ -210,17 +212,35 @@ ENG::Mesh<VertexPosNorCol>* load_pmp_mesh(
 			vertices.emplace_back(vert2);
 		}
 
-		auto& pmpMesh = sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), mesh_name, vertices, indices, app.graphicsQueue);
 		auto& pmpNode = sceneState.graph.nodes.emplace_back();
 		pmpNode.name = node_name;
 		pmpNode.nodeId = sceneState.graph.nodes.size() - 1;
 		pmpNode.parent = sceneState.graph.root;
-		pmpNode.mesh_idx = sceneState.posNorColMeshes.size() - 1;
-		pmpNode.mesh_type = "VertexPosNorCol";
-		pmpNode.shaderId = "Goldberg";
 		sceneState.graph.root->children.push_back(&pmpNode);
 
-		return &pmpMesh;
+		meshBindQueue.push(
+			BindHostMeshDataEvent{
+				HostMeshData{
+					std::move(vertices),
+					std::move(indices),
+					"VertexPosNorCol",
+					"Goldberg"
+				},
+				pmpNode.nodeId
+			}
+		);
+
+		//auto& pmpMesh = sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), mesh_name, vertices, indices, app.graphicsQueue);
+		//auto& pmpNode = sceneState.graph.nodes.emplace_back();
+		//pmpNode.name = node_name;
+		//pmpNode.nodeId = sceneState.graph.nodes.size() - 1;
+		//pmpNode.parent = sceneState.graph.root;
+		//pmpNode.mesh_idx = sceneState.posNorColMeshes.size() - 1;
+		//pmpNode.mesh_type = "VertexPosNorCol";
+		//pmpNode.shaderId = "Goldberg";
+		//sceneState.graph.root->children.push_back(&pmpNode);
+
+		//return &pmpMesh;
 }
 
 void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh)
