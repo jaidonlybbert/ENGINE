@@ -114,13 +114,30 @@ public:
 	}
 
 	DrawDataAllocationInfo create_draw_data(
-		std::vector<VertexPosNorCol>&& vertices, 
+		VertexT&& vertices, 
 		std::vector<uint32_t>&& indices)
 	{
 		DrawDataAllocationInfo drawDataInfo{};
 		drawDataInfo.indexCount = indices.size();
 
-		VkDeviceSize vertexSize = sizeof(VertexPosNorCol) * vertices.size(); 
+		const auto vertexSize = 
+			std::holds_alternative<std::vector<VertexPosColTex>>(vertices) ? std::get<std::vector<VertexPosColTex>>(vertices).size() * sizeof(VertexPosColTex) :
+			std::holds_alternative<std::vector<VertexPosNorCol>>(vertices) ? std::get<std::vector<VertexPosNorCol>>(vertices).size() * sizeof(VertexPosNorCol) :
+			std::holds_alternative<std::vector<VertexPosNorTex>>(vertices) ? std::get<std::vector<VertexPosNorTex>>(vertices).size() * sizeof(VertexPosNorTex) :
+			0;
+
+		const auto* vertexData =
+			std::holds_alternative<std::vector<VertexPosColTex>>(vertices) ? static_cast<void*>(std::get<std::vector<VertexPosColTex>>(vertices).data()) :
+			std::holds_alternative<std::vector<VertexPosNorCol>>(vertices) ? static_cast<void*>(std::get<std::vector<VertexPosNorCol>>(vertices).data()) :
+			std::holds_alternative<std::vector<VertexPosNorTex>>(vertices) ? static_cast<void*>(std::get<std::vector<VertexPosNorTex>>(vertices).data()) :
+			nullptr;
+
+		if (!vertexData)
+		{
+			ENG_LOG_ERROR("Vertex data is null!" << std::endl);
+			return {};
+		}
+
 		VkDeviceSize indexSize = sizeof(uint32_t) * indices.size(); 
 		
 		VkBufferCreateInfo vbInfo{}; 
@@ -156,7 +173,7 @@ public:
 		// Map + copy vertex data
 		void* data;
 		vmaMapMemory(vmaAllocator, stagingVBAlloc, &data);
-		memcpy(data, vertices.data(), vertexSize);
+		memcpy(data, vertexData, vertexSize);
 		vmaUnmapMemory(vmaAllocator, stagingVBAlloc);
 
 		// copy index data over to staging buffer

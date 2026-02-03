@@ -5,7 +5,6 @@ add_library(engine_scene STATIC
 	"${PROJECT_SOURCE_DIR}/src/scene/Mesh2.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Obj.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Scene.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/VulkanAdapter.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Node.cpp"
 )
 add_library(engine::scene ALIAS engine_scene)
@@ -24,4 +23,5 @@ target_link_libraries(engine_scene PUBLIC engine::logger)
 target_link_libraries(engine_scene PUBLIC tinyobjloader::tinyobjloader)
 target_link_libraries(engine_scene PUBLIC nlohmann_json::nlohmann_json)
 target_link_libraries(engine_scene PUBLIC glm::glm)
-
+target_link_libraries(engine_scene PUBLIC GPUOpen::VulkanMemoryAllocator)
+target_link_libraries(engine_scene PUBLIC glfw)

@@ -58,11 +58,21 @@ public:
 
 glm::mat4 transformation_matrix(const Node& node);
 
-struct SceneGraph {
+class SceneGraph {
+public:
 	Node* root{ nullptr };
 	std::vector<Node> nodes;
 	std::vector<Camera> cameras;
 
+	Node& create_node() {
+		std::lock_guard lock(mut);
+		auto& node = nodes.emplace_back();
+		node.nodeId = nodes.size() - 1;
+		return node;
+	}
+
+private:
+	std::mutex mut;
 };
 
 Node& get_node_by_id(SceneGraph& sceneGraph, const size_t nodeId);

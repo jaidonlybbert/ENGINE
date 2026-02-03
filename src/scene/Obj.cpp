@@ -4,17 +4,24 @@
 #include "filesystem/FilesystemInterface.hpp"
 #include "scene/Scene.hpp"
 #include "scene/Obj.hpp"
+#include "renderer/vk_adapter/VkAdapter.hpp"
 
 namespace ENG
 {
 
-void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands,
-      std::string name, const VkQueue &graphicsQueue,
-      const std::filesystem::path &filepath, SceneState &sceneState, Node& attachmentPoint) {
-
-	auto& newNode = sceneState.graph.nodes.emplace_back();
+void loadModel(
+	VkAdapter& adapter,
+	const VkDevice& device, 
+	const VkPhysicalDevice &physicalDevice, 
+	ENG::Command* const commands,
+	std::string name, 
+	const VkQueue &graphicsQueue,
+	const std::filesystem::path &filepath, 
+	SceneState &sceneState, 
+	Node& attachmentPoint) 
+{
+	auto& newNode = sceneState.graph.create_node();
 	newNode.name = name;
-	newNode.nodeId = sceneState.graph.nodes.size() - 1;
 	// TODO: don't hardcode this here
 	newNode.shaderId = "PosColTex";
 	newNode.parent = &attachmentPoint;
@@ -53,9 +60,20 @@ void loadModel(const VkDevice& device, const VkPhysicalDevice &physicalDevice, E
 		}
 	}
 
-	auto& mesh = sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, name, vertices, indices, graphicsQueue);
-	newNode.mesh_idx = sceneState.posColTexMeshes.size() - 1;
-	newNode.mesh_type = "VertexPosColTex";
+	adapter.graphicsEventQueue.push(
+		BindHostMeshDataEvent{
+			HostMeshData {
+				std::move(vertices),
+				std::move(indices),
+				"VertexPosColTex",
+				"PosColTex"
+			},
+			newNode.nodeId
+		}
+	);
+	//auto& mesh = sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, name, vertices, indices, graphicsQueue);
+	//newNode.mesh_idx = sceneState.posColTexMeshes.size() - 1;
+	//newNode.mesh_type = "VertexPosColTex";
 }
 
 } // end namespace

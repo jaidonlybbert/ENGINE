@@ -22,11 +22,14 @@ class Model;
 
 namespace ENG
 {
+	using VertexT = std::variant<
+		std::vector<VertexPosColTex>,
+		std::vector<VertexPosNorCol>,
+		std::vector<VertexPosNorTex>
+	>;
+
 	struct HostMeshData {
-		std::variant<
-			std::vector<VertexPosColTex>,
-			std::vector<VertexPosNorCol>
-		> vertexBuffer;
+		VertexT vertexBuffer;
 		std::vector<uint32_t> indexBuffer;
 		std::string meshType;
 		std::string shaderId;

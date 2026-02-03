@@ -277,38 +277,34 @@ void mesh_bind_event_handler(SceneState& sceneState, VkAdapter& adapter, BindHos
 	auto& hostMesh = bindEvent.meshData;
 	auto& node = get_node_by_id(sceneState.graph, bindEvent.nodeId);
 
-	if (std::holds_alternative<std::vector<VertexPosNorCol>>(hostMesh.vertexBuffer))
-	{
+	const auto drawIdx = adapter.emplaceDrawData(
+		{
+			DrawDataProperties::CLEAR,
+			{bindEvent.nodeId},
+			{std::nullopt},  // no descriptor sets
+			adapter.create_draw_data(
+				std::move(hostMesh.vertexBuffer),
+				std::move(hostMesh.indexBuffer)
+			)
+		}
+	);
 
-		const auto drawIdx = adapter.emplaceDrawData(
-			{
-				DrawDataProperties::CLEAR,
-				{bindEvent.nodeId},
-				{std::nullopt},  // no descriptor sets
-				adapter.create_draw_data(
-					std::move(std::get<std::vector<VertexPosNorCol>>(hostMesh.vertexBuffer)),
-					std::move(hostMesh.indexBuffer)
-				),
+	auto* drawDataPtr = adapter.getDrawDataFromIdx(drawIdx);
+	assert(drawDataPtr);
+
+	adapter.graphicsEventQueue.push(
+		CommandCompletionEvent {
+			[drawDataPtr, &node] {
+				set_property(*drawDataPtr, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
+				set_property(*drawDataPtr, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
+				ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
 			}
-		);
+		}
+	);
 
-		auto* drawDataPtr = adapter.getDrawDataFromIdx(drawIdx);
-		assert(drawDataPtr);
-
-		adapter.graphicsEventQueue.push(
-			CommandCompletionEvent {
-				[drawDataPtr, &node] {
-					set_property(*drawDataPtr, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
-					set_property(*drawDataPtr, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
-					ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
-				}
-			}
-		);
-
-		node.mesh_type = bindEvent.meshData.meshType;
-		node.shaderId = bindEvent.meshData.shaderId;
-		node.draw_data_idx = drawIdx;
-	}
+	node.mesh_type = bindEvent.meshData.meshType;
+	node.shaderId = bindEvent.meshData.shaderId;
+	node.draw_data_idx = drawIdx;
 }
 
 void handleGraphicsEvents(VkAdapter& adapter, SceneState& sceneState)
