@@ -158,11 +158,9 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 				sizeof(uint32_t), 
 				&node.nodeId);
 
-		const auto indexedDraw = shaderId != "PosNorCol";
+		const auto indexedDraw = shaderId != "PosNorCol" && shaderId != "Goldberg";
 		recordDrawDataCommand(commandBuffer, *drawDataPtr, indexedDraw);
 	}
-
-
 }
 
 

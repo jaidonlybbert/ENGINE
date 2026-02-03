@@ -264,7 +264,7 @@ void handleHidEvent(const ClientHidEvent& hidEvent, SceneState& sceneState) {
 	node_rotation_follows_input_preserve_y_as_up(activeNode, hidEvent.look_dx, hidEvent.look_dy);
 }
 
-void handleEvents(std::deque<ClientHidEvent>& eventQueue, SceneState& sceneState) {
+void handleHIDEvents(std::deque<ClientHidEvent>& eventQueue, SceneState& sceneState) {
 	while (!eventQueue.empty())
 	{
 		const auto& clientEvent = eventQueue.front();
@@ -273,27 +273,74 @@ void handleEvents(std::deque<ClientHidEvent>& eventQueue, SceneState& sceneState
 	}
 }
 
+void mesh_bind_event_handler(SceneState& sceneState, VkAdapter& adapter, BindHostMeshDataEvent&& bindEvent) {
+	auto& hostMesh = bindEvent.meshData;
+	auto& node = get_node_by_id(sceneState.graph, bindEvent.nodeId);
+
+	if (std::holds_alternative<std::vector<VertexPosNorCol>>(hostMesh.vertexBuffer))
+	{
+
+		const auto drawIdx = adapter.emplaceDrawData(
+			{
+				DrawDataProperties::CLEAR,
+				{bindEvent.nodeId},
+				{std::nullopt},  // no descriptor sets
+				adapter.create_draw_data(
+					std::move(std::get<std::vector<VertexPosNorCol>>(hostMesh.vertexBuffer)),
+					std::move(hostMesh.indexBuffer)
+				),
+			}
+		);
+
+		auto* drawDataPtr = adapter.getDrawDataFromIdx(drawIdx);
+		assert(drawDataPtr);
+
+		adapter.graphicsEventQueue.push(
+			CommandCompletionEvent {
+				[drawDataPtr, &node] {
+					set_property(*drawDataPtr, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
+					set_property(*drawDataPtr, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
+					ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
+				}
+			}
+		);
+
+		node.mesh_type = bindEvent.meshData.meshType;
+		node.shaderId = bindEvent.meshData.shaderId;
+		node.draw_data_idx = drawIdx;
+	}
+}
+
+void handleGraphicsEvents(VkAdapter& adapter, SceneState& sceneState)
+{
+	while (!adapter.graphicsEventQueue.empty()) {
+		GraphicsEvent graphicsEvent{ adapter.graphicsEventQueue.pop() };
+		
+		if (std::holds_alternative<BindHostMeshDataEvent>(graphicsEvent))
+		{
+			mesh_bind_event_handler(sceneState, adapter, std::move(std::get<BindHostMeshDataEvent>(graphicsEvent)));
+		}
+		else if (std::holds_alternative<CommandRecorderEvent>(graphicsEvent))
+		{
+			adapter.command_recorder_event_handler(std::move(std::get<CommandRecorderEvent>(graphicsEvent)));
+		}
+		else if (std::holds_alternative<CommandCompletionEvent>(graphicsEvent))
+		{
+			std::get<CommandCompletionEvent>(graphicsEvent).commandCompletionHandler();
+		}
+	}
+
+}
+
 void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData& windowUserData, SceneState& sceneState) {
 	while(!glfwWindowShouldClose(renderer.window)) {
 		profilerMarkStart("run_frame");
 
 		glfwPollEvents();
-		handleEvents(windowUserData.eventQueue, sceneState);
+		handleHIDEvents(windowUserData.eventQueue, sceneState);
 
-		// these should probably just be another event
-		if (!adapter.commandRecorderQueue.empty())
-		{
-			adapter.recordCommands();
-			if (!adapter.commandCompletionHandlerQueue.empty())
-			{
-				while (!adapter.commandCompletionHandlerQueue.empty())
-				{
-					auto handler = adapter.commandCompletionHandlerQueue.pop();
-					handler();
-				}
+		handleGraphicsEvents(adapter, sceneState);
 
-			}
-		}
 		gui.drawGui();
 		renderer.drawFrame();
 

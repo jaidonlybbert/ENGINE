@@ -204,7 +204,7 @@ void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState
 			ENG_LOG_TRACE("POST TRIANGULURIZATION FACEID: " << faceId[f] << std::endl);
 		}
 
-		load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", adapter, sceneState, adapter.meshBindEventQueue);
+		load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", adapter, sceneState, adapter.graphicsEventQueue);
 
 		renderer.createFaceIdBuffers(mesh.faces_size());
 		const auto& bufferSize = primitiveToFaceIdMap.size() * sizeof(uint32_t);
@@ -284,7 +284,7 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 }
 
 
-void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<BindHostMeshDataEvent>& meshBindQueue)
+void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue)
 {
 	std::vector<VertexPosNorCol> tetraVertices {
 		{ {1.,  1.,  1.} },
@@ -336,7 +336,7 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<BindHostM
 	tetraNode.parent = sceneState.graph.root;
 	sceneState.graph.root->children.push_back(&tetraNode);
 
-	meshBindQueue.push(
+	graphicsEventQueue.push(
 		BindHostMeshDataEvent{
 			HostMeshData{
 				std::move(tetraVerticesDuplicated),
@@ -347,50 +347,6 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<BindHostM
 			tetraNode.nodeId
 		}
 	);
-}
-
-
-void init_for_vulkan(
-	VkAdapter& adapter,
-	SceneState& sceneState
-)
-{
-	while (!adapter.meshBindEventQueue.empty())
-	{
-		auto bindEvent = adapter.meshBindEventQueue.pop();
-
-		auto& hostMesh = bindEvent.meshData;
-		auto& node = get_node_by_id(sceneState.graph, bindEvent.nodeId);
-
-		if (std::holds_alternative<std::vector<VertexPosNorCol>>(hostMesh.vertexBuffer))
-		{
-
-			const auto drawIdx = adapter.emplaceDrawData(
-				{
-					DrawDataProperties::CLEAR,
-					{bindEvent.nodeId},
-					{std::nullopt},  // no descriptor sets
-					adapter.create_draw_data(
-						std::move(std::get<std::vector<VertexPosNorCol>>(hostMesh.vertexBuffer)),
-						std::move(hostMesh.indexBuffer)
-					),
-				}
-			);
-
-			auto* drawDataPtr = adapter.getDrawDataFromIdx(drawIdx);
-			assert(drawDataPtr);
-
-			adapter.commandCompletionHandlerQueue.push([drawDataPtr, &node] {
-				set_property(*drawDataPtr, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
-				set_property(*drawDataPtr, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED); 
-				ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
-			});
-
-			node.mesh_type = bindEvent.meshData.meshType;
-			node.shaderId = bindEvent.meshData.shaderId;
-			node.draw_data_idx = drawIdx;
-		}
-	}
 }
 
 void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState) {
@@ -422,15 +378,10 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	// create_tetrahedron_no_pmp(renderer, sceneState);
 
 	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
-	create_tetrahedron_no_pmp(sceneState, adapter.meshBindEventQueue);
+	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue);
 
 	// Create world mesh
 	create_world_polyhedra(renderer, adapter, sceneState);
-
-	ENG_LOG_INFO("Init for vulkan tetrahedron2" << std::endl);
-	init_for_vulkan(adapter, sceneState);
-	ENG_LOG_INFO("complete tetrahedron2" << std::endl);
-
 
 	// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
 	sceneState.modelMatrices.resize(sceneState.graph.nodes.size());

@@ -177,7 +177,7 @@ pmp::SurfaceMesh create_dodecahedron()
 
 void load_pmp_mesh(
 	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
-	VkAdapter& adapter, SceneState& sceneState, ConcurrentQueue<BindHostMeshDataEvent>& meshBindQueue)
+	VkAdapter& adapter, SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue)
 {
 		std::vector<VertexPosNorCol> vertices;
 		std::vector<uint32_t> indices;
@@ -218,7 +218,7 @@ void load_pmp_mesh(
 		pmpNode.parent = sceneState.graph.root;
 		sceneState.graph.root->children.push_back(&pmpNode);
 
-		meshBindQueue.push(
+		graphicsEventQueue.push(
 			BindHostMeshDataEvent{
 				HostMeshData{
 					std::move(vertices),

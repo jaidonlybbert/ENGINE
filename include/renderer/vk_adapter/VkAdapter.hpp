@@ -42,6 +42,19 @@ inline void set_property(DrawData& drawData, const DrawDataProperties propertyEn
 	drawData.propertyFlags |= propertyEnum;
 }
 
+struct CommandRecorderEvent {
+	std::function<void(VkCommandBuffer)> commandRecorder;
+};
+
+struct CommandCompletionEvent {
+	std::function<void(void)> commandCompletionHandler;
+};
+
+using GraphicsEvent = std::variant<
+	BindHostMeshDataEvent,
+	CommandRecorderEvent,
+	CommandCompletionEvent
+>;
 
 class VkAdapter : RenderAdapterI
 {
@@ -53,9 +66,8 @@ public:
 	VkRenderer& renderer;
 	VmaAllocator vmaAllocator;
 	std::vector<DrawData> drawDataBuffer;
-	ConcurrentQueue<std::function<void(void)>> commandCompletionHandlerQueue;
-	ConcurrentQueue<std::function<void(VkCommandBuffer)>> commandRecorderQueue;
-	ConcurrentQueue<BindHostMeshDataEvent> meshBindEventQueue{};
+
+	ConcurrentQueue<GraphicsEvent> graphicsEventQueue{};
 
 	VkAdapter(VkRenderer& renderer) : renderer(renderer)
 	{
@@ -161,17 +173,25 @@ public:
 		memcpy(data, indices.data(), indexSize);
 		vmaUnmapMemory(vmaAllocator, stagingIBAlloc);
 
-		commandRecorderQueue.push(
-			[this, stagingVB, stagingIB, stagingVBAlloc, stagingIBAlloc, drawDataInfo, vertexSize, indexSize](VkCommandBuffer cmdBuffer)
-			{
-				copyBuffer(cmdBuffer, stagingVB, drawDataInfo.vertexBuffers[0], vertexSize);
-				copyBuffer(cmdBuffer, stagingIB, drawDataInfo.indexBuffer, indexSize);
-			});
-		commandCompletionHandlerQueue.push([this, stagingVB, stagingIB, stagingVBAlloc, stagingIBAlloc]()
-			{
-				vmaDestroyBuffer(vmaAllocator, stagingVB, stagingVBAlloc);
-				vmaDestroyBuffer(vmaAllocator, stagingIB, stagingIBAlloc);
-			});
+		graphicsEventQueue.push(
+			CommandRecorderEvent{
+				[this, stagingVB, stagingIB, stagingVBAlloc, stagingIBAlloc, drawDataInfo, vertexSize, indexSize](VkCommandBuffer cmdBuffer)
+				{
+					copyBuffer(cmdBuffer, stagingVB, drawDataInfo.vertexBuffers[0], vertexSize);
+					copyBuffer(cmdBuffer, stagingIB, drawDataInfo.indexBuffer, indexSize);
+				}
+			}
+		);
+
+		graphicsEventQueue.push(
+			CommandCompletionEvent{
+				[this, stagingVB, stagingIB, stagingVBAlloc, stagingIBAlloc]()
+				{
+					vmaDestroyBuffer(vmaAllocator, stagingVB, stagingVBAlloc);
+					vmaDestroyBuffer(vmaAllocator, stagingIB, stagingIBAlloc);
+				}
+			}
+		);
 
 		return drawDataInfo;
 	}
@@ -208,14 +228,10 @@ public:
 	/*
 	* Record commands and submit to queue, must be called from main thread
 	*/
-	void recordCommands() {
+	void command_recorder_event_handler(CommandRecorderEvent&& commandRecorderEvent) {
 		VkCommandBuffer cmdBuffer = renderer.commands->beginSingleTimeCommands(renderer.device);
 
-		while (!commandRecorderQueue.empty())
-		{
-			auto cmdRecorder = commandRecorderQueue.pop();
-			cmdRecorder(cmdBuffer);
-		}
+		commandRecorderEvent.commandRecorder(cmdBuffer);
 
 		renderer.commands->endSingleTimeCommands(renderer.device, renderer.graphicsQueue, cmdBuffer);
 	}
