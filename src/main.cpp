@@ -370,8 +370,6 @@ int main() {
 
 		Gui gui;
 		SceneState sceneState;
-		// TODO: fix scenegraph thread-safety
-		sceneState.graph.nodes.reserve(1000);
 		SceneGui sceneGui;
 
 		gui.registerDrawCall([&sceneGui, &sceneState]() {sceneGui.drawGui(sceneState);});

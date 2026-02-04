@@ -361,8 +361,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	sceneState.graph.root = &attachmentPoint;
 	sceneState.graph.root->name = "Root";
 
-	load_gltf(renderer.device, renderer.physicalDevice, renderer.graphicsQueue, 
-		renderer.commands.get(), get_gltf_dir(), sceneState, attachmentPoint);
+	load_gltf(adapter, get_gltf_dir(), sceneState, attachmentPoint);
 	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
 	const auto& meshName = std::string("Room");
@@ -372,9 +371,6 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	// Create bounding box around Suzanne
 	//auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
 	//addBoundingBoxChild(suzanneNode, renderer, "SuzanneBoundingBox", sceneState);
-
-	// Create Tetrahedron
-	// create_tetrahedron_no_pmp(renderer, sceneState);
 
 	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
 	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue);

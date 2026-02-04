@@ -40,7 +40,7 @@ namespace ENG
 		uint32_t nodeId;
 	};
 
-	static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc);
+	size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc);
 
 	template <typename T>
 	class Mesh {

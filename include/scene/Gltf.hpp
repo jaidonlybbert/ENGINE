@@ -5,6 +5,7 @@
 #include "tiny_gltf.h"
 #include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
+#include "renderer/vk_adapter/VkAdapter.hpp"
 
 namespace ENG
 {
@@ -33,29 +34,21 @@ const std::map<int, VkFormat> TINYGLTF_COMPONENT_TYPE_TO_VKFORMAT = {
 
 static VkFormat get_vk_format_from_tinygltf_accessor(const tinygltf::Accessor& acc, size_t& size_bytes);
 bool load_gltf_model(const std::filesystem::path gltf_path, tinygltf::Model& model);
-void load_gltf_mesh_attributes(const VkDevice& device,
-	const VkPhysicalDevice& physicalDevice,
-	const VkQueue& graphicsQueue,
-	ENG::Command* const commands,
-	const std::string& mesh_name,
+void load_gltf_mesh_attributes(
+	VkAdapter& adapter,
 	const tinygltf::Model& model,
-	const tinygltf::Node& node,
 	const tinygltf::Primitive& primitive,
-	SceneState& sceneState,
-	Node& eng_node);
+	const uint32_t nodeId);
 
-void load_gltf_node(const VkDevice& device,
-	const VkPhysicalDevice& physicalDevice,
-	const VkQueue& graphicsQueue,
-	ENG::Command* const commands,
+void load_gltf_node(
+	VkAdapter& adapter,
 	const tinygltf::Node& node,
 	SceneState& sceneState,
-	Node& eng_node);
+	ENG::Node& eng_node,
+	const tinygltf::Model& model);
 
-bool load_gltf(const VkDevice& device,
-	const VkPhysicalDevice& physicalDevice,
-	const VkQueue& graphicsQueue,
-	ENG::Command* const commands,
+bool load_gltf(
+	VkAdapter& adapter,
 	const std::filesystem::path gltf_path,
 	SceneState& sceneState,
 	Node& attachmentPoint);

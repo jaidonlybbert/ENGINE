@@ -6,7 +6,7 @@
 
 namespace ENG
 {
-	static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc)
+	size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc)
 	{
 		const auto& ctype = acc.componentType;
 		const auto& type = acc.type;
