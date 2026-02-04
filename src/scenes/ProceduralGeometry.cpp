@@ -212,9 +212,8 @@ void load_pmp_mesh(
 			vertices.emplace_back(vert2);
 		}
 
-		auto& pmpNode = sceneState.graph.nodes.emplace_back();
+		auto& pmpNode = sceneState.graph.create_node();
 		pmpNode.name = node_name;
-		pmpNode.nodeId = sceneState.graph.nodes.size() - 1;
 		pmpNode.parent = sceneState.graph.root;
 		sceneState.graph.root->children.push_back(&pmpNode);
 
@@ -229,18 +228,6 @@ void load_pmp_mesh(
 				pmpNode.nodeId
 			}
 		);
-
-		//auto& pmpMesh = sceneState.posNorColMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), mesh_name, vertices, indices, app.graphicsQueue);
-		//auto& pmpNode = sceneState.graph.nodes.emplace_back();
-		//pmpNode.name = node_name;
-		//pmpNode.nodeId = sceneState.graph.nodes.size() - 1;
-		//pmpNode.parent = sceneState.graph.root;
-		//pmpNode.mesh_idx = sceneState.posNorColMeshes.size() - 1;
-		//pmpNode.mesh_type = "VertexPosNorCol";
-		//pmpNode.shaderId = "Goldberg";
-		//sceneState.graph.root->children.push_back(&pmpNode);
-
-		//return &pmpMesh;
 }
 
 void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh)

@@ -330,9 +330,8 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsE
 		}
 	}
 
-	auto& tetraNode = sceneState.graph.nodes.emplace_back();
+	auto& tetraNode = sceneState.graph.create_node();
 	tetraNode.name = "Tetrahedron";
-	tetraNode.nodeId = sceneState.graph.nodes.size() - 1;
 	tetraNode.parent = sceneState.graph.root;
 	sceneState.graph.root->children.push_back(&tetraNode);
 
@@ -392,13 +391,11 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	{
 		if (node.draw_data_idx.has_value())
 		{
-			auto* drawDataPtr = adapter.getDrawDataFromIdx(node.draw_data_idx.value());
-			if (drawDataPtr)
-			{
-				adapter.createDescriptorSets(*drawDataPtr, sceneState.graph);
-				set_property(*drawDataPtr, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED);
-				ENG_LOG_INFO("Created descriptor sets for " << node.name << std::endl);
-			}
+			const auto drawDataIdx = node.draw_data_idx.value();
+
+			adapter.createDescriptorSets(drawDataIdx, sceneState.graph);
+			adapter.set_property(drawDataIdx, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED);
+			ENG_LOG_INFO("Created descriptor sets for " << node.name << std::endl);
 		}
 		else
 		{

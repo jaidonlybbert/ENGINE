@@ -289,14 +289,11 @@ void mesh_bind_event_handler(SceneState& sceneState, VkAdapter& adapter, BindHos
 		}
 	);
 
-	auto* drawDataPtr = adapter.getDrawDataFromIdx(drawIdx);
-	assert(drawDataPtr);
-
 	adapter.graphicsEventQueue.push(
 		CommandCompletionEvent {
-			[drawDataPtr, &node] {
-				set_property(*drawDataPtr, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
-				set_property(*drawDataPtr, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
+			[&adapter, &node, drawIdx] {
+				adapter.set_property(drawIdx, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
+				adapter.set_property(drawIdx, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
 				ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
 			}
 		}
@@ -305,6 +302,7 @@ void mesh_bind_event_handler(SceneState& sceneState, VkAdapter& adapter, BindHos
 	node.mesh_type = bindEvent.meshData.meshType;
 	node.shaderId = bindEvent.meshData.shaderId;
 	node.draw_data_idx = drawIdx;
+	ENG_LOG_INFO("Node: " << node.name << " DrawDataIndex: " << drawIdx << std::endl);
 }
 
 void handleGraphicsEvents(VkAdapter& adapter, SceneState& sceneState)
@@ -372,6 +370,8 @@ int main() {
 
 		Gui gui;
 		SceneState sceneState;
+		// TODO: fix scenegraph thread-safety
+		sceneState.graph.nodes.reserve(1000);
 		SceneGui sceneGui;
 
 		gui.registerDrawCall([&sceneGui, &sceneState]() {sceneGui.drawGui(sceneState);});

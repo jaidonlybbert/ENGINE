@@ -22,8 +22,6 @@ void loadModel(
 {
 	auto& newNode = sceneState.graph.create_node();
 	newNode.name = name;
-	// TODO: don't hardcode this here
-	newNode.shaderId = "PosColTex";
 	newNode.parent = &attachmentPoint;
 	attachmentPoint.children.push_back(&newNode);
 		
@@ -71,9 +69,6 @@ void loadModel(
 			newNode.nodeId
 		}
 	);
-	//auto& mesh = sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, name, vertices, indices, graphicsQueue);
-	//newNode.mesh_idx = sceneState.posColTexMeshes.size() - 1;
-	//newNode.mesh_type = "VertexPosColTex";
 }
 
 } // end namespace

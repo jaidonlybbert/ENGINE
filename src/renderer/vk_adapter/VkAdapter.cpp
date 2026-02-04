@@ -87,37 +87,34 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no DrawData" << std::endl);
 			continue;
 		}
-		auto* drawDataPtr = getDrawDataFromIdx(node.draw_data_idx.value());
 
-		if (!drawDataPtr)
-		{
-			ENG_LOG_ERROR("Attempted to get draw data for index that does not exist" << std::endl);
-			continue;
-		}
+		const auto drawDataIdx{ node.draw_data_idx.value() };
 
-		if (!has_property(*drawDataPtr, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED) || 
-			!has_property(*drawDataPtr, DrawDataProperties::INDEX_BUFFERS_INITIALIZED))
+		if (!has_property(drawDataIdx, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED) || 
+			!has_property(drawDataIdx, DrawDataProperties::INDEX_BUFFERS_INITIALIZED))
 		{
 			ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has unbound draw data" << std::endl);
 			continue;
 		}
 
-		if (!drawDataPtr->descriptorSets.has_value())
+		if (!has_property(drawDataIdx, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED))
+		{
+			ENG_LOG_DEBUG("Skipping draw call for " << node.name << " uninitialized descriptor sets" << std::endl);
+			continue;
+		}
+
+		const auto drawDataCpy = getDrawDataFromIdx(drawDataIdx);
+
+		if (!drawDataCpy.descriptorSets.has_value())
 		{
 			ENG_LOG_DEBUG("Skipping draw call for " << node.name << " without descriptor sets" << std::endl);
 			continue;
 		}
 
-		const auto& descriptorSets = drawDataPtr->descriptorSets.value();
+		const auto& descriptorSets = drawDataCpy.descriptorSets.value();
 		if (descriptorSets.size() != MAX_FRAMES_IN_FLIGHT)
 		{
 			ENG_LOG_DEBUG("Skipping draw call for " << node.name << " missing descriptor sets" << std::endl);
-			continue;
-		}
-
-		if (!has_property(*drawDataPtr, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED))
-		{
-			ENG_LOG_DEBUG("Skipping draw call for " << node.name << " uninitialized descriptor sets" << std::endl);
 			continue;
 		}
 
@@ -159,7 +156,7 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 				&node.nodeId);
 
 		const auto indexedDraw = shaderId != "PosNorCol" && shaderId != "Goldberg";
-		recordDrawDataCommand(commandBuffer, *drawDataPtr, indexedDraw);
+		recordDrawDataCommand(commandBuffer, drawDataCpy, indexedDraw);
 	}
 }
 

@@ -32,15 +32,6 @@ struct alignas(CACHE_LINE_SIZE) DrawData
 	std::optional<DrawDataAllocationInfo> bufferAllocationInfo;
 };
 
-inline bool has_property(const DrawData& drawData, const DrawDataProperties propertyEnum)
-{
-	return (drawData.propertyFlags & propertyEnum) != 0;
-}
-
-inline void set_property(DrawData& drawData, const DrawDataProperties propertyEnum)
-{
-	drawData.propertyFlags |= propertyEnum;
-}
 
 struct CommandRecorderEvent {
 	std::function<void(VkCommandBuffer)> commandRecorder;
@@ -59,7 +50,7 @@ using GraphicsEvent = std::variant<
 class VkAdapter : RenderAdapterI
 {
 private:
-	mutable std::mutex lockM;
+	mutable std::mutex drawDataMutex;
 
 public:
 	VkCommandPool cmdPool{};
@@ -86,6 +77,22 @@ public:
 		vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator);
 
 
+	}
+
+	bool has_property(const size_t drawDataIdx, const DrawDataProperties propertyEnum)
+	{
+		std::lock_guard lock(drawDataMutex);
+		assert(drawDataIdx < drawDataBuffer.size());
+		const auto& drawData = drawDataBuffer.at(drawDataIdx);
+		return (drawData.propertyFlags & propertyEnum) != 0;
+	}
+
+	void set_property(const size_t drawDataIdx, const DrawDataProperties propertyEnum)
+	{
+		std::lock_guard lock(drawDataMutex);
+		assert(drawDataIdx < drawDataBuffer.size());
+		auto& drawData = drawDataBuffer.at(drawDataIdx);
+		drawData.propertyFlags |= propertyEnum;
 	}
 
 	~VkAdapter()
@@ -213,8 +220,12 @@ public:
 		return drawDataInfo;
 	}
 
-	void createDescriptorSets(DrawData& drawData, SceneGraph& graph)
+	void createDescriptorSets(const size_t drawDataIdx, SceneGraph& graph)
 	{
+		std::lock_guard lock(drawDataMutex);
+
+		auto& drawData{ drawDataBuffer.at(drawDataIdx) };
+
 		if (!drawData.bufferAllocationInfo.has_value())
 		{
 			ENG_LOG_ERROR("Attempted to create descriptor sets for draw data with no DrawDataBufferAllocationInfo" << std::endl);
@@ -229,6 +240,8 @@ public:
 
 		const auto& bufferAllocationInfo = drawData.bufferAllocationInfo.value();
 		const auto& nodeId = drawData.nodeId.value();
+
+		// TODO: potential for deadlock if node structure is blocked by mutex
 		const auto& node = get_node_by_id(graph, nodeId);
 
 		if (!node.shaderId.has_value())
@@ -258,25 +271,26 @@ public:
 	* Returns index of allocated draw data 
 	*/
 	size_t emplaceDrawData(DrawData&& drawData) {
-		std::lock_guard<std::mutex> lock(lockM);
+		std::lock_guard<std::mutex> lock(drawDataMutex);
 		drawDataBuffer.emplace_back(drawData);
 		return drawDataBuffer.size() - 1;
 	}
 
 	void recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuffer& commandBuffer, SceneState& sceneState);
+
 	/*
-	* Returns draw data at given index
+	* Returns copy of draw data at given index.
 	*/
-	DrawData* getDrawDataFromIdx(uint32_t idx) {
+	DrawData getDrawDataFromIdx(uint32_t idx) {
 		if (idx >= drawDataBuffer.size())
 		{
 			ENG_LOG_ERROR(
 				"Attempted to access drawData at idx: " << idx 
 				<< " but the buffer is only of length: " 
 				<< drawDataBuffer.size() << std::endl);
-			return nullptr;
+			return {};
 		}
-		return &drawDataBuffer.at(idx);
+		return drawDataBuffer.at(idx);
 	}
 };
 
