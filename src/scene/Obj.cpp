@@ -11,11 +11,7 @@ namespace ENG
 
 void loadModel(
 	VkAdapter& adapter,
-	const VkDevice& device, 
-	const VkPhysicalDevice &physicalDevice, 
-	ENG::Command* const commands,
 	std::string name, 
-	const VkQueue &graphicsQueue,
 	const std::filesystem::path &filepath, 
 	SceneState &sceneState, 
 	Node& attachmentPoint) 

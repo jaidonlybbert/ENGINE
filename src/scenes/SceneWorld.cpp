@@ -222,7 +222,7 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 	{
 		return;
 	}
-		
+
 	if (!node->mesh_idx.has_value())
 	{
 		ENG_LOG_ERROR("Attempted to create bounding box on node " << node->name << " which has no mesh index");
@@ -365,12 +365,15 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
 	const auto& meshName = std::string("Room");
-	ENG::loadModel(adapter, renderer.device, renderer.physicalDevice, renderer.commands.get(), meshName,
-		renderer.graphicsQueue, get_model_dir(), sceneState, attachmentPoint);
+	ENG::loadModel(adapter, meshName, get_model_dir(), sceneState, attachmentPoint);
+
+	// load space floor
+	//ENG::loadModel(adapter, "Spacefloor", get_spacefloor_dir(), sceneState, attachmentPoint);
+
 
 	// Create bounding box around Suzanne
-	//auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
-	//addBoundingBoxChild(suzanneNode, renderer, "SuzanneBoundingBox", sceneState);
+	//const auto suzanneNodeIdx = find_node_by_name(sceneState.graph, "Suzanne")->nodeId;
+	//addBoundingBoxChild(suzanneNodeIdx, renderer, "SuzanneBoundingBox", sceneState);
 
 	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
 	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue);
@@ -422,25 +425,24 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
 
 	// custom settings overrides
-	//if (suzanneNode != nullptr)
-	//{
-	//	suzanneNode->visible = false;
-	//}
-	//auto* suzanneBoundingBoxNode = find_node_by_name(sceneState.graph, "SuzanneBoundingBox");
-	//if (suzanneBoundingBoxNode != nullptr)
-	//{
-	//	suzanneBoundingBoxNode->visible = false;
-	//}
-	//auto* roomNode = find_node_by_name(sceneState.graph, "Room");
-	//if (roomNode != nullptr)
-	//{
-	//	roomNode->visible = false;
-	//}
-	//auto* tetrahedronNode = find_node_by_name(sceneState.graph, "Tetrahedron");
-	//if (tetrahedronNode != nullptr)
-	//{
-	//	tetrahedronNode->visible = false;
-	//}
+	auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
+	if (suzanneNode != nullptr)
+	{
+		suzanneNode->visible = false;
+	}
+
+	auto* roomNode = find_node_by_name(sceneState.graph, "Room");
+	if (roomNode != nullptr)
+	{
+		roomNode->visible = false;
+	}
+
+	auto* tetrahedronNode = find_node_by_name(sceneState.graph, "Tetrahedron");
+	if (tetrahedronNode != nullptr)
+	{
+		tetrahedronNode->visible = false;
+	}
+
 	auto* camera = cameraNode.camera;
 	camera->fovy = 0.7;
 

@@ -197,7 +197,7 @@ public:
 	void writeDescriptorSets(const std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId);
 	void createDescriptorSets(ENG::Node& node);
 	void createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId);
-	void createTextureImage();
+	void createTextureImage(const std::filesystem::path& fpath);
 	void createTextureImageView();
 	void createTextureSampler();
 	void initGui();

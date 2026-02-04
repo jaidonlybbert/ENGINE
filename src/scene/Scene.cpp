@@ -6,6 +6,7 @@ namespace ENG
 
 Node& get_node_by_id(SceneGraph& sceneGraph, const size_t nodeId)
 {
+	assert(nodeId < sceneGraph.nodes.size());
 	return sceneGraph.nodes.at(nodeId);
 }
 

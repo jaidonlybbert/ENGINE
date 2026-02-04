@@ -9,8 +9,11 @@
 namespace ENG
 {
 struct SceneState;
-void loadModel(VkAdapter& adapter, const VkDevice& device, const VkPhysicalDevice &physicalDevice, ENG::Command* const commands,
-      std::string name, const VkQueue &graphicsQueue,
-      const std::filesystem::path &filepath, SceneState &sceneState, ENG::Node& attachmentPoint);
+void loadModel(
+	VkAdapter& adapter,
+	std::string name, 
+	const std::filesystem::path &filepath, 
+	SceneState &sceneState, 
+	Node& attachmentPoint);
 } // end namespace
 #endif

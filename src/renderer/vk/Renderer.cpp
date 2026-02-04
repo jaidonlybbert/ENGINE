@@ -184,7 +184,7 @@ void VkRenderer::initVulkan()
 	commands = std::make_unique<Command>(physicalDevice, device, surface); // creates command pool
 	createDepthResources(device, physicalDevice, swapchain->swapChainExtent, swapchain->depthImage, swapchain->depthImageMemory, swapchain->depthImageView);
 	swapchain->createFramebuffers(renderPass, device);
-	createTextureImage();
+	createTextureImage(get_tex_path());
 	createTextureImageView();
 	createTextureSampler();
 	createUniformBuffers();
@@ -753,10 +753,10 @@ void VkRenderer::createDescriptorSets(ENG::Node& node)
 	writeDescriptorSets(descriptorSetVec, node.shaderId.value());
 }
 
-void VkRenderer::createTextureImage() 
+void VkRenderer::createTextureImage(const std::filesystem::path& fpath) 
 {
 	int texWidth, texHeight, texChannels;
-	stbi_uc* pixels = stbi_load(get_tex_path().string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load(fpath.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 	if (!pixels) {

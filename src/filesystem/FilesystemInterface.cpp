@@ -10,6 +10,11 @@ const std::filesystem::path& get_install_dir() {
 	return install_dir;
 }
 
+const std::filesystem::path& get_spacefloor_dir() {
+	static const std::filesystem::path& model_path{get_install_dir() / "models" / "Spacefloor.obj"};
+	return model_path;
+}
+
 const std::filesystem::path& get_model_dir() {
 	static const std::filesystem::path& model_path{get_install_dir() / "models" / "viking_room.obj"};
 	return model_path;
