@@ -104,10 +104,12 @@ public:
 	VkDescriptorPool descriptorPool;
 	VkDescriptorPool imguiPool;
 	Pool<VkDescriptorSet> descriptorSets{ 10 };
-	VkImage textureImage;
-	VkDeviceMemory textureImageMemory;
-	VkImageView textureImageView;
-	VkSampler textureSampler;
+
+	std::unordered_map<std::filesystem::path, VkImage> textureImages;
+	std::unordered_map<std::filesystem::path, VkDeviceMemory> textureImageMemory;
+	std::unordered_map<std::filesystem::path, VkImageView> textureImageViews;
+	std::unordered_map<std::filesystem::path, VkSampler> textureSamplers;
+
 	std::unique_ptr<ENG::InstanceFactory> instanceFactory;
 	std::unique_ptr<ENG::PipelineFactory> pipelineFactory;
 	std::unique_ptr<ENG::Command> commands;
@@ -194,11 +196,18 @@ public:
 		const size_t bindingIdx,
 		const VkDescriptorBufferInfo& bufferInfo);
 
-	void writeDescriptorSets(const std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId);
+	void writeDescriptorSets(
+		const std::vector<VkDescriptorSet>& descriptorSets, 
+		const std::string& shaderId,
+		const std::optional<std::filesystem::path> texturePath);
+
 	void createDescriptorSets(ENG::Node& node);
-	void createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId);
+
+	void createDescriptorSets(
+		std::vector<VkDescriptorSet>& descriptorSetsP, const std::string& shaderId, const std::optional<std::filesystem::path> texturePath);
+
 	void createTextureImage(const std::filesystem::path& fpath);
-	void createTextureImageView();
-	void createTextureSampler();
+	void createTextureImageView(const std::filesystem::path& fpath);
+	void createTextureSampler(const std::filesystem::path& fpath);
 	void initGui();
 };

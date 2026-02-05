@@ -12,7 +12,8 @@ namespace ENG
 void loadModel(
 	VkAdapter& adapter,
 	std::string name, 
-	const std::filesystem::path &filepath, 
+	const std::filesystem::path& objPath, 
+	const std::filesystem::path& texturePath,
 	SceneState &sceneState, 
 	Node& attachmentPoint) 
 {
@@ -28,7 +29,7 @@ void loadModel(
 	std::vector<VertexPosColTex> vertices;
 	std::vector<uint32_t> indices;
 
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filepath.string().c_str())) {
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objPath.string().c_str())) {
 		throw std::runtime_error(warn + err);
 	}
 
@@ -60,7 +61,8 @@ void loadModel(
 				std::move(vertices),
 				std::move(indices),
 				"VertexPosColTex",
-				"PosColTex"
+				"PosColTex",
+				texturePath
 			},
 			newNode.nodeId
 		}

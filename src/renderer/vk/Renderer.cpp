@@ -97,10 +97,27 @@ VkRenderer::~VkRenderer() {
 void VkRenderer::cleanupVulkan()
 {
 	swapchain->cleanupSwapChain(device);
-	vkDestroySampler(device, textureSampler, nullptr);
-	vkDestroyImageView(device, textureImageView, nullptr);
-	vkDestroyImage(device, textureImage, nullptr);
-	vkFreeMemory(device, textureImageMemory, nullptr);
+
+	for (auto& pair : textureImageViews)
+	{
+		vkDestroyImageView(device, pair.second, nullptr);
+	}
+
+	for (auto& pair : textureSamplers)
+	{
+		vkDestroySampler(device, pair.second, nullptr);
+	}
+
+	for (auto& pair : textureImages)
+	{
+		vkDestroyImage(device, pair.second, nullptr);
+	}
+
+	for (auto& pair : textureImageMemory)
+	{
+		vkFreeMemory(device, pair.second, nullptr);
+	}
+
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -184,9 +201,15 @@ void VkRenderer::initVulkan()
 	commands = std::make_unique<Command>(physicalDevice, device, surface); // creates command pool
 	createDepthResources(device, physicalDevice, swapchain->swapChainExtent, swapchain->depthImage, swapchain->depthImageMemory, swapchain->depthImageView);
 	swapchain->createFramebuffers(renderPass, device);
-	createTextureImage(get_tex_path());
-	createTextureImageView();
-	createTextureSampler();
+
+	for (const auto& fpath : { get_room_tex(), get_spacefloor_tex() })
+	{
+		ENG_LOG_INFO("Loading Texture: " << fpath.string() << std::endl);
+		createTextureImage(fpath);
+		createTextureImageView(fpath);
+		createTextureSampler(fpath);
+	}
+
 	createUniformBuffers();
 	createDescriptorPool();
 	commands->createCommandBuffers(device);
@@ -635,7 +658,10 @@ VkWriteDescriptorSet VkRenderer::createDescriptorWriteFaceIdMapBuffer(
 	return descriptorWrite;
 }
 
-void VkRenderer::writeDescriptorSets(const std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId) 
+void VkRenderer::writeDescriptorSets(
+	const std::vector<VkDescriptorSet>& descriptorSets, 
+	const std::string& shaderId,
+	const std::optional<std::filesystem::path> texturePath) 
 {
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		VkDescriptorBufferInfo bufferInfo{};
@@ -645,8 +671,11 @@ void VkRenderer::writeDescriptorSets(const std::vector<VkDescriptorSet>& descrip
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = textureImageView;
-		imageInfo.sampler = textureSampler;
+
+		if (texturePath.has_value()) {
+			imageInfo.imageView = textureImageViews.at(texturePath.value());
+			imageInfo.sampler = textureSamplers.at(texturePath.value());
+		}
 
 		VkDescriptorBufferInfo modelMatrixBufferInfo{};
 		assert(modelMatrixBuffers[i].buffer != nullptr);
@@ -685,6 +714,10 @@ void VkRenderer::writeDescriptorSets(const std::vector<VkDescriptorSet>& descrip
 		}
 		else
 		{
+			if (!texturePath.has_value())
+			{
+				ENG_LOG_ERROR("Expected texture path!" << std::endl);
+			}
 			descriptorWrites = {
 				createWriteDescriptorSet(descriptorSets.at(i), bufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0),
 				createWriteDescriptorSet(descriptorSets.at(i), imageInfo, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
@@ -696,7 +729,7 @@ void VkRenderer::writeDescriptorSets(const std::vector<VkDescriptorSet>& descrip
 	}
 }
 
-void VkRenderer::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSetsP, const std::string& shaderId)
+void VkRenderer::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSetsP, const std::string& shaderId, const std::optional<std::filesystem::path> texturePath)
 {
 	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory->getDescriptorSetLayout(shaderId));
 	VkDescriptorSetAllocateInfo allocInfo{};
@@ -715,7 +748,7 @@ void VkRenderer::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSe
 		throw std::runtime_error("failed to allocate descriptor sets!");
 	}
 
-	writeDescriptorSets(descriptorSetsP, shaderId);
+	writeDescriptorSets(descriptorSetsP, shaderId, texturePath);
 }
 
 void VkRenderer::createDescriptorSets(ENG::Node& node) 
@@ -750,7 +783,8 @@ void VkRenderer::createDescriptorSets(ENG::Node& node)
 		descriptorSetVec.emplace_back(descriptorSets.get(descriptorSetId));
 	}
 
-	writeDescriptorSets(descriptorSetVec, node.shaderId.value());
+	ENG_LOG_ERROR("Calling deprecated function: createDescriptorSets" << std::endl);
+	writeDescriptorSets(descriptorSetVec, node.shaderId.value(), std::nullopt);
 }
 
 void VkRenderer::createTextureImage(const std::filesystem::path& fpath) 
@@ -773,6 +807,23 @@ void VkRenderer::createTextureImage(const std::filesystem::path& fpath)
 
 	stbi_image_free(pixels);
 
+	auto textureImageRes = textureImages.emplace(fpath, VkImage{});
+
+	if (!textureImageRes.second)
+	{
+		ENG_LOG_ERROR("Failed insertion of textureImage" << std::endl);
+	}
+
+	auto textureImageMemRes = textureImageMemory.emplace(fpath, VkDeviceMemory{});
+
+	if (!textureImageMemRes.second)
+	{
+		ENG_LOG_ERROR("Failed insertion of textureImageMemory" << std::endl);
+	}
+
+	auto& textureImage{ textureImageRes.first->second };
+	auto& textureImageMem{ textureImageMemRes.first->second };
+
 	createImage(
 		device, 
 		physicalDevice, 
@@ -783,19 +834,26 @@ void VkRenderer::createTextureImage(const std::filesystem::path& fpath)
 		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
 		textureImage, 
-		textureImageMemory);
+		textureImageMem);
 
 	commands->transitionImageLayout(graphicsQueue, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	commands->copyBufferToImage(graphicsQueue, stagingBuffer.buffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
 	commands->transitionImageLayout(graphicsQueue, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void VkRenderer::createTextureImageView() 
+void VkRenderer::createTextureImageView(const std::filesystem::path& fpath) 
 {
-	textureImageView = ENG::createImageView(device, textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+	auto& texImage = textureImages.at(fpath);
+
+	auto texImageViewInsertionRes = textureImageViews.emplace(fpath, ENG::createImageView(device, texImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
+
+	if (!texImageViewInsertionRes.second)
+	{
+		ENG_LOG_ERROR("Insertion of VkImageView failed!" << std::endl);
+	}
 }
 
-void VkRenderer::createTextureSampler() 
+void VkRenderer::createTextureSampler(const std::filesystem::path& fpath) 
 {
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -817,6 +875,15 @@ void VkRenderer::createTextureSampler()
 	samplerInfo.mipLodBias = 0.0f;
 	samplerInfo.minLod = 0.0f;
 	samplerInfo.maxLod = 0.0f;
+
+	auto texSamplerInsertRes = textureSamplers.emplace(fpath, VkSampler{});
+
+	if (!texSamplerInsertRes.second)
+	{
+		ENG_LOG_ERROR("Failed to insert texture sampler!" << std::endl);
+	}
+
+	auto& textureSampler = texSamplerInsertRes.first->second;
 
 	if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create texture sampler!");

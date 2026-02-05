@@ -12,7 +12,8 @@ struct SceneState;
 void loadModel(
 	VkAdapter& adapter,
 	std::string name, 
-	const std::filesystem::path &filepath, 
+	const std::filesystem::path &objPath, 
+	const std::filesystem::path &texturePath,
 	SceneState &sceneState, 
 	Node& attachmentPoint);
 } // end namespace

@@ -28,6 +28,7 @@ struct alignas(CACHE_LINE_SIZE) DrawData
 {
 	uint32_t propertyFlags{ DrawDataProperties::CLEAR };
 	std::optional<uint32_t> nodeId;
+	std::optional<std::filesystem::path> texturePath;
 	std::optional<std::vector<VkDescriptorSet>> descriptorSets;
 	std::optional<DrawDataAllocationInfo> bufferAllocationInfo;
 };
@@ -250,9 +251,11 @@ public:
 			return;
 		}
 
+		ENG_LOG_INFO("Writing descriptor sets for: " << node.name << std::endl);
+
 		drawData.descriptorSets = std::vector<VkDescriptorSet>{};
 		assert(drawData.descriptorSets.has_value());
-		renderer.createDescriptorSets(drawData.descriptorSets.value(), node.shaderId.value());
+		renderer.createDescriptorSets(drawData.descriptorSets.value(), node.shaderId.value(), drawData.texturePath);
 	}
 
 	/*

@@ -3,6 +3,7 @@
 #include "logger/Logging.hpp"
 #include "scene/Mesh.hpp"
 #include "renderer/vk_adapter/VkAdapter.hpp"
+#include "filesystem/FilesystemInterface.hpp"
 
 namespace ENG
 {
@@ -199,7 +200,8 @@ void load_gltf_mesh_attributes(
 					std::move(vertices),
 					std::move(indices),
 					"VertexPosColTex",
-					"PosColTex"
+					"PosColTex",
+					get_room_tex()
 				},
 				nodeId
 			}
@@ -223,7 +225,8 @@ void load_gltf_mesh_attributes(
 					std::move(vertices),
 					std::move(indices),
 					"VertexPosNorTex",
-					"PosNorTex"
+					"PosNorTex",
+					get_room_tex()
 				},
 				nodeId
 			}

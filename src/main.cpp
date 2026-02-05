@@ -281,11 +281,12 @@ void mesh_bind_event_handler(SceneState& sceneState, VkAdapter& adapter, BindHos
 		{
 			DrawDataProperties::CLEAR,
 			{bindEvent.nodeId},
+			hostMesh.texturePath,  // no texture path
 			{std::nullopt},  // no descriptor sets
 			adapter.create_draw_data(
 				std::move(hostMesh.vertexBuffer),
 				std::move(hostMesh.indexBuffer)
-			)
+			),
 		}
 	);
 

@@ -365,10 +365,10 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
 	const auto& meshName = std::string("Room");
-	ENG::loadModel(adapter, meshName, get_model_dir(), sceneState, attachmentPoint);
+	ENG::loadModel(adapter, meshName, get_room_obj(), get_room_tex(), sceneState, attachmentPoint);
 
 	// load space floor
-	//ENG::loadModel(adapter, "Spacefloor", get_spacefloor_dir(), sceneState, attachmentPoint);
+	ENG::loadModel(adapter, "Spacefloor", get_spacefloor_obj(), get_spacefloor_tex(), sceneState, attachmentPoint);
 
 
 	// Create bounding box around Suzanne

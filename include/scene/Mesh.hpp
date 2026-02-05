@@ -7,6 +7,8 @@
 #include<memory>
 #include<cstring>
 #include<variant>
+#include<filesystem>
+
 #include "vulkan/vulkan_core.h"
 #include "glm/glm.hpp"
 #include "renderer/vk/Buffer.hpp"
@@ -33,6 +35,7 @@ namespace ENG
 		std::vector<uint32_t> indexBuffer;
 		std::string meshType;
 		std::string shaderId;
+		std::optional<std::filesystem::path> texturePath;
 	};
 
 	struct BindHostMeshDataEvent {

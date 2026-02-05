@@ -10,18 +10,23 @@ const std::filesystem::path& get_install_dir() {
 	return install_dir;
 }
 
-const std::filesystem::path& get_spacefloor_dir() {
+const std::filesystem::path& get_spacefloor_obj() {
 	static const std::filesystem::path& model_path{get_install_dir() / "models" / "Spacefloor.obj"};
 	return model_path;
 }
 
-const std::filesystem::path& get_model_dir() {
+const std::filesystem::path& get_room_obj() {
 	static const std::filesystem::path& model_path{get_install_dir() / "models" / "viking_room.obj"};
 	return model_path;
 }
 
-const std::filesystem::path& get_tex_path() {
+const std::filesystem::path& get_room_tex() {
 	static const std::filesystem::path& tex_path{ get_install_dir() / "textures" / "viking_room.png"};
+	return tex_path;
+}
+
+const std::filesystem::path& get_spacefloor_tex() {
+	static const std::filesystem::path& tex_path{ get_install_dir() / "textures" / "Spacefloor.png"};
 	return tex_path;
 }
 
