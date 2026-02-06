@@ -187,6 +187,14 @@ std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
 	return os;
 }
 
+void VkRenderer::createTexture(const std::filesystem::path& fpath)
+{
+	ENG_LOG_INFO("Loading Texture: " << fpath.string() << std::endl);
+	createTextureImage(fpath);
+	createTextureImageView(fpath);
+	createTextureSampler(fpath);
+}
+
 void VkRenderer::initVulkan() 
 {
 	instanceFactory = std::make_unique<ENG::InstanceFactory>();
@@ -204,10 +212,7 @@ void VkRenderer::initVulkan()
 
 	for (const auto& fpath : { get_room_tex(), get_spacefloor_tex() })
 	{
-		ENG_LOG_INFO("Loading Texture: " << fpath.string() << std::endl);
-		createTextureImage(fpath);
-		createTextureImageView(fpath);
-		createTextureSampler(fpath);
+		createTexture(fpath);
 	}
 
 	createUniformBuffers();

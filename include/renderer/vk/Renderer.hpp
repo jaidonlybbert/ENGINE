@@ -209,5 +209,6 @@ public:
 	void createTextureImage(const std::filesystem::path& fpath);
 	void createTextureImageView(const std::filesystem::path& fpath);
 	void createTextureSampler(const std::filesystem::path& fpath);
+	void createTexture(const std::filesystem::path& fpath);
 	void initGui();
 };

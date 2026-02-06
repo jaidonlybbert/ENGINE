@@ -273,15 +273,23 @@ void handleHIDEvents(std::deque<ClientHidEvent>& eventQueue, SceneState& sceneSt
 	}
 }
 
-void mesh_bind_event_handler(SceneState& sceneState, VkAdapter& adapter, BindHostMeshDataEvent&& bindEvent) {
+void mesh_bind_event_handler(VkRenderer& renderer, SceneState& sceneState, VkAdapter& adapter, BindHostMeshDataEvent&& bindEvent) {
 	auto& hostMesh = bindEvent.meshData;
 	auto& node = get_node_by_id(sceneState.graph, bindEvent.nodeId);
+
+	if (hostMesh.texturePath.has_value())
+	{
+		if (!renderer.textureImages.contains(hostMesh.texturePath.value()))
+		{
+			renderer.createTexture(hostMesh.texturePath.value());
+		}
+	}
 
 	const auto drawIdx = adapter.emplaceDrawData(
 		{
 			DrawDataProperties::CLEAR,
 			{bindEvent.nodeId},
-			hostMesh.texturePath,  // no texture path
+			hostMesh.texturePath,
 			{std::nullopt},  // no descriptor sets
 			adapter.create_draw_data(
 				std::move(hostMesh.vertexBuffer),
@@ -306,14 +314,14 @@ void mesh_bind_event_handler(SceneState& sceneState, VkAdapter& adapter, BindHos
 	ENG_LOG_INFO("Node: " << node.name << " DrawDataIndex: " << drawIdx << std::endl);
 }
 
-void handleGraphicsEvents(VkAdapter& adapter, SceneState& sceneState)
+void handleGraphicsEvents(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
 {
 	while (!adapter.graphicsEventQueue.empty()) {
 		GraphicsEvent graphicsEvent{ adapter.graphicsEventQueue.pop() };
 		
 		if (std::holds_alternative<BindHostMeshDataEvent>(graphicsEvent))
 		{
-			mesh_bind_event_handler(sceneState, adapter, std::move(std::get<BindHostMeshDataEvent>(graphicsEvent)));
+			mesh_bind_event_handler(renderer, sceneState, adapter, std::move(std::get<BindHostMeshDataEvent>(graphicsEvent)));
 		}
 		else if (std::holds_alternative<CommandRecorderEvent>(graphicsEvent))
 		{
@@ -334,7 +342,7 @@ void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData
 		glfwPollEvents();
 		handleHIDEvents(windowUserData.eventQueue, sceneState);
 
-		handleGraphicsEvents(adapter, sceneState);
+		handleGraphicsEvents(renderer, adapter, sceneState);
 
 		gui.drawGui();
 		renderer.drawFrame();

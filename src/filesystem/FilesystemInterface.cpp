@@ -15,6 +15,11 @@ const std::filesystem::path& get_spacefloor_obj() {
 	return model_path;
 }
 
+const std::filesystem::path& get_spacefloor_obj2() {
+	static const std::filesystem::path& model_path{get_install_dir() / "models" / "Spacefloor2.obj"};
+	return model_path;
+}
+
 const std::filesystem::path& get_room_obj() {
 	static const std::filesystem::path& model_path{get_install_dir() / "models" / "viking_room.obj"};
 	return model_path;
@@ -35,4 +40,8 @@ const std::filesystem::path& get_gltf_dir() {
 	return gltf_dir;
 }
 
+const std::filesystem::path& get_mtl_dir() {
+	static const std::filesystem::path& gltf_dir{ get_install_dir() / "models" };
+	return gltf_dir;
+}
 }

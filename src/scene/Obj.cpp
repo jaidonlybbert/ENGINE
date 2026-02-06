@@ -29,8 +29,19 @@ void loadModel(
 	std::vector<VertexPosColTex> vertices;
 	std::vector<uint32_t> indices;
 
-	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objPath.string().c_str())) {
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objPath.string().c_str(), get_mtl_dir().string().c_str())) {
 		throw std::runtime_error(warn + err);
+	}
+
+	auto texPath = texturePath;
+
+	ENG_LOG_INFO("Found " << materials.size() << " materials." << std::endl);
+	for (const auto& mat : materials)
+	{
+		ENG_LOG_INFO("\tName: " << mat.name << std::endl);
+		ENG_LOG_INFO("\tDiffuse texture: " << mat.diffuse_texname << std::endl);
+		texPath = (get_mtl_dir() / std::filesystem::path(mat.diffuse_texname)).lexically_normal();
+		ENG_LOG_INFO("\tConcat path: " << texPath << std::endl);
 	}
 
 	for (const auto& shape : shapes) {
@@ -62,7 +73,7 @@ void loadModel(
 				std::move(indices),
 				"VertexPosColTex",
 				"PosColTex",
-				texturePath
+				texPath
 			},
 			newNode.nodeId
 		}
