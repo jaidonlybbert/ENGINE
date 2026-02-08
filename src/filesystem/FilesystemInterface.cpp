@@ -16,7 +16,7 @@ const std::filesystem::path& get_spacefloor_obj() {
 }
 
 const std::filesystem::path& get_spacefloor_obj2() {
-	static const std::filesystem::path& model_path{get_install_dir() / "models" / "Spacefloor2.obj"};
+	static const std::filesystem::path& model_path{get_install_dir() / "models" / "Spacefloor4.obj"};
 	return model_path;
 }
 

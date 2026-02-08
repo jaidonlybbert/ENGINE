@@ -370,7 +370,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	// load space floor
 	//ENG::loadModel(adapter, "Spacefloor", get_spacefloor_obj(), get_spacefloor_tex(), sceneState, attachmentPoint);
 
-	ENG::loadModel(adapter, "Spacefloor2", get_spacefloor_obj2(), get_spacefloor_tex(), sceneState, attachmentPoint);
+	ENG::loadModel(adapter, "Spacefloor3", get_spacefloor_obj2(), get_spacefloor_tex(), sceneState, attachmentPoint);
 
 
 	// Create bounding box around Suzanne

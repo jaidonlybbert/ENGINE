@@ -17,17 +17,10 @@ void loadModel(
 	SceneState &sceneState, 
 	Node& attachmentPoint) 
 {
-	auto& newNode = sceneState.graph.create_node();
-	newNode.name = name;
-	newNode.parent = &attachmentPoint;
-	attachmentPoint.children.push_back(&newNode);
-		
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
 	std::string warn, err;
-	std::vector<VertexPosColTex> vertices;
-	std::vector<uint32_t> indices;
 
 	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objPath.string().c_str(), get_mtl_dir().string().c_str())) {
 		throw std::runtime_error(warn + err);
@@ -44,7 +37,29 @@ void loadModel(
 		ENG_LOG_INFO("\tConcat path: " << texPath << std::endl);
 	}
 
+	std::unordered_map<std::filesystem::path, std::vector<VertexPosColTex>> vertices;
+	std::unordered_map<std::filesystem::path, std::vector<uint32_t>> indices;
+	auto idx = 0;
 	for (const auto& shape : shapes) {
+
+		auto& newNode = sceneState.graph.create_node();
+		newNode.name = name + "-" + std::to_string(idx++);
+		newNode.parent = &attachmentPoint;
+		attachmentPoint.children.push_back(&newNode);
+		
+		// assumes material id is always the same per shape
+		if (shape.mesh.material_ids.empty()) {
+			const auto& shape_mat_id = shape.mesh.material_ids.at(0);
+			const auto& shape_material = materials.at(shape_mat_id);
+			texPath = (get_mtl_dir() / std::filesystem::path(shape_material.diffuse_texname)).lexically_normal();
+			ENG_LOG_INFO("Overwrite texture path with material found for mesh: " << texPath << std::endl);
+		}
+
+		if (!vertices.contains(texPath)) {
+			vertices.insert({ texPath, {} });
+			indices.insert({ texPath, {} });
+		}
+
 		for (const auto& index : shape.mesh.indices) {
 			VertexPosColTex vertex{};
 
@@ -61,23 +76,24 @@ void loadModel(
 
 			vertex.color = {1.0f, 1.0f, 1.0f};
 
-			vertices.push_back(vertex);
-			indices.push_back(indices.size());
+			vertices.at(texPath).push_back(vertex);
+			indices.at(texPath).push_back(indices.at(texPath).size());
 		}
+
+		adapter.graphicsEventQueue.push(
+			BindHostMeshDataEvent{
+				HostMeshData {
+					std::move(vertices.at(texPath)),
+					std::move(indices.at(texPath)),
+					"VertexPosColTex",
+					"PosColTex",
+					texPath
+				},
+				newNode.nodeId
+			}
+		);
 	}
 
-	adapter.graphicsEventQueue.push(
-		BindHostMeshDataEvent{
-			HostMeshData {
-				std::move(vertices),
-				std::move(indices),
-				"VertexPosColTex",
-				"PosColTex",
-				texPath
-			},
-			newNode.nodeId
-		}
-	);
 }
 
 } // end namespace
