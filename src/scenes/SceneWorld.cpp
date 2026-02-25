@@ -4,6 +4,7 @@
 #include "renderer/vk_adapter/VkAdapter.hpp"
 #include "application/ConcurrentQueue.hpp"
 #include "scenes/SceneWorld.hpp"
+#include "scenes/SceneWorldInput.hpp"
 
 void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
 {
@@ -349,6 +350,9 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsE
 }
 
 void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState) {
+	// Set callback handlers for inputs
+	SceneWorldInput::set_callbacks();
+
 	// TODO: implement pools to avoid reference invalidation on reallocation problem
 	sceneState.posColTexMeshes.reserve(100);
 	sceneState.posNorTexMeshes.reserve(100);

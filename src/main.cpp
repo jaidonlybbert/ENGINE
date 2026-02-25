@@ -164,12 +164,12 @@ void initWindow(VkRenderer& app, WindowUserData& windowUserData) {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	app.window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 	glfwSetWindowUserPointer(app.window, &windowUserData);
-	glfwSetFramebufferSizeCallback(app.window, framebufferResizeCallback);
+	glfwSetFramebufferSizeCallback(app.window, InputController::framebufferResizeCallback);
 	glfwGetCursorPos(app.window, &windowUserData.cursor_x, &windowUserData.cursor_y);
-	glfwSetScrollCallback(app.window, mouse_scroll_callback);
-	glfwSetKeyCallback(app.window, key_callback);
-	glfwSetMouseButtonCallback(app.window, mouse_button_callback);
-	glfwSetCursorPosCallback(app.window, mouse_movement_callback);
+	glfwSetScrollCallback(app.window, InputController::mouse_scroll_callback);
+	glfwSetKeyCallback(app.window, InputController::key_callback);
+	glfwSetMouseButtonCallback(app.window, InputController::mouse_button_callback);
+	glfwSetCursorPosCallback(app.window, InputController::mouse_movement_callback);
 }
 
 void profilerMarkStart(const std::string& name)

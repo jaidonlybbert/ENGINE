@@ -5,6 +5,14 @@ namespace ENG {
 	class Node;
 }
 
+struct InputCallbacks {
+	std::vector<std::function<void(GLFWwindow*, double, double)>> mouseMovementCallbacks;
+	std::vector<std::function<void(GLFWwindow*, double, double)>> mouseScrollCallbacks;
+	std::vector<std::function<void(GLFWwindow*, int, int, int)>> mouseButtonCallbacks;
+	std::vector<std::function<void(GLFWwindow*, int, int, int, int)>> keyCallbacks;
+	std::vector<std::function<void(GLFWwindow*, int, int)>> framebufferResizeCallbacks;
+};
+
 struct WindowUserData {
 	double cursor_x{ 0. };
 	double cursor_y{ 0. };
@@ -12,6 +20,19 @@ struct WindowUserData {
 	bool windowResized{ false };
 };
 
+struct InputController {
+	
+	static void set_callbacks(InputCallbacks&& inputCallbacks);
+	static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos);
+	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+	
+private:
+	inline static InputCallbacks inputCallbacks;
+	inline static std::mutex callbacksComplete;
+};
 
 struct GLFWwindow;
 
@@ -21,8 +42,3 @@ struct GLFWwindow;
 */
 void node_rotation_follows_input_preserve_y_as_up(ENG::Node& activeNode, const double dx, const double dy);
 void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const double dy);
-void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos);
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void framebufferResizeCallback(GLFWwindow* window, int width, int height);

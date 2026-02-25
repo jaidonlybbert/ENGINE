@@ -1,6 +1,7 @@
 add_library(scenes STATIC
 	"${PROJECT_SOURCE_DIR}/src/scenes/ProceduralGeometry.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scenes/SceneWorld.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scenes/SceneWorldInput.cpp"
 )
 
 target_include_directories(scenes PUBLIC "${PROJECT_SOURCE_DIR}/include")
@@ -11,6 +12,7 @@ if (WIN32)
 endif()
 
 target_link_libraries(scenes PUBLIC engine::scene)
+target_link_libraries(scenes PUBLIC engine::hid)
 target_link_libraries(scenes PUBLIC engine::vk::renderer)
 target_link_libraries(scenes PUBLIC engine::filesystem)
 target_link_libraries(scenes PUBLIC engine::logger)
