@@ -8,6 +8,7 @@
 #include<cstring>
 #include<variant>
 #include<filesystem>
+#include<optional>
 
 #include "vulkan/vulkan_core.h"
 #include "glm/glm.hpp"
