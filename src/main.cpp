@@ -298,20 +298,22 @@ void mesh_bind_event_handler(VkRenderer& renderer, SceneState& sceneState, VkAda
 		}
 	);
 
+	node.mesh_type = bindEvent.meshData.meshType;
+	node.shaderId = bindEvent.meshData.shaderId;
+	node.draw_data_idx = drawIdx;
+	ENG_LOG_INFO("Node: " << node.name << " DrawDataIndex: " << drawIdx << std::endl);
+
 	adapter.graphicsEventQueue.push(
 		CommandCompletionEvent {
 			[&adapter, &node, drawIdx] {
 				adapter.set_property(drawIdx, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
 				adapter.set_property(drawIdx, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
+				adapter.createDescriptorSets(drawIdx, node);
+				adapter.set_property(drawIdx, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED);
 				ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
 			}
 		}
 	);
-
-	node.mesh_type = bindEvent.meshData.meshType;
-	node.shaderId = bindEvent.meshData.shaderId;
-	node.draw_data_idx = drawIdx;
-	ENG_LOG_INFO("Node: " << node.name << " DrawDataIndex: " << drawIdx << std::endl);
 }
 
 void handleGraphicsEvents(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
@@ -358,7 +360,6 @@ int main() {
 	try {
 		ENG_LOG_INFO("Starting app" << std::endl);
 
-		Application app;
 		WindowUserData windowUserData;
 
 		VkRenderer renderer{
@@ -387,6 +388,7 @@ int main() {
 
 		VkAdapter renderAdapter{ renderer };
 
+		Application app;
 		app.registerInitFunction("renderer.initializeScene()", [&renderer, &sceneState, &renderAdapter]() { 
 			renderer.sceneReadyToRender = false;
 			initializeWorldScene(renderer, renderAdapter, sceneState);
@@ -400,7 +402,6 @@ int main() {
 
 
 		renderer.registerCommandRecorder([&renderAdapter, &renderer, &sceneState](VkCommandBuffer commandBuffer) {
-			//recordCommandsForSceneGraph(renderer, commandBuffer, sceneState);
 			renderAdapter.recordCommandsForSceneGraph2(renderer, commandBuffer, sceneState);
 			});
 		renderer.registerUniformBufferProducer([&sceneState]() -> UniformBufferObject {

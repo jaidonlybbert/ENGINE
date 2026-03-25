@@ -221,7 +221,7 @@ public:
 		return drawDataInfo;
 	}
 
-	void createDescriptorSets(const size_t drawDataIdx, SceneGraph& graph)
+	void createDescriptorSets(const size_t drawDataIdx, ENG::Node& node)
 	{
 		std::lock_guard lock(drawDataMutex);
 
@@ -240,10 +240,6 @@ public:
 		}
 
 		const auto& bufferAllocationInfo = drawData.bufferAllocationInfo.value();
-		const auto& nodeId = drawData.nodeId.value();
-
-		// TODO: potential for deadlock if node structure is blocked by mutex
-		const auto& node = get_node_by_id(graph, nodeId);
 
 		if (!node.shaderId.has_value())
 		{

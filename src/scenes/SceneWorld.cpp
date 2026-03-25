@@ -6,6 +6,8 @@
 #include "scenes/SceneWorld.hpp"
 #include "scenes/SceneWorldInput.hpp"
 
+static constexpr size_t SCENE_WORLD_MAX_NODES = 10000;
+
 void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
 {
 	// Seed randomizer
@@ -349,6 +351,11 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsE
 	);
 }
 
+void unloadWorldScene(SceneState& sceneState)
+{
+
+}
+
 void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState) {
 	// Set callback handlers for inputs
 	SceneWorldInput::set_callbacks();
@@ -360,6 +367,12 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	sceneState.posNorColMeshes.reserve(100);
 	sceneState.graph.nodes.reserve(100);
 	sceneState.graph.cameras.reserve(10);
+
+	// Create modelMatrices mapped to SceneGraph node idx (index is 1-1 with scenegraph.nodes)
+	// set to max node size
+	sceneState.modelMatrices.resize(SCENE_WORLD_MAX_NODES);
+	renderer.createModelMatrices(sizeof(glm::mat4) * SCENE_WORLD_MAX_NODES);
+
 
 	auto& attachmentPoint = sceneState.graph.nodes.emplace_back();
 	sceneState.graph.root = &attachmentPoint;
@@ -386,27 +399,6 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 
 	// Create world mesh
 	create_world_polyhedra(renderer, adapter, sceneState);
-
-	// Create modelMatrices mapped to SceneGraph node idx (for now, 1-1 with scenegraph.nodes)
-	sceneState.modelMatrices.resize(sceneState.graph.nodes.size());
-
-	renderer.createModelMatrices(sizeof(glm::mat4) * sceneState.graph.nodes.size());
-
-	for (auto& node : sceneState.graph.nodes)
-	{
-		if (node.draw_data_idx.has_value())
-		{
-			const auto drawDataIdx = node.draw_data_idx.value();
-
-			adapter.createDescriptorSets(drawDataIdx, sceneState.graph);
-			adapter.set_property(drawDataIdx, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED);
-			ENG_LOG_INFO("Created descriptor sets for " << node.name << std::endl);
-		}
-		else
-		{
-			renderer.createDescriptorSets(node);
-		}
-	}
 
 	ENG_LOG_DEBUG("PosColTex Meshes loaded:" << std::endl);
 	for (const auto& mesh : sceneState.posColTexMeshes)

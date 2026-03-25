@@ -26,6 +26,7 @@ public:
 	void shutdown();
 
 private:
+	inline static std::mutex shutdownMutex;
 	asio::signal_set signals{ io_ctx, SIGINT, SIGTERM };
 	std::vector<std::function<void(void)>> initFunctions;
 	std::vector<std::exception_ptr> initErrors;
@@ -35,6 +36,7 @@ private:
 	std::vector<std::exception_ptr> dedicatedThreadErrors;
 	std::vector<std::function<void(void)>> shutdownListeners;
 	std::vector<std::thread> dedicatedThreads;
+
 
 	void queueInitFunctions();
 	void spawnCoroutines();

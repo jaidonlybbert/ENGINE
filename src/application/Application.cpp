@@ -110,11 +110,14 @@ void Application::start() {
 }
 
 void Application::shutdown() {
-	// only shutdown once, can be triggered manually (e.g. SIGINT) or by destructor
-	if (isShutdown) {
-		return;
+	// only shutdown once, can be triggered manually (e.g. SIGINT, SIGKILL) or by destructor
+	{
+		std::lock_guard<std::mutex> shutdownLock(shutdownMutex);
+		if (isShutdown) {
+			return;
+		}
+		isShutdown = true;
 	}
-	isShutdown = true;
 
 	for (auto& lst : shutdownListeners) {
 		try {
