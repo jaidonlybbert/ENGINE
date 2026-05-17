@@ -8,6 +8,13 @@
 
 static constexpr size_t SCENE_WORLD_MAX_NODES = 10000;
 
+void create_sun_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
+{
+	auto mesh = pmp::icosphere(5);
+	dual(mesh);
+
+}
+
 void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
 {
 	// Seed randomizer
@@ -429,7 +436,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 		suzanneNode->visible = false;
 	}
 
-	auto* roomNode = find_node_by_name(sceneState.graph, "Room");
+	auto* roomNode = find_node_by_name(sceneState.graph, "Room-0");
 	if (roomNode != nullptr)
 	{
 		roomNode->visible = false;
@@ -438,12 +445,14 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	auto* tetrahedronNode = find_node_by_name(sceneState.graph, "Tetrahedron");
 	if (tetrahedronNode != nullptr)
 	{
-		tetrahedronNode->visible = false;
+		tetrahedronNode->visible = true;
+		tetrahedronNode->translation = glm::vec3(0., 1., 0.);
 	}
 
 	auto* camera = cameraNode.camera;
-	camera->fovy = 0.7;
+	camera->fovy = 1.;
 
-	cameraNode.translation = glm::vec3(0., 0., 2.);
+	cameraNode.translation = glm::vec3(0., 0., 3.);
+
 	sceneState.activeNodeIdx = 3;
 }

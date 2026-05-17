@@ -27,7 +27,7 @@ void main() {
         // vec3 L = normalize(light.lightPos - fragPos);
         vec3 L = normalize(vec3(2.0, 2.0, 2.0) - fragPos);
         // Diffuse element of intensity
-        float diff = max(dot(N, L), 0.0);
+        float diff = max(dot(N, L), 0.025);
 
         // grab color from faceColors matrix
         vec4 faceColor = faceColors[faceIds[gl_PrimitiveID]];

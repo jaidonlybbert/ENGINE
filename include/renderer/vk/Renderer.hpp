@@ -118,7 +118,8 @@ public:
 	std::vector<std::function<void(void)>> initializationFunctions;
 	std::vector<std::function<void(void)>> cleanupFunctions;
 	std::vector<std::function<void(void)>> renderStateUpdaters;
-	std::function<UniformBufferObject(void)> uniformBufferUpdateFunction;
+	std::function<UniformBufferObject(void)> uniformBufferProducer;
+	std::vector<std::function<void(const UniformBufferObject&)>> uniformBufferConsumers;
 	std::function<std::vector<glm::mat4>&(void)> modelMatrixBufferUpdateFunction;
 
 	std::mutex scene_mtx;
@@ -145,6 +146,9 @@ public:
 	void createFaceColorBuffers(const uint32_t number_of_faces);
 
 	void registerUniformBufferProducer(std::function<UniformBufferObject(void)> producer);
+	void registerUniformBufferConsumer(std::function<void(const UniformBufferObject&)> consumer);
+	void notifyUboConsumers(const UniformBufferObject& ubo);
+
 	void registerModelMatrixBufferUpdateFunction(std::function<std::vector<glm::mat4>&(void)> bufferUpdater);
 
 	void copyModelMatrixBufferToGpu(const std::vector<glm::mat4>& modelMatrices);

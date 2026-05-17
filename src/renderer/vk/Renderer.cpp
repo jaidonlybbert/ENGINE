@@ -301,9 +301,21 @@ void VkRenderer::registerCommandRecorder(std::function<void(VkCommandBuffer)> co
 
 void VkRenderer::registerUniformBufferProducer(std::function<UniformBufferObject()> producer)
 {
-	uniformBufferUpdateFunction = producer;
+	uniformBufferProducer = producer;
 }
 
+void VkRenderer::registerUniformBufferConsumer(std::function<void(const UniformBufferObject&)> consumer)
+{
+	uniformBufferConsumers.push_back(consumer);
+}
+
+void VkRenderer::notifyUboConsumers(const UniformBufferObject& ubo)
+{
+	for (const auto& consumer : uniformBufferConsumers)
+	{
+		consumer(ubo);
+	}
+}
 
 void VkRenderer::registerModelMatrixBufferUpdateFunction(std::function<std::vector<glm::mat4>& ()> updateFun)
 {
@@ -333,9 +345,11 @@ void VkRenderer::drawFrame()
 	recordCommandBuffer(commands->commandBuffers[currentFrame], imageIndex);
 
 	if (sceneReadyToRender) {
-		assert(uniformBufferUpdateFunction);
+		assert(uniformBufferProducer);
 		assert(modelMatrixBufferUpdateFunction);
-		copyUniformBufferToGpu(currentFrame, uniformBufferUpdateFunction());
+		const auto& ubo = uniformBufferProducer();
+		notifyUboConsumers(ubo);
+		copyUniformBufferToGpu(currentFrame, ubo);
 		copyModelMatrixBufferToGpu(modelMatrixBufferUpdateFunction());
 	}
 

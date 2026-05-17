@@ -14,8 +14,10 @@ struct InputCallbacks {
 };
 
 struct WindowUserData {
-	double cursor_x{ 0. };
-	double cursor_y{ 0. };
+	double cursorXScreenCoords{ 0. };
+	double cursorYScreenCoords{ 0. };
+	int windowWidthScreenCoords{ 0 };
+	int windowHeightScreenCoords{ 0 };
 	std::deque<ClientHidEvent> eventQueue;
 	bool windowResized{ false };
 };

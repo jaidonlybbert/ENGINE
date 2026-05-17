@@ -165,7 +165,8 @@ void initWindow(VkRenderer& app, WindowUserData& windowUserData) {
 	app.window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 	glfwSetWindowUserPointer(app.window, &windowUserData);
 	glfwSetFramebufferSizeCallback(app.window, InputController::framebufferResizeCallback);
-	glfwGetCursorPos(app.window, &windowUserData.cursor_x, &windowUserData.cursor_y);
+	glfwGetCursorPos(app.window, &windowUserData.cursorXScreenCoords, &windowUserData.cursorYScreenCoords);
+	glfwGetWindowSize(app.window, &windowUserData.windowWidthScreenCoords, &windowUserData.windowHeightScreenCoords);
 	glfwSetScrollCallback(app.window, InputController::mouse_scroll_callback);
 	glfwSetKeyCallback(app.window, InputController::key_callback);
 	glfwSetMouseButtonCallback(app.window, InputController::mouse_button_callback);
@@ -253,7 +254,8 @@ void updateModelMatrices(SceneState& sceneState)
 	}
 }
 
-void handleHidEvent(const ClientHidEvent& hidEvent, SceneState& sceneState) {
+void handleNodeRotationPreserveYAsUpAction(const ClientHidEvent& hidEvent, SceneState& sceneState)
+{
 	if (sceneState.activeNodeIdx >= sceneState.graph.nodes.size())
 	{
 		ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
@@ -262,6 +264,78 @@ void handleHidEvent(const ClientHidEvent& hidEvent, SceneState& sceneState) {
 	auto& activeNode = sceneState.graph.nodes.at(sceneState.activeNodeIdx);
 
 	node_rotation_follows_input_preserve_y_as_up(activeNode, hidEvent.look_dx, hidEvent.look_dy);
+}
+
+void handleHidEvent(const ClientHidEvent& hidEvent, SceneState& sceneState)
+{
+	for (const auto& action : hidEvent.actions)
+	{
+		if (action == Action::NODE_ROTATION_PRESERVE_Y_AS_UP)
+		{
+			handleNodeRotationPreserveYAsUpAction(hidEvent, sceneState);
+		} 
+	}
+}
+
+void castRayForMouseHover(const WindowUserData& windowUserData, const SceneState& sceneState, const UniformBufferObject& ubo)
+{
+	static bool cursorIsHoveringOnSphere = false;
+	const auto& m = ubo.model; // 4x4 matrix representing rotation, translation, scale
+	const auto& v = ubo.view;  // 4x4 matrix representing camera rotation, translation
+	const auto& p = ubo.proj;  // 4x4 matrix representing the camera lens projection
+
+	// "normalized device coordinates (NDC)" the coordinates centered around 0,0 on the screen ranging from -1,1 to 1,-1 top-left to bottom-right
+	const auto& mouseXNDC = (2.f * windowUserData.cursorXScreenCoords) / windowUserData.windowWidthScreenCoords - 1.0f;
+	const auto& mouseYNDC = 1.f - (2.f * windowUserData.cursorYScreenCoords) / (windowUserData.windowHeightScreenCoords);
+
+	// a vector of 4x4 model matrices representing the rotation, translation, and scale of each model in the scene, indexed by nodeId
+	const auto& modelMatrices = sceneState.modelMatrices;  
+
+	// calculate ray origin and direction for ray function r(t) = origin + t * direction
+	glm::mat4 invVP = glm::inverse(p * v);
+	glm::vec4 screenPos = glm::vec4(mouseXNDC, mouseYNDC, -1.0f, 1.0f);  // near plane
+	glm::vec4 worldPos = invVP * screenPos;  // "un-project" mouse position
+	worldPos /= worldPos.w;
+
+	glm::vec3 rayOrigin = glm::vec3(glm::inverse(v)[3]); // Camera position
+	glm::vec3 rayDir = glm::normalize(glm::vec3(worldPos) - rayOrigin);
+
+	// initial test for intersection on polyhedra
+	auto* goldbergPolyhedra = find_node_by_name(sceneState.graph, "GoldbergPolyhedra");
+	if (!goldbergPolyhedra)
+	{
+		ENG_LOG_DEBUG("Early exit from raycast, polyhedra not yet loaded" << std::endl);
+		return;
+	}
+	
+	const auto& boundingSphereCenter = glm::vec3(modelMatrices.at(goldbergPolyhedra->nodeId)[3]); // location
+	const auto& boundingSphereRadius = 1.f;  // from generation algorithm
+
+	const auto& rayOriginToSphereCenter = boundingSphereCenter - rayOrigin;
+	const auto& dotProduct = glm::dot(rayOriginToSphereCenter, rayDir);
+
+	if (dotProduct < 0)
+	{
+		ENG_LOG_DEBUG("Sphere is behind the camera!" << std::endl);
+		return;
+	}
+
+	// standard distance formula for shortest distance from point to line
+	const auto& crossProduct = glm::cross(rayOriginToSphereCenter, rayDir);
+	const auto& distance = glm::length(crossProduct) / glm::length(rayDir);
+
+	if (distance < 1.f && !cursorIsHoveringOnSphere)
+	{
+		cursorIsHoveringOnSphere = true;
+		ENG_LOG_DEBUG("Cursor is on sphere!" << std::endl);
+	}
+	else if (distance > 1.f && cursorIsHoveringOnSphere)
+	{
+		cursorIsHoveringOnSphere = false;
+		ENG_LOG_DEBUG("Cursor is not on sphere!" << std::endl);
+	}
+
+	//ENG_LOG_DEBUG(std::setprecision(3) << "x, y, distance: " << mouseXNDC << ", " << mouseYNDC << ", " << distance << std::endl);
 }
 
 void handleHIDEvents(std::deque<ClientHidEvent>& eventQueue, SceneState& sceneState) {
@@ -410,6 +484,9 @@ int main() {
 		renderer.registerModelMatrixBufferUpdateFunction([&sceneState]() -> std::vector<glm::mat4>&{
 			updateModelMatrices(sceneState);
 			return sceneState.modelMatrices;
+			});
+		renderer.registerUniformBufferConsumer([&sceneState, &windowUserData](const UniformBufferObject& ubo) {
+			castRayForMouseHover(windowUserData, sceneState, ubo);
 			});
 
 

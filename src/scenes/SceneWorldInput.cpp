@@ -47,7 +47,6 @@ void SceneWorldInput::mouse_scroll_callback(GLFWwindow* window, double xoffset, 
 	windowUserData->eventQueue.push_back(hidEvent);
 }
 
-
 void SceneWorldInput::mouse_movement_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	static double dx, dy = 0.f;
@@ -58,10 +57,8 @@ void SceneWorldInput::mouse_movement_callback(GLFWwindow* window, double xpos, d
 	if (middle_mouse_state == GLFW_PRESS)
 	{
 		ENG_LOG_TRACE("Middle mouse down" << std::endl);
-		dx = xpos - windowUserData->cursor_x;
-		dy = ypos - windowUserData->cursor_y;
-		windowUserData->cursor_x = xpos;
-		windowUserData->cursor_y = ypos;
+		dx = xpos - windowUserData->cursorXScreenCoords;
+		dy = ypos - windowUserData->cursorYScreenCoords;
 
 		ClientHidEvent hidEvent{};
 		hidEvent.look_dx = dx;
@@ -69,6 +66,9 @@ void SceneWorldInput::mouse_movement_callback(GLFWwindow* window, double xpos, d
 		hidEvent.actions.push_back(Action::NODE_ROTATION_PRESERVE_Y_AS_UP);
 		windowUserData->eventQueue.push_back(hidEvent);
 	}
+	// always update current position
+	windowUserData->cursorXScreenCoords = xpos;
+	windowUserData->cursorYScreenCoords = ypos;
 }
 
 void SceneWorldInput::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -100,7 +100,7 @@ void SceneWorldInput::mouse_button_callback(GLFWwindow* window, int button, int 
 	{
 		if (action == GLFW_PRESS) // && initial_press)
 		{
-			glfwGetCursorPos(window, &windowUserData->cursor_x, &windowUserData->cursor_y);
+			glfwGetCursorPos(window, &windowUserData->cursorXScreenCoords, &windowUserData->cursorYScreenCoords);
 			ENG_LOG_TRACE("Middle mouse initial press" << std::endl);
 		}
 		else // action is GLFW_RELEASE
@@ -113,5 +113,7 @@ void SceneWorldInput::mouse_button_callback(GLFWwindow* window, int button, int 
 void SceneWorldInput::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
 	auto* userData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
+	// store screen size (in screen coordinates this is NOT the same the framebuffer width and height)
+	glfwGetWindowSize(window, &userData->windowWidthScreenCoords, &userData->windowHeightScreenCoords);
 	userData->windowResized = true;
 }
