@@ -222,7 +222,6 @@ void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState
 		{
 			memcpy(renderer.faceIdMapBuffersMapped[i], primitiveToFaceIdMap.data(), bufferSize);
 		}
-
 	}
 }
 

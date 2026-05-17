@@ -54,6 +54,7 @@ public:
 	std::uint32_t propertyFlags{ 0 };
 	Camera* camera { nullptr };
 	bool visible{ true };
+	bool selectable{ false };
 };
 
 glm::mat4 transformation_matrix(const Node& node);

@@ -215,6 +215,7 @@ void load_pmp_mesh(
 		auto& pmpNode = sceneState.graph.create_node();
 		pmpNode.name = node_name;
 		pmpNode.parent = sceneState.graph.root;
+		pmpNode.selectable = true;
 		sceneState.graph.root->children.push_back(&pmpNode);
 
 		graphicsEventQueue.push(

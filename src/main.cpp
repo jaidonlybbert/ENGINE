@@ -277,6 +277,43 @@ void handleHidEvent(const ClientHidEvent& hidEvent, SceneState& sceneState)
 	}
 }
 
+void castRayForMouseHoverOnNode(const ENG::Node& node, const SceneState& sceneState, const glm::vec3& rayOrigin, const glm::vec3& rayDir)
+{
+	static std::vector<bool> nodeHoverMap(sceneState.graph.nodes.size(), false);
+	if (node.nodeId >= nodeHoverMap.size())
+	{
+		ENG_LOG_DEBUG("nodeHoverMap too small" << std::endl);
+		return;
+	}
+
+	const auto& boundingSphereCenter = glm::vec3(sceneState.modelMatrices.at(node.nodeId)[3]); // location
+	const auto& boundingSphereRadius = 1.f;  // from generation algorithm
+
+	const auto& rayOriginToSphereCenter = boundingSphereCenter - rayOrigin;
+	const auto& dotProduct = glm::dot(rayOriginToSphereCenter, rayDir);
+
+	if (dotProduct < 0)
+	{
+		ENG_LOG_DEBUG(node.name << " is behind the camera!" << std::endl);
+		return;
+	}
+
+	// standard distance formula for shortest distance from point to line
+	const auto& crossProduct = glm::cross(rayOriginToSphereCenter, rayDir);
+	const auto& distance = glm::length(crossProduct) / glm::length(rayDir);
+
+	if (distance < 1.f && !nodeHoverMap.at(node.nodeId))
+	{
+		nodeHoverMap.at(node.nodeId) = true;
+		ENG_LOG_DEBUG("Cursor is on " << node.name << std::endl);
+	}
+	else if (distance > 1.f && nodeHoverMap.at(node.nodeId))
+	{
+		nodeHoverMap.at(node.nodeId) = false;
+		ENG_LOG_DEBUG("Cursor is not on " << node.name << std::endl);
+	}
+}
+
 void castRayForMouseHover(const WindowUserData& windowUserData, const SceneState& sceneState, const UniformBufferObject& ubo)
 {
 	static bool cursorIsHoveringOnSphere = false;
@@ -289,7 +326,7 @@ void castRayForMouseHover(const WindowUserData& windowUserData, const SceneState
 	const auto& mouseYNDC = 1.f - (2.f * windowUserData.cursorYScreenCoords) / (windowUserData.windowHeightScreenCoords);
 
 	// a vector of 4x4 model matrices representing the rotation, translation, and scale of each model in the scene, indexed by nodeId
-	const auto& modelMatrices = sceneState.modelMatrices;  
+	const auto& modelMatrices = sceneState.modelMatrices;
 
 	// calculate ray origin and direction for ray function r(t) = origin + t * direction
 	glm::mat4 invVP = glm::inverse(p * v);
@@ -300,42 +337,14 @@ void castRayForMouseHover(const WindowUserData& windowUserData, const SceneState
 	glm::vec3 rayOrigin = glm::vec3(glm::inverse(v)[3]); // Camera position
 	glm::vec3 rayDir = glm::normalize(glm::vec3(worldPos) - rayOrigin);
 
-	// initial test for intersection on polyhedra
-	auto* goldbergPolyhedra = find_node_by_name(sceneState.graph, "GoldbergPolyhedra");
-	if (!goldbergPolyhedra)
+	// iterate over visible nodes and check for hover
+	for (const auto& node : sceneState.graph.nodes)
 	{
-		ENG_LOG_DEBUG("Early exit from raycast, polyhedra not yet loaded" << std::endl);
-		return;
+		if (node.selectable)
+		{
+			castRayForMouseHoverOnNode(node, sceneState, rayOrigin, rayDir);
+		}
 	}
-	
-	const auto& boundingSphereCenter = glm::vec3(modelMatrices.at(goldbergPolyhedra->nodeId)[3]); // location
-	const auto& boundingSphereRadius = 1.f;  // from generation algorithm
-
-	const auto& rayOriginToSphereCenter = boundingSphereCenter - rayOrigin;
-	const auto& dotProduct = glm::dot(rayOriginToSphereCenter, rayDir);
-
-	if (dotProduct < 0)
-	{
-		ENG_LOG_DEBUG("Sphere is behind the camera!" << std::endl);
-		return;
-	}
-
-	// standard distance formula for shortest distance from point to line
-	const auto& crossProduct = glm::cross(rayOriginToSphereCenter, rayDir);
-	const auto& distance = glm::length(crossProduct) / glm::length(rayDir);
-
-	if (distance < 1.f && !cursorIsHoveringOnSphere)
-	{
-		cursorIsHoveringOnSphere = true;
-		ENG_LOG_DEBUG("Cursor is on sphere!" << std::endl);
-	}
-	else if (distance > 1.f && cursorIsHoveringOnSphere)
-	{
-		cursorIsHoveringOnSphere = false;
-		ENG_LOG_DEBUG("Cursor is not on sphere!" << std::endl);
-	}
-
-	//ENG_LOG_DEBUG(std::setprecision(3) << "x, y, distance: " << mouseXNDC << ", " << mouseYNDC << ", " << distance << std::endl);
 }
 
 void handleHIDEvents(std::deque<ClientHidEvent>& eventQueue, SceneState& sceneState) {
