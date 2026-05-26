@@ -480,36 +480,6 @@ void VkRenderer::createModelMatrices(const size_t size_bytes)
 	}
 }
 
-void VkRenderer::createFaceIdBuffers(const uint32_t number_of_faces)
-{
-	VkDeviceSize bufferSize = sizeof(uint32_t) * number_of_faces;
-	faceIdMapBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-	faceIdMapBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-	{
-		ENG_LOG_DEBUG("Creating FaceID buffer " << i << " of size " << bufferSize << std::endl);
-		faceIdMapBuffers.emplace_back(device, physicalDevice, sizeof(uint32_t), bufferSize,
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		vkMapMemory(device, faceIdMapBuffers[i].bufferMemory, 0, bufferSize, 0, &faceIdMapBuffersMapped[i]);
-	}
-}
-
-void VkRenderer::createFaceColorBuffers(const uint32_t number_of_faces)
-{
-	VkDeviceSize bufferSize = sizeof(glm::vec4) * number_of_faces;
-	faceColorBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-	faceColorBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
-
-	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-	{
-		ENG_LOG_TRACE("Creating FaceColor buffer " << i << " of size " << bufferSize << std::endl);
-		faceColorBuffers.emplace_back(device, physicalDevice, sizeof(glm::vec4), bufferSize,
-			VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		vkMapMemory(device, faceColorBuffers[i].bufferMemory, 0, bufferSize, 0, &faceColorBuffersMapped[i]);
-	}
-}
-
 void VkRenderer::copyModelMatrixBufferToGpu(const std::vector<glm::mat4>& modelMatrices)
 {
 	const auto& bufferSize = modelMatrices.size() * sizeof(glm::mat4);
@@ -527,17 +497,17 @@ void VkRenderer::createDescriptorPool()
 {
 	std::array<VkDescriptorPoolSize, 3> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100;
+	poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 1000;
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100;
+	poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 1000;
 	poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100;
+	poolSizes[2].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 1000;
 
 	VkDescriptorPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 	poolInfo.pPoolSizes = poolSizes.data();
-	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 100;
+	poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 1000;
 
 	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create descriptor pool!");

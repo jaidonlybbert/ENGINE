@@ -224,29 +224,27 @@ void load_pmp_mesh(
 					std::move(vertices),
 					std::move(indices),
 					"VertexPosNorCol",
-					"Goldberg"
+					"PosNorCol"
 				},
 				pmpNode.nodeId
 			}
 		);
 }
 
-void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh)
+void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, VkAdapter& adapter, SceneState& sceneState)
 {
-	// the new dual mesh
-	pmp::SurfaceMesh tmp;
-
-	tmp.reserve(mesh.vertices_size() * 2, mesh.edges_size() * 2, mesh.faces_size() * 2);
-
-	// apply a face index for each face (preserved after triangulation)
-	auto oldFaceId = mesh.get_face_property<uint32_t>("f:faceId");
-	auto newFaceId = tmp.add_face_property<uint32_t>("f:faceId");
+	// create new SurfaceMesh for every face
+	std::vector<pmp::SurfaceMesh> newMeshes;
+	newMeshes.resize(mesh.faces_size());
 
 	auto facecount{ 0 };
+	auto meshcount{ 0 };
 	for (auto f : mesh.faces())
 	{
+		auto& newMesh = newMeshes.at(meshcount);
+
 		// calculate center of triangle fan for new mesh face
-		const auto& centerVert = tmp.add_vertex(centroid(mesh, f));
+		const auto& centerVert = newMesh.add_vertex(centroid(mesh, f));
 
 		// iterate over all vertices in original face, creating triangles
 		auto vertRange = mesh.vertices(f);
@@ -254,30 +252,34 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh)
 		const auto& end = vertRange.end();
 		ENG_LOG_TRACE("Verts in face: " << std::distance(it, end) << std::endl);
 		assert(std::distance(it, end) > 2);
-		auto v0 = tmp.add_vertex(mesh.position(*(it++)));
+		auto v0 = newMesh.add_vertex(mesh.position(*(it++)));
 		auto firstVert = v0;
-		auto v1 = tmp.add_vertex(mesh.position(*(it++)));
-		auto tri = tmp.add_triangle(centerVert, v0, v1);
+		auto v1 = newMesh.add_vertex(mesh.position(*(it++)));
+		auto tri = newMesh.add_triangle(centerVert, v0, v1);
 		facecount++;
-		newFaceId[tri] = oldFaceId[f];
 
 		for (; it != end; ++it)
 		{
 			v0 = v1;
-			v1 = tmp.add_vertex(mesh.position(*(it)));
-			tri = tmp.add_triangle(centerVert, v0, v1);
-			newFaceId[tri] = oldFaceId[f];
+			v1 = newMesh.add_vertex(mesh.position(*(it)));
+			tri = newMesh.add_triangle(centerVert, v0, v1);
 			facecount++;
 			ENG_LOG_TRACE("INNER LOOP HIT" << std::endl);
 		}
 
 		// add last triangle using last and first vertex
-		tri = tmp.add_triangle(centerVert, v1, firstVert);
-		newFaceId[tri] = oldFaceId[f];
+		tri = newMesh.add_triangle(centerVert, v1, firstVert);
 		facecount++;
+
+		std::stringstream meshName;
+		meshName << "GoldbergMesh_" << meshcount;
+		std::stringstream nodeName;
+		nodeName << "GoldbergPolyhedra_" << meshcount;
+
+		load_pmp_mesh(newMesh, meshName.str(), nodeName.str(), adapter, sceneState, adapter.graphicsEventQueue);
+		meshcount++;
 	}
 
-	ENG_LOG_DEBUG("FAce count " << facecount << std::endl);
-	// deep copy of tmp mesh, including properties	
-	mesh = tmp;
+	ENG_LOG_DEBUG("Face count " << facecount << std::endl);
+
 }

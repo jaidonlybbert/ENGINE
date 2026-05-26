@@ -27,4 +27,4 @@ pmp::SurfaceMesh create_dodecahedron();
 void load_pmp_mesh(
 	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
 	VkAdapter& adapter, SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue);
-void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh);
+void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, VkAdapter& adapter, SceneState& sceneState);

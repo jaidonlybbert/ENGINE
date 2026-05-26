@@ -23,7 +23,8 @@ void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState
 
 	// Create triangulated goldberg polyhedra including faceIds
 	{
-		auto mesh = pmp::icosphere(5);
+		// zzzz... race condition? crashes >= 4
+		auto mesh = pmp::icosphere(1);
 		dual(mesh);
 
 		// apply a face index for each face (preserved after triangulation)
@@ -192,36 +193,9 @@ void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState
 			faceColors[i] = tileTypeToColorMap[climate[i]];
 		}
 
-		// renderAdapter->allocateMemory(facecount * sizeof(glm::vec4), )
-		// renderAdapter->writeMappedMemory(faceColors.data(), facecount * sizeof(glm::vec4));
 
-		renderer.createFaceColorBuffers(facecount);
-		const auto& colorBufferSize = faceColors.size() * sizeof(glm::vec4);
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-		{
-			memcpy(renderer.faceColorBuffersMapped[i], faceColors.data(), colorBufferSize);
-		}
+		triangulate_as_triangle_fan_preserving_face_ids(mesh, adapter, sceneState);
 
-		triangulate_as_triangle_fan_preserving_face_ids(mesh);
-
-		// Vector of faceIds indexed by primitiveId (gl_PrimitiveID) to lookup faceID in shader
-		std::vector<uint32_t> primitiveToFaceIdMap;
-		primitiveToFaceIdMap.reserve(mesh.faces_size());
-		faceId = mesh.get_face_property<uint32_t>("f:faceId");
-		for (auto f : mesh.faces())
-		{
-			primitiveToFaceIdMap.push_back(faceId[f]);
-			ENG_LOG_TRACE("POST TRIANGULURIZATION FACEID: " << faceId[f] << std::endl);
-		}
-
-		load_pmp_mesh(mesh, "GoldbergMesh", "GoldbergPolyhedra", adapter, sceneState, adapter.graphicsEventQueue);
-
-		renderer.createFaceIdBuffers(mesh.faces_size());
-		const auto& bufferSize = primitiveToFaceIdMap.size() * sizeof(uint32_t);
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-		{
-			memcpy(renderer.faceIdMapBuffersMapped[i], primitiveToFaceIdMap.data(), bufferSize);
-		}
 	}
 }
 
@@ -367,12 +341,12 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	SceneWorldInput::set_callbacks();
 
 	// TODO: implement pools to avoid reference invalidation on reallocation problem
-	sceneState.posColTexMeshes.reserve(100);
-	sceneState.posNorTexMeshes.reserve(100);
-	sceneState.posMeshes.reserve(100);
-	sceneState.posNorColMeshes.reserve(100);
-	sceneState.graph.nodes.reserve(100);
-	sceneState.graph.cameras.reserve(10);
+	sceneState.posColTexMeshes.reserve(1000);
+	sceneState.posNorTexMeshes.reserve(1000);
+	sceneState.posMeshes.reserve(1000);
+	sceneState.posNorColMeshes.reserve(1000);
+	sceneState.graph.nodes.reserve(1000);
+	sceneState.graph.cameras.reserve(100);
 
 	// Create modelMatrices mapped to SceneGraph node idx (index is 1-1 with scenegraph.nodes)
 	// set to max node size

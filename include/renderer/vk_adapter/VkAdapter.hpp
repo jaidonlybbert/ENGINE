@@ -63,6 +63,7 @@ public:
 
 	VkAdapter(VkRenderer& renderer) : renderer(renderer)
 	{
+		drawDataBuffer.reserve(10000);
 		VmaVulkanFunctions vulkanFunctions = {};
 		vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
 		vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
