@@ -17,7 +17,7 @@ namespace ENG
 	struct VertexPosNorCol {
 		glm::vec3 pos;
 		glm::vec3 normal;
-		glm::vec3 color;
+		glm::vec4 color;
 	};
 
 	struct VertexPos {

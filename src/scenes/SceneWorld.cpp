@@ -194,7 +194,7 @@ void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState
 		}
 
 
-		triangulate_as_triangle_fan_preserving_face_ids(mesh, adapter, sceneState);
+		triangulate_as_triangle_fan_preserving_face_ids(mesh, faceColors, adapter, sceneState);
 
 	}
 }
@@ -258,7 +258,7 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 	auto& bbMesh = sceneState.posMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), bbName, bbVertices, bbIndices, app.graphicsQueue);
 	auto& bbNode = sceneState.graph.nodes.emplace_back();
 	bbNode.name = bbName;
-	bbNode.nodeId = sceneState.graph.nodes.size() - 1;
+	bbNode.nodeId = static_cast<uint32_t>(sceneState.graph.nodes.size()) - 1;
 	bbNode.parent = node;
 	bbNode.mesh_type = "VertexPos";
 	bbNode.mesh_idx = sceneState.posMeshes.size() - 1;
@@ -267,7 +267,7 @@ void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bb
 }
 
 
-void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue)
+void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue, const std::string& nodeName)
 {
 	std::vector<VertexPosNorCol> tetraVertices {
 		{ {1.,  1.,  1.} },
@@ -283,11 +283,11 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsE
 		3, 2, 1
 	};
 
-	std::vector<glm::vec3> colors {
-		{1.0, 0.5, 0.5},
-		{0.5, 1.0, 0.5},
-		{0.5, 0.5, 1.0},
-		{0.5, 0.5, 0.5},
+	std::vector<glm::vec4> colors {
+		{1.0, 0.5, 0.5, 1.0},
+		{0.5, 1.0, 0.5, 1.0},
+		{0.5, 0.5, 1.0, 1.0},
+		{0.5, 0.5, 0.5, 1.0},
 	};
 
 	// vertices are duplicated for face-specific color
@@ -314,7 +314,7 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsE
 	}
 
 	auto& tetraNode = sceneState.graph.create_node();
-	tetraNode.name = "Tetrahedron";
+	tetraNode.name = nodeName;
 	tetraNode.parent = sceneState.graph.root;
 	sceneState.graph.root->children.push_back(&tetraNode);
 
@@ -365,8 +365,6 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	ENG::loadModel(adapter, meshName, get_room_obj(), get_room_tex(), sceneState, attachmentPoint);
 
 	// load space floor
-	//ENG::loadModel(adapter, "Spacefloor", get_spacefloor_obj(), get_spacefloor_tex(), sceneState, attachmentPoint);
-
 	ENG::loadModel(adapter, "Spacefloor3", get_spacefloor_obj2(), get_spacefloor_tex(), sceneState, attachmentPoint);
 
 
@@ -375,7 +373,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	//addBoundingBoxChild(suzanneNodeIdx, renderer, "SuzanneBoundingBox", sceneState);
 
 	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
-	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue);
+	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue, "tetrahedron");
 
 	// Create world mesh
 	create_world_polyhedra(renderer, adapter, sceneState);
@@ -403,12 +401,6 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
 
 	// custom settings overrides
-	auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
-	if (suzanneNode != nullptr)
-	{
-		suzanneNode->visible = false;
-	}
-
 	auto* roomNode = find_node_by_name(sceneState.graph, "Room-0");
 	if (roomNode != nullptr)
 	{

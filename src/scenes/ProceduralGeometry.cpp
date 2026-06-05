@@ -176,12 +176,11 @@ pmp::SurfaceMesh create_dodecahedron()
 }
 
 void load_pmp_mesh(
-	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name,
+	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, const glm::vec4& color,
 	VkAdapter& adapter, SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue)
 {
 		std::vector<VertexPosNorCol> vertices;
 		std::vector<uint32_t> indices;
-		const glm::vec3& color{ 0.5f, 0.6f, 0.6f };
 
 		vertices.reserve(mesh.vertices_size());
 		indices.resize(12); // unused
@@ -231,7 +230,7 @@ void load_pmp_mesh(
 		);
 }
 
-void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, VkAdapter& adapter, SceneState& sceneState)
+void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors, VkAdapter& adapter, SceneState& sceneState)
 {
 	// create new SurfaceMesh for every face
 	std::vector<pmp::SurfaceMesh> newMeshes;
@@ -242,6 +241,9 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, VkA
 	for (auto f : mesh.faces())
 	{
 		auto& newMesh = newMeshes.at(meshcount);
+		auto& faceId = mesh.get_face_property<uint32_t>("f:faceId")[f];
+		assert(faceColors.size() > faceId);
+		const auto& faceColor = faceColors.at(faceId);
 
 		// calculate center of triangle fan for new mesh face
 		const auto& centerVert = newMesh.add_vertex(centroid(mesh, f));
@@ -276,7 +278,8 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, VkA
 		std::stringstream nodeName;
 		nodeName << "GoldbergPolyhedra_" << meshcount;
 
-		load_pmp_mesh(newMesh, meshName.str(), nodeName.str(), adapter, sceneState, adapter.graphicsEventQueue);
+
+		load_pmp_mesh(newMesh, meshName.str(), nodeName.str(), faceColor, adapter, sceneState, adapter.graphicsEventQueue);
 		meshcount++;
 	}
 
