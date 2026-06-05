@@ -27,6 +27,10 @@ def main():
     parser.add_argument(
         "--graphviz", action="store_true",
         help="Generate a graphviz .dot file for dependency graph visualization")
+    parser.add_argument(
+        "--xcode", action="store_true",
+        help="Generate an Xcode project for macOS development")
+
     args = parser.parse_args()
 
     source_dir = os.path.abspath(".")
@@ -58,6 +62,11 @@ def main():
 
     if args.graphviz:
         config_args.append("--graphviz=build/graphviz/graph.dot")
+
+    if args.xcode:
+        config_args.append("-G Xcode")
+        run_command(config_args, cwd=source_dir, env=env)
+        return
 
     run_command(config_args, cwd=source_dir, env=env)
 
