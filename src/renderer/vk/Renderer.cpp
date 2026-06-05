@@ -81,8 +81,6 @@ void VkRenderer::initialize() {
 }
 
 VkRenderer::~VkRenderer() {
-	faceColorBuffers.clear();
-	faceIdMapBuffers.clear();
 	uniformBuffers.clear();
 	modelMatrixBuffers.clear();
 
@@ -165,6 +163,8 @@ std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
 	ENG_LOG_DEBUG("Name:\t" << deviceProperties.deviceName << std::endl);
 	ENG_LOG_DEBUG("API Version:\t" << deviceProperties.apiVersion << std::endl);
 	ENG_LOG_DEBUG("Driver Version:\t" << deviceProperties.driverVersion << std::endl);
+    ENG_LOG_DEBUG("Min Uniform Buffer Offset Alignment:\t" << deviceProperties.limits.minUniformBufferOffsetAlignment << std::endl);
+    ENG_LOG_DEBUG("Min MemoryMap Alignment:\t" << deviceProperties.limits.minMemoryMapAlignment << std::endl);
 	ENG_LOG_DEBUG(std::endl);
 	
 	// Print available extensions
@@ -453,9 +453,13 @@ void VkRenderer::createSyncObjects()
 void VkRenderer::createUniformBuffers() 
 {
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+    
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+    assert(bufferSize % properties.limits.minUniformBufferOffsetAlignment == 0);
 
 	uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-	uniformBuffers.reserve(2);
+	uniformBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		uniformBuffers.emplace_back(device, physicalDevice, bufferSize, bufferSize,
@@ -470,6 +474,10 @@ void VkRenderer::createModelMatrices(const size_t size_bytes)
 	VkDeviceSize bufferSize = size_bytes;
 	modelMatrixBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 	modelMatrixBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
+    
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+    assert(bufferSize % properties.limits.minStorageBufferOffsetAlignment == 0);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 	{
@@ -609,43 +617,6 @@ VkWriteDescriptorSet VkRenderer::createDescriptorWriteUbo(
 	return descriptorWrite;
 }
 
-VkWriteDescriptorSet VkRenderer::createDescriptorWriteFaceColorMatrix(
-	const ENG::Node& node, 
-	const size_t frameIdx, 
-	const size_t bindingIdx, 
-	const VkDescriptorBufferInfo& bufferInfo)
-{
-	assert(node.descriptorSetIds.size() > frameIdx);
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
-	descriptorWrite.dstBinding = bindingIdx;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pBufferInfo = &bufferInfo;
-
-	return descriptorWrite;
-}
-
-VkWriteDescriptorSet VkRenderer::createDescriptorWriteFaceIdMapBuffer(
-	const ENG::Node& node, 
-	const size_t frameIdx, 
-	const size_t bindingIdx, 
-	const VkDescriptorBufferInfo& bufferInfo)
-{
-	assert(node.descriptorSetIds.size() > frameIdx);
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
-	descriptorWrite.dstBinding = bindingIdx;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pBufferInfo = &bufferInfo;
-
-	return descriptorWrite;
-}
 
 void VkRenderer::writeDescriptorSets(
 	const std::vector<VkDescriptorSet>& descriptorSets, 
@@ -680,27 +651,6 @@ void VkRenderer::writeDescriptorSets(
 				createWriteDescriptorSet(descriptorSets.at(i), modelMatrixBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
 			};
 		} 
-		else if (shaderId == "Goldberg")
-		{ 
-			VkDescriptorBufferInfo faceColorMatrixBufferInfo{};
-			assert(faceColorBuffers[i].buffer != nullptr);
-			faceColorMatrixBufferInfo.buffer = faceColorBuffers[i].buffer;
-			faceColorMatrixBufferInfo.offset = 0;
-			faceColorMatrixBufferInfo.range = faceColorBuffers[i].total_size_bytes;
-
-			VkDescriptorBufferInfo faceIdMapBufferInfo{};
-			assert(faceIdMapBuffers[i].buffer != nullptr);
-			faceIdMapBufferInfo.buffer = faceIdMapBuffers[i].buffer;
-			faceIdMapBufferInfo.offset = 0;
-			faceIdMapBufferInfo.range = faceIdMapBuffers[i].total_size_bytes;
-
-			descriptorWrites = {
-				createWriteDescriptorSet(descriptorSets.at(i), bufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0),
-				createWriteDescriptorSet(descriptorSets.at(i), modelMatrixBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
-				createWriteDescriptorSet(descriptorSets.at(i), faceColorMatrixBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2),
-				createWriteDescriptorSet(descriptorSets.at(i), faceIdMapBufferInfo, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3)
-			};
-		}
 		else
 		{
 			if (!texturePath.has_value())
@@ -938,4 +888,14 @@ void VkRenderer::initGui()
 	init_info.Allocator = nullptr;
 	init_info.CheckVkResultFn = check_vk_result;
 	ImGui_ImplVulkan_Init(&init_info);
+}
+
+void checkedVkMapMemory(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceMemory bufferMemory, VkDeviceSize dataSize, void** hostData) {
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+    assert(dataSize % properties.limits.minMemoryMapAlignment == 0);
+    void* data;
+    vkMapMemory(device, bufferMemory, 0, dataSize, 0, &data);
+    memcpy(data, hostData, static_cast<size_t>(dataSize));
+    vkUnmapMemory(device, bufferMemory);
 }

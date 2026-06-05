@@ -22,6 +22,7 @@ struct DrawDataAllocationInfo {
 	VmaAllocation indexAllocation;
 	VmaAllocationInfo indexAllocationInfo;
 	uint32_t indexCount;
+    uint32_t vertexCount;
 };
 
 struct alignas(CACHE_LINE_SIZE) DrawData
@@ -127,13 +128,24 @@ public:
 		std::vector<uint32_t>&& indices)
 	{
 		DrawDataAllocationInfo drawDataInfo{};
-		drawDataInfo.indexCount = indices.size();
+		drawDataInfo.indexCount = static_cast<uint32_t>(indices.size());
+        
+        
+        auto vertexSize{0};
+        if (std::holds_alternative<std::vector<VertexPosColTex>>(vertices)) {
+            drawDataInfo.vertexCount = static_cast<uint32_t>(std::get<std::vector<VertexPosColTex>>(vertices).size());
+            vertexSize = drawDataInfo.vertexCount * sizeof(VertexPosColTex);
+        } else if (std::holds_alternative<std::vector<VertexPosNorCol>>(vertices)) {
+            drawDataInfo.vertexCount = static_cast<uint32_t>(std::get<std::vector<VertexPosNorCol>>(vertices).size());
+            vertexSize = drawDataInfo.vertexCount * sizeof(VertexPosNorCol);
+        } else if (std::holds_alternative<std::vector<VertexPosNorTex>>(vertices)) {
+            drawDataInfo.vertexCount = static_cast<uint32_t>(std::get<std::vector<VertexPosNorTex>>(vertices).size());
+            vertexSize = drawDataInfo.vertexCount * sizeof(VertexPosNorTex);
+        } else {
+            drawDataInfo.vertexCount = 0;
+            vertexSize = 0;
+        }
 
-		const auto vertexSize = 
-			std::holds_alternative<std::vector<VertexPosColTex>>(vertices) ? std::get<std::vector<VertexPosColTex>>(vertices).size() * sizeof(VertexPosColTex) :
-			std::holds_alternative<std::vector<VertexPosNorCol>>(vertices) ? std::get<std::vector<VertexPosNorCol>>(vertices).size() * sizeof(VertexPosNorCol) :
-			std::holds_alternative<std::vector<VertexPosNorTex>>(vertices) ? std::get<std::vector<VertexPosNorTex>>(vertices).size() * sizeof(VertexPosNorTex) :
-			0;
 
 		const auto* vertexData =
 			std::holds_alternative<std::vector<VertexPosColTex>>(vertices) ? static_cast<void*>(std::get<std::vector<VertexPosColTex>>(vertices).data()) :
@@ -148,6 +160,8 @@ public:
 		}
 
 		VkDeviceSize indexSize = sizeof(uint32_t) * indices.size(); 
+
+		ENG_LOG_INFO("Binding vertex and index buffers of size: (" << vertexSize << "," << indexSize << ")" << std::endl);
 		
 		VkBufferCreateInfo vbInfo{}; 
 		vbInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO; 

@@ -97,10 +97,6 @@ public:
 	std::vector<void*> uniformBuffersMapped;
 	std::vector<ENG::Buffer> modelMatrixBuffers;
 	std::vector<void*> modelMatrixBuffersMapped;
-	std::vector<ENG::Buffer> faceColorBuffers;
-	std::vector<ENG::Buffer> faceIdMapBuffers;
-	std::vector<void*> faceColorBuffersMapped;
-	std::vector<void*> faceIdMapBuffersMapped;
 	VkDescriptorPool descriptorPool;
 	VkDescriptorPool imguiPool;
 	Pool<VkDescriptorSet> descriptorSets{ 10 };
@@ -216,3 +212,5 @@ public:
 	void createTexture(const std::filesystem::path& fpath);
 	void initGui();
 };
+
+void checkedVkMapMemory(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceMemory bufferMemory, VkDeviceSize dataSize, void* hostData);

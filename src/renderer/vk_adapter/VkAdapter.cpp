@@ -24,7 +24,7 @@ void recordDrawDataCommand(
 		ENG_LOG_ERROR("Attempted to record draw data command for drawdata without buffer allocation info" << std::endl);
 	}
 	auto& allocationInfo = drawData.bufferAllocationInfo.value();
-
+    
 	if (indexedDraw)
 	{
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, allocationInfo.vertexBuffers, allocationInfo.vertexBufferOffsets);
@@ -33,7 +33,8 @@ void recordDrawDataCommand(
 	}
 	else {
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, allocationInfo.vertexBuffers, allocationInfo.vertexBufferOffsets);
-		vkCmdDraw(commandBuffer, allocationInfo.vertexAllocationInfo.size, 1, 0, 0);
+		vkCmdBindIndexBuffer(commandBuffer, allocationInfo.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDraw(commandBuffer, allocationInfo.vertexCount, 1, 0, 0);
 	}
 }
 
@@ -76,6 +77,10 @@ void recordDrawMeshCommand(
 		vkCmdDraw(commandBuffer, static_cast<uint32_t>(mesh.vertices.size()), 1, 0, 0);
 	}
 }
+
+struct PushConstants {
+    uint32_t nodeId;
+};
 
 
 void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuffer& commandBuffer, SceneState& sceneState)
@@ -147,13 +152,14 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 				0, 
 				nullptr);
 
+        const PushConstants pushConstants {node.nodeId};
 		vkCmdPushConstants(
 				commandBuffer, 
 				renderer.pipelineFactory->getVkPipelineLayout(shaderId), 
 				VK_SHADER_STAGE_VERTEX_BIT, 
 				0,
-				sizeof(uint32_t), 
-				&node.nodeId);
+				sizeof(pushConstants),
+				&pushConstants);
 
 		const auto indexedDraw = shaderId != "PosNorCol" && shaderId != "Goldberg";
 		recordDrawDataCommand(commandBuffer, drawDataCpy, indexedDraw);
