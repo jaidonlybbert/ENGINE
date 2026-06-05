@@ -1,3 +1,8 @@
+include(CMakePrintHelpers)
+cmake_minimum_required(VERSION 3.25.1)
+
+project(ShaderCompile)
+
 # Compile shaders to SPIR-V with GLSLC
 # Find glslc from Vulkan SDK
 find_program(GLSLC_EXECUTABLE
