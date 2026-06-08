@@ -87,6 +87,12 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 {
 	for (const auto& node : sceneState.graph.nodes)
 	{
+		if (!node.visible)
+		{
+			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to visibility set to false" << std::endl);
+			continue;
+		}
+
 		if (!node.draw_data_idx.has_value())
 		{
 			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no DrawData" << std::endl);
@@ -129,12 +135,6 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 			continue;
 		}
 		const auto& shaderId = node.shaderId.value();
-
-		if (!node.visible)
-		{
-			ENG_LOG_TRACE("Skipping draw for " << node.name << " due to visibility set to false" << std::endl);
-			continue;
-		}
 
 		ENG_LOG_TRACE("Drawing " << node.name << std::endl);
 		vkCmdBindPipeline(

@@ -7,6 +7,7 @@
 #include "scene/Scene.hpp"
 #include "logger/Logging.hpp"
 #include "guis/SceneGui.hpp"
+#include "scene/DFT.hpp"
 
 
 void SceneGui::MySaveFunction()
@@ -18,7 +19,17 @@ void SceneGui::DrawNodeTree(ENG::Node* node)
 {
 	if (ImGui::TreeNode(node->name.c_str())) {
 		ImGui::Text("Properties");
-		ImGui::Checkbox("Visible", &node->visible);
+
+		if (ImGui::Checkbox("Visible", &node->visible)) {
+			ENG_LOG_DEBUG("Visible checked" << std::endl);
+
+			// Set visibility of all children
+			for (auto* child : DFTraversal(node))
+			{
+				child->visible = node->visible;
+			}
+		}
+
 		ImGui::SliderFloat4("Rotation", &(node->rotation.x), 0.f, 3.1f);
 		ImGui::SliderFloat3("Location", &(node->translation.x), 0.f, 3.1f);
 

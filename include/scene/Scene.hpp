@@ -32,6 +32,11 @@ public:
 };
 
 
+struct Properties {
+	std::uint32_t propertyFlags;
+};
+
+
 class Node {
 	/*
 	 * Base class entities in a scene graph
