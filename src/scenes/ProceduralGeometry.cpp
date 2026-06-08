@@ -176,62 +176,69 @@ pmp::SurfaceMesh create_dodecahedron()
 }
 
 void load_pmp_mesh(
-	const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, const glm::vec4& color,
+	ENG::Node& parent, const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, const glm::vec4& color,
 	VkAdapter& adapter, SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue)
 {
-		std::vector<VertexPosNorCol> vertices;
-		std::vector<uint32_t> indices;
+	std::vector<VertexPosNorCol> vertices;
+	std::vector<uint32_t> indices;
 
-		vertices.reserve(mesh.vertices_size());
-		indices.resize(12); // unused
+	vertices.reserve(mesh.vertices_size());
+	indices.resize(12); // unused
 
-		const auto& points = mesh.get_vertex_property<pmp::Point>("v:point");
+	const auto& points = mesh.get_vertex_property<pmp::Point>("v:point");
 
-		for (const auto& face : mesh.faces())
-		{
-			// extract vertex positions into glm::vec3 positions (counter-clockwise order)
-			auto circulator = pmp::SurfaceMesh::VertexAroundFaceCirculator(&mesh, face);
-			auto& it = circulator.begin();
-			const auto& p0 = points[*it];
-			const auto& p1 = points[*(++it)];
-			const auto& p2 = points[*(++it)];
-			const auto& v0 = glm::vec3(p0[0], p0[1], p0[2]);
-			const auto& v1 = glm::vec3(p1[0], p1[1], p1[2]);
-			const auto& v2 = glm::vec3(p2[0], p2[1], p2[2]);
+	for (const auto& face : mesh.faces())
+	{
+		// extract vertex positions into glm::vec3 positions (counter-clockwise order)
+		auto circulator = pmp::SurfaceMesh::VertexAroundFaceCirculator(&mesh, face);
+		auto& it = circulator.begin();
+		const auto& p0 = points[*it];
+		const auto& p1 = points[*(++it)];
+		const auto& p2 = points[*(++it)];
+		const auto& v0 = glm::vec3(p0[0], p0[1], p0[2]);
+		const auto& v1 = glm::vec3(p1[0], p1[1], p1[2]);
+		const auto& v2 = glm::vec3(p2[0], p2[1], p2[2]);
 
-			// compute normal vector
-			const auto& normal = glm::normalize(glm::cross(v1-v0, v2-v0));
+		// compute normal vector
+		const auto& normal = glm::normalize(glm::cross(v1-v0, v2-v0));
 
-			const VertexPosNorCol& vert0 {v0, normal, color};
-			const VertexPosNorCol& vert1 {v1, normal, color};
-			const VertexPosNorCol& vert2 {v2, normal, color};
+		const VertexPosNorCol& vert0 {v0, normal, color};
+		const VertexPosNorCol& vert1 {v1, normal, color};
+		const VertexPosNorCol& vert2 {v2, normal, color};
 
-			vertices.emplace_back(vert0);
-			vertices.emplace_back(vert1);
-			vertices.emplace_back(vert2);
+		vertices.emplace_back(vert0);
+		vertices.emplace_back(vert1);
+		vertices.emplace_back(vert2);
+	}
+
+	auto& pmpNode = sceneState.graph.create_node();
+	pmpNode.name = node_name;
+	pmpNode.parent = &parent;
+	pmpNode.selectable = true;
+	parent.children.push_back(&pmpNode);
+
+	graphicsEventQueue.push(
+		BindHostMeshDataEvent{
+			HostMeshData{
+				std::move(vertices),
+				std::move(indices),
+				"VertexPosNorCol",
+				"PosNorCol"
+			},
+			pmpNode.nodeId
 		}
-
-		auto& pmpNode = sceneState.graph.create_node();
-		pmpNode.name = node_name;
-		pmpNode.parent = sceneState.graph.root;
-		pmpNode.selectable = true;
-		sceneState.graph.root->children.push_back(&pmpNode);
-
-		graphicsEventQueue.push(
-			BindHostMeshDataEvent{
-				HostMeshData{
-					std::move(vertices),
-					std::move(indices),
-					"VertexPosNorCol",
-					"PosNorCol"
-				},
-				pmpNode.nodeId
-			}
-		);
+	);
 }
 
 void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors, VkAdapter& adapter, SceneState& sceneState)
 {
+	// parent node for all submeshes
+	auto& parentNode = sceneState.graph.create_node();
+	parentNode.name = "Goldberg";
+	parentNode.parent = sceneState.graph.root;
+	parentNode.selectable = true;
+	sceneState.graph.root->children.push_back(&parentNode);
+
 	// create new SurfaceMesh for every face
 	std::vector<pmp::SurfaceMesh> newMeshes;
 	newMeshes.resize(mesh.faces_size());
@@ -279,7 +286,7 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, con
 		nodeName << "GoldbergPolyhedra_" << meshcount;
 
 
-		load_pmp_mesh(newMesh, meshName.str(), nodeName.str(), faceColor, adapter, sceneState, adapter.graphicsEventQueue);
+		load_pmp_mesh(parentNode, newMesh, meshName.str(), nodeName.str(), faceColor, adapter, sceneState, adapter.graphicsEventQueue);
 		meshcount++;
 	}
 
