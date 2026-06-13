@@ -24,7 +24,7 @@ void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState
 	// Create triangulated goldberg polyhedra including faceIds
 	{
 		// zzzz... race condition? crashes >= 4
-		auto mesh = pmp::icosphere(1);
+		auto mesh = pmp::icosphere(3);
 		dual(mesh);
 
 		// apply a face index for each face (preserved after triangulation)
@@ -373,7 +373,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	//addBoundingBoxChild(suzanneNodeIdx, renderer, "SuzanneBoundingBox", sceneState);
 
 	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
-	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue, "tetrahedron");
+	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue, "Tetrahedron");
 
 	// Create world mesh
 	create_world_polyhedra(renderer, adapter, sceneState);
@@ -407,10 +407,16 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 		roomNode->visible = false;
 	}
 
+	auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
+	if (suzanneNode != nullptr)
+	{
+		suzanneNode->visible = false;
+	}
+
 	auto* tetrahedronNode = find_node_by_name(sceneState.graph, "Tetrahedron");
 	if (tetrahedronNode != nullptr)
 	{
-		tetrahedronNode->visible = true;
+		tetrahedronNode->visible = false;
 		tetrahedronNode->translation = glm::vec3(0., 1., 0.);
 	}
 
