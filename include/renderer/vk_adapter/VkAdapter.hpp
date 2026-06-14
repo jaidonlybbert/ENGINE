@@ -162,7 +162,7 @@ public:
 
 		VkDeviceSize indexSize = sizeof(uint32_t) * indices.size(); 
 
-		ENG_LOG_INFO("Binding vertex and index buffers of size: (" << vertexSize << "," << indexSize << ")" << std::endl);
+		ENG_LOG_DEBUG("Binding vertex and index buffers of size: (" << vertexSize << "," << indexSize << ")" << std::endl);
 		
 		VkBufferCreateInfo vbInfo{}; 
 		vbInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO; 
@@ -263,7 +263,7 @@ public:
 			return;
 		}
 
-		ENG_LOG_INFO("Writing descriptor sets for: " << node.name << std::endl);
+		ENG_LOG_DEBUG("Writing descriptor sets for: " << node.name << std::endl);
 
 		drawData.descriptorSets = std::vector<VkDescriptorSet>{};
 		assert(drawData.descriptorSets.has_value());

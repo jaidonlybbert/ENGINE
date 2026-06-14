@@ -423,7 +423,7 @@ void mesh_bind_event_handler(VkRenderer& renderer, SceneState& sceneState, VkAda
 
 	node.shaderId = bindEvent.meshData.shaderId;
 	node.draw_data_idx = drawIdx;
-	ENG_LOG_INFO("Node: " << node.name << " DrawDataIndex: " << drawIdx << std::endl);
+	ENG_LOG_TRACE("Node: " << node.name << " DrawDataIndex: " << drawIdx << std::endl);
 
 	adapter.graphicsEventQueue.push(
 		CommandCompletionEvent {
@@ -432,7 +432,7 @@ void mesh_bind_event_handler(VkRenderer& renderer, SceneState& sceneState, VkAda
 				adapter.set_property(drawIdx, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
 				adapter.createDescriptorSets(drawIdx, node);
 				adapter.set_property(drawIdx, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED);
-				ENG_LOG_INFO("Created draw data for " << node.name << std::endl);
+				ENG_LOG_TRACE("Created draw data for " << node.name << std::endl);
 			}
 		}
 	);
@@ -480,7 +480,7 @@ void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData
 int main() {
 	
 	try {
-		ENG_LOG_INFO("Starting app" << std::endl);
+		ENG_LOG_TRACE("Starting app" << std::endl);
 
 		WindowUserData windowUserData;
 
@@ -520,6 +520,9 @@ int main() {
 		app.registerCoroutine("listener(tcp::acceptor)", []() {
 			return listener(tcp::acceptor(Application::io_ctx, { tcp::v4(), 8080 }));
 			});
+		app.registerDedicatedThread("physics.run_physics()", []() {
+			run_physics();
+			});
 		ENG_LOG_DEBUG("Server listening on port 8080..." << std::endl);
 
 
@@ -533,9 +536,11 @@ int main() {
 			updateModelMatrices(sceneState);
 			return sceneState.modelMatrices;
 			});
+		/*
 		renderer.registerUniformBufferConsumer([&sceneState, &windowUserData](const UniformBufferObject& ubo) {
 			castRayForMouseHover(windowUserData, sceneState, ubo);
 			});
+		*/
 
 
 		app.mainThreadFunction = [&renderAdapter, &renderer, &gui, &windowUserData, &sceneState]() {

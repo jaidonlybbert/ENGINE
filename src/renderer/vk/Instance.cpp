@@ -121,12 +121,12 @@ void InstanceFactory::createInstance() {
 	createInfo.flags = createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 	
-	ENG_LOG_INFO("Creating instance" << std::endl);
+	ENG_LOG_TRACE("Creating instance" << std::endl);
 	// Create instance
 	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create instance!");
 	}
-	ENG_LOG_INFO("Instance created" << std::endl);
+	ENG_LOG_TRACE("Instance created" << std::endl);
 	
 }
 

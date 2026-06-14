@@ -68,7 +68,7 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
 	get_filepaths();
 
 	for (size_t i = 0; i < filepaths.size(); ++i) {
-		ENG_LOG_INFO("Creating module for " << filepaths.at(i) << std::endl);
+		ENG_LOG_DEBUG("Creating module for " << filepaths.at(i) << std::endl);
 		modules.push_back(createShaderModule(device, readFile(filepaths.at(i))));
 	}
 
@@ -101,7 +101,7 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
 		{"Goldberg",  {&stages.at(8), &stages.at(9)}}
 	};
 
-	ENG_LOG_INFO("Loaded all shader modules" << std::endl);
+	ENG_LOG_DEBUG("Loaded all shader modules" << std::endl);
 }
 
 ShaderFactory::~ShaderFactory() {

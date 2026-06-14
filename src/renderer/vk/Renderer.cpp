@@ -189,7 +189,7 @@ std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
 
 void VkRenderer::createTexture(const std::filesystem::path& fpath)
 {
-	ENG_LOG_INFO("Loading Texture: " << fpath.string() << std::endl);
+	ENG_LOG_DEBUG("Loading Texture: " << fpath.string() << std::endl);
 	createTextureImage(fpath);
 	createTextureImageView(fpath);
 	createTextureSampler(fpath);

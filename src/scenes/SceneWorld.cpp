@@ -301,13 +301,13 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	//const auto suzanneNodeIdx = find_node_by_name(sceneState.graph, "Suzanne")->nodeId;
 	//addBoundingBoxChild(suzanneNodeIdx, renderer, "SuzanneBoundingBox", sceneState);
 
-	ENG_LOG_INFO("Creating tetrahedron2" << std::endl);
+	ENG_LOG_TRACE("Creating tetrahedron2" << std::endl);
 	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue, "Tetrahedron");
 
 	// Create world mesh
 	create_world_polyhedra(renderer, adapter, sceneState);
 
-	ENG_LOG_INFO("Finished loading data" << std::endl);
+	ENG_LOG_TRACE("Finished loading data" << std::endl);
 
 	ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
 
