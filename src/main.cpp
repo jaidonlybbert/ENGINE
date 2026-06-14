@@ -34,6 +34,8 @@
 
 #include "lua.hpp"
 
+#include "physics/physics.hpp"
+
 void stop(asio::io_context& io_context) {
 	if (io_context.stopped()) {
 		return;

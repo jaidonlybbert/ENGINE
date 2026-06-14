@@ -17,7 +17,8 @@ class EngineRecipe(ConanFile):
         "lua/5.4.7",
         "flatbuffers/25.9.23",
         "asio/1.36.0",
-        "vulkan-memory-allocator/3.3.0"
+        "vulkan-memory-allocator/3.3.0",
+        "joltphysics/5.2.0"
     )
 
     if platform.platform() == "Windows":
