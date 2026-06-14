@@ -124,16 +124,3 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 		recordDrawDataCommand(commandBuffer, drawDataCpy, indexedDraw);
 	}
 }
-
-void recordDrawCommand(VkCommandBuffer& commandBuffer, const ENG::Mesh& mesh)
-{
-	assert(mesh.vertexBuffer != nullptr);
-	assert(mesh.vertexBuffer->buffer != nullptr);
-	assert(mesh.indexBuffer != nullptr);
-	assert(mesh.indexBuffer->buffer != nullptr);
-	VkBuffer vertexBuffers[] = {mesh.vertexBuffer->buffer};
-	VkDeviceSize offsets[] = {0};
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-	vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-	vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
-}

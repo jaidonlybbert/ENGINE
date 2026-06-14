@@ -8,6 +8,15 @@
 namespace ENG
 {
 
+static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc)
+{
+	const auto& ctype = acc.componentType;
+	const auto& type = acc.type;
+	assert(ctype != -1);
+	assert(type != -1);
+	return tinygltf::GetNumComponentsInType(type) * tinygltf::GetComponentSizeInBytes(ctype);
+}
+
 static VkFormat get_vk_format_from_tinygltf_accessor(const tinygltf::Accessor& acc, size_t& size_bytes)
 {
 	VkFormat retval{ VkFormat::VK_FORMAT_UNDEFINED };

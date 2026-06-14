@@ -315,19 +315,19 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	auto* roomNode = find_node_by_name(sceneState.graph, "Room-0");
 	if (roomNode != nullptr)
 	{
-		roomNode->visible = false;
+		roomNode->visible = true;
 	}
 
 	auto* suzanneNode = find_node_by_name(sceneState.graph, "Suzanne");
 	if (suzanneNode != nullptr)
 	{
-		suzanneNode->visible = false;
+		suzanneNode->visible = true;
 	}
 
 	auto* tetrahedronNode = find_node_by_name(sceneState.graph, "Tetrahedron");
 	if (tetrahedronNode != nullptr)
 	{
-		tetrahedronNode->visible = false;
+		tetrahedronNode->visible = true;
 		tetrahedronNode->translation = glm::vec3(0., 1., 0.);
 	}
 
