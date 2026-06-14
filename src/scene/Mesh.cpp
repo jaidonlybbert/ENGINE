@@ -1,6 +1,5 @@
 #include<vector>
 #include "vulkan/vulkan_core.h"
-#include "tiny_gltf.h"
 #include "scene/Mesh.hpp"
 #include "logger/Logging.hpp"
 

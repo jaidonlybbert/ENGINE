@@ -214,10 +214,6 @@ void load_gltf_mesh_attributes(
 				nodeId
 			}
 		);
-		//auto &mesh = sceneState.posColTexMeshes.emplace_back(device, physicalDevice, commands, mesh_name, model, primitive, graphicsQueue);
-		//eng_node.mesh_idx = sceneState.posColTexMeshes.size() - 1;
-		//eng_node.mesh_type = "VertexPosColTex";
-		//eng_node.shaderId = "PosColTex";
 	}
 	else if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("NORMAL")
 		&& primitive.attributes.contains("TEXCOORD_0"))
@@ -238,11 +234,6 @@ void load_gltf_mesh_attributes(
 				nodeId
 			}
 		);
-
-		//auto& mesh = sceneState.posNorTexMeshes.emplace_back(device, physicalDevice, commands, mesh_name, model, primitive, graphicsQueue);
-		//eng_node.mesh_idx = sceneState.posNorTexMeshes.size() - 1;
-		//eng_node.mesh_type = "VertexPosNorTex";
-		//eng_node.shaderId = "PosNorTex";
 	}
 }
 

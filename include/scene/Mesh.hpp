@@ -17,16 +17,6 @@
 #include "scene/Primitives.hpp"
 #include "logger/Logging.hpp"
 
-namespace tinygltf {
-class Accessor;
-class Primitive;
-class Model;
-}
-
-// Helper for combining multiple lambdas
-template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
-template<class... Ts> overload(Ts...) -> overload<Ts...>;
-
 namespace ENG
 {
 	using VertexT = std::variant<
@@ -48,8 +38,6 @@ namespace ENG
 		uint32_t nodeId;
 	};
 
-	size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc);
-
 	class Mesh {
 
 	public:
@@ -69,6 +57,5 @@ namespace ENG
 	};
 
 } // end namespace
-
 
 #endif
