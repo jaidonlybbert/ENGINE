@@ -15,13 +15,12 @@ namespace ENG
 		return tinygltf::GetNumComponentsInType(type) * tinygltf::GetComponentSizeInBytes(ctype);
 	}
 
-	template<>
-	Mesh<VertexPosColTex>::Mesh(
+	Mesh::Mesh(
 		const VkDevice& device,
 		const VkPhysicalDevice& physicalDevice,
 		ENG::Command* const commands,
 		std::string name,
-		std::vector<VertexPosColTex> vertices,
+		VertexT vertices,
 		std::vector<uint32_t> indices,
 		const VkQueue& graphicsQueue
 	) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue)
@@ -30,59 +29,18 @@ namespace ENG
 		createIndexBuffer(graphicsQueue);
 	}
 
-	template<>
-	Mesh<VertexPosNorTex>::Mesh(
-		const VkDevice& device,
-		const VkPhysicalDevice& physicalDevice,
-		ENG::Command* const commands,
-		std::string name,
-		std::vector<VertexPosNorTex> vertices,
-		std::vector<uint32_t> indices,
-		const VkQueue& graphicsQueue
-	) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue)
-	{
-		createVertexBuffer(graphicsQueue);
-		createIndexBuffer(graphicsQueue);
-	}
-
-	template<>
-	Mesh<VertexPosNorCol>::Mesh(
-		const VkDevice& device,
-		const VkPhysicalDevice& physicalDevice,
-		ENG::Command* const commands,
-		std::string name,
-		std::vector<VertexPosNorCol> vertices,
-		std::vector<uint32_t> indices,
-		const VkQueue& graphicsQueue
-	) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue)
-	{
-		createVertexBuffer(graphicsQueue);
-		createIndexBuffer(graphicsQueue);
-	}
-
-	template<>
-	Mesh<VertexPos>::Mesh(
-		const VkDevice& device,
-		const VkPhysicalDevice& physicalDevice,
-		ENG::Command* const commands,
-		std::string name,
-		std::vector<VertexPos> vertices,
-		std::vector<uint32_t> indices,
-		const VkQueue& graphicsQueue
-	) : device(device), physicalDevice(physicalDevice), commands(commands), name(name), vertices(vertices), indices(indices), graphicsQueue(graphicsQueue)
-	{
-		createVertexBuffer(graphicsQueue);
-		createIndexBuffer(graphicsQueue);
-	}
-
-	template<>
-	Mesh<VertexPosColTex>::Mesh(const VkDevice& device,
+	// VertexPosColTex
+	Mesh::Mesh(const VkDevice& device,
 		const VkPhysicalDevice& physicalDevice,
 		ENG::Command* const commands,
 		const std::string& mesh_name,
 		const tinygltf::Model& model,
 		const tinygltf::Primitive& primitive,
-		const VkQueue& graphicsQueue) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {
+		const VkQueue& graphicsQueue,
+		const VertexPosColTex* meshType) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) 
+	{
+		vertices = std::vector<VertexPosColTex>();
+		auto& vertices_handle = std::get<std::vector<VertexPosColTex>>(vertices);
 		ENG_LOG_DEBUG("debug PosColTex mesh entry" << std::endl);
 		const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
 		const auto& col_acc = model.accessors[primitive.attributes.at("COLOR0")];
@@ -117,7 +75,7 @@ namespace ENG
 
 		ENG_LOG_DEBUG("Debug posCoTex pos1 " << std::endl);
 		name = mesh_name;
-		vertices.resize(num_elements);
+		vertices_handle.resize(num_elements);
 		indices.resize(num_indices);
 		for (size_t i = 0; i < num_elements; ++i)
 		{
@@ -130,7 +88,7 @@ namespace ENG
 			vert.color = static_cast<glm::vec3>(col_buff.data[col_bv.byteOffset + i * col_size]);
 			vert.texCoord = static_cast<glm::vec2>(tex_buff.data[tex_bv.byteOffset + i * tex_size]);
 
-			vertices[i] = vert;
+			vertices_handle[i] = vert;
 		}
 		for (size_t i = 0; i < num_indices; ++i)
 		{
@@ -144,14 +102,18 @@ namespace ENG
 
 	}
 
-	template<>
-	Mesh<VertexPosNorTex>::Mesh(const VkDevice& device,
+	// VertexPosNorTex
+	Mesh::Mesh(const VkDevice& device,
 		const VkPhysicalDevice& physicalDevice,
 		ENG::Command* const commands,
 		const std::string& mesh_name,
 		const tinygltf::Model& model,
 		const tinygltf::Primitive& primitive,
-		const VkQueue& graphicsQueue) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {
+		const VkQueue& graphicsQueue,
+		const VertexPosNorTex* mesh_type) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) 
+	{
+		vertices = std::vector<VertexPosNorTex>();
+		auto& vertices_handle = std::get<std::vector<VertexPosNorTex>>(vertices);
 		const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
 		const auto& nor_acc = model.accessors[primitive.attributes.at("NORMAL")];
 		const auto& tex_acc = model.accessors[primitive.attributes.at("TEXCOORD_0")];
@@ -183,7 +145,7 @@ namespace ENG
 		assert(num_elements == tex_bv.byteLength / tex_size);
 
 		name = mesh_name;
-		vertices.resize(num_elements);
+		vertices_handle.resize(num_elements);
 		indices.resize(num_indices);
 
 
@@ -194,9 +156,9 @@ namespace ENG
 			assert(nor_bv.byteStride == 0);
 			assert(tex_bv.byteStride == 0);
 
-			std::memcpy(&vertices.at(i).pos, &pos_buff.data[pos_bv.byteOffset + i * pos_size], sizeof(vertices[0].pos));
-			std::memcpy(&vertices.at(i).normal, &nor_buff.data[nor_bv.byteOffset + i * nor_size], sizeof(vertices[0].normal));
-			std::memcpy(&vertices.at(i).texCoord, &tex_buff.data[tex_bv.byteOffset + i * tex_size], sizeof(vertices[0].texCoord));
+			std::memcpy(&vertices_handle.at(i).pos, &pos_buff.data[pos_bv.byteOffset + i * pos_size], sizeof(vertices_handle[0].pos));
+			std::memcpy(&vertices_handle.at(i).normal, &nor_buff.data[nor_bv.byteOffset + i * nor_size], sizeof(vertices_handle[0].normal));
+			std::memcpy(&vertices_handle.at(i).texCoord, &tex_buff.data[tex_bv.byteOffset + i * tex_size], sizeof(vertices_handle[0].texCoord));
 		}
 		for (size_t i = 0; i < num_indices; ++i)
 		{
@@ -210,14 +172,18 @@ namespace ENG
 		createIndexBuffer(graphicsQueue);
 	}
 
-	template<>
-	Mesh<VertexPos>::Mesh(const VkDevice& device,
+	// VertexPos
+	Mesh::Mesh(const VkDevice& device,
 		const VkPhysicalDevice& physicalDevice,
 		ENG::Command* const commands,
 		const std::string& mesh_name,
 		const tinygltf::Model& model,
 		const tinygltf::Primitive& primitive,
-		const VkQueue& graphicsQueue) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) {
+		const VkQueue& graphicsQueue,
+		const VertexPos* mesh_type) : device(device), physicalDevice(physicalDevice), commands(commands), graphicsQueue(graphicsQueue) 
+	{
+		vertices = std::vector<VertexPos>();
+		auto& vertices_handle = std::get<std::vector<VertexPos>>(vertices);
 		const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
 		assert(primitive.indices >= 0);
 		const auto& ind_acc = model.accessors[primitive.indices];
@@ -239,7 +205,7 @@ namespace ENG
 		assert(num_elements == ind_bv.byteLength / ind_size);
 
 		name = mesh_name;
-		vertices.resize(num_elements);
+		vertices_handle.resize(num_elements);
 		indices.resize(num_indices);
 		for (size_t i = 0; i < num_elements; ++i)
 		{
@@ -248,7 +214,7 @@ namespace ENG
 			assert(pos_bv.byteStride == 0);
 			vert.pos = static_cast<glm::vec3>(pos_buff.data[pos_bv.byteOffset + i * pos_size]);
 
-			vertices[i] = vert;
+			vertices_handle[i] = vert;
 		}
 		for (size_t i = 0; i < num_indices; ++i)
 		{
@@ -261,7 +227,7 @@ namespace ENG
 		
 
 	template<>
-	std::vector<VkVertexInputAttributeDescription> Mesh<VertexPosColTex>::getAttributeDescriptions() {
+	std::vector<VkVertexInputAttributeDescription> Mesh::getAttributeDescriptions<VertexPosColTex>() {
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{ 3 };
 
 		attributeDescriptions[0].binding = 0;
@@ -283,7 +249,7 @@ namespace ENG
 	}
 
 	template<>
-	std::vector<VkVertexInputAttributeDescription> Mesh<VertexPosNorCol>::getAttributeDescriptions() {
+	std::vector<VkVertexInputAttributeDescription> Mesh::getAttributeDescriptions<VertexPosNorCol>() {
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{ 3 };
 
 		attributeDescriptions[0].binding = 0;
@@ -305,7 +271,7 @@ namespace ENG
 	}
 
 	template<>
-	std::vector<VkVertexInputAttributeDescription> Mesh<VertexPosNorTex>::getAttributeDescriptions() {
+	std::vector<VkVertexInputAttributeDescription> Mesh::getAttributeDescriptions<VertexPosNorTex>() {
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{ 3 };
 
 		attributeDescriptions[0].binding = 0;
@@ -327,7 +293,7 @@ namespace ENG
 	}
 
 	template<>
-	std::vector<VkVertexInputAttributeDescription> Mesh<VertexPos>::getAttributeDescriptions() {
+	std::vector<VkVertexInputAttributeDescription> Mesh::getAttributeDescriptions<VertexPos>() {
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions{ 1 };
 
 		attributeDescriptions[0].binding = 0;

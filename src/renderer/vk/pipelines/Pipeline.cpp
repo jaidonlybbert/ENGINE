@@ -66,7 +66,7 @@ void Pipeline::createDynamicStateInfo() {
 }
 
 void Pipeline::createVertexInputInfo() {
-	attributeDescriptions = Mesh<VertexPosColTex>::getAttributeDescriptions();
+	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosColTex>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosColTex);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;

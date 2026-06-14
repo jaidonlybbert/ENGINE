@@ -220,6 +220,42 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState)
 	return ubo;
 }
 
+
+AABB findExtremaVertices(std::vector<VertexPosNorCol>& verts) {
+	const auto& minXIt = std::min_element(verts.begin(), verts.end(), [](const VertexPosNorCol& rhs, const VertexPosNorCol& lhs) {
+		return (rhs.pos.x < lhs.pos.x);
+	});
+	const auto& minYIt = std::min_element(verts.begin(), verts.end(), [](const VertexPosNorCol& rhs, const VertexPosNorCol& lhs) {
+		return (rhs.pos.y < lhs.pos.y);
+	});
+	const auto& minZIt = std::min_element(verts.begin(), verts.end(), [](const VertexPosNorCol& rhs, const VertexPosNorCol& lhs) {
+		return (rhs.pos.z < lhs.pos.z);
+	});
+	const auto& maxXIt = std::max_element(verts.begin(), verts.end(), [](const VertexPosNorCol& rhs, const VertexPosNorCol& lhs) {
+		return (rhs.pos.x < lhs.pos.x);
+	});
+	const auto& maxYIt = std::max_element(verts.begin(), verts.end(), [](const VertexPosNorCol& rhs, const VertexPosNorCol& lhs) {
+		return (rhs.pos.y < lhs.pos.y);
+	});
+	const auto& maxZIt = std::max_element(verts.begin(), verts.end(), [](const VertexPosNorCol& rhs, const VertexPosNorCol& lhs) {
+		return (rhs.pos.z < lhs.pos.z);
+	});
+
+	const auto& maxX = maxXIt->pos.x;
+	const auto& maxY = maxYIt->pos.y;
+	const auto& maxZ = maxZIt->pos.z;
+	const auto& minX = minXIt->pos.x;
+	const auto& minY = minYIt->pos.y;
+	const auto& minZ = minZIt->pos.z;
+
+	const AABB& aabb{
+		{minX, minY, minZ, 1},
+		{maxX, maxY, maxZ, 1}
+	};
+
+	return aabb;
+}
+
 void updateModelMatrix(glm::mat4& modelMatrix, const ENG::Node& node)
 {
 	// Compute local transform from TRS data
@@ -380,6 +416,8 @@ void mesh_bind_event_handler(VkRenderer& renderer, SceneState& sceneState, VkAda
 			),
 		}
 	);
+
+	//initializeBoundingBox(sceneState, node);
 
 	node.mesh_type = bindEvent.meshData.meshType;
 	node.shaderId = bindEvent.meshData.shaderId;

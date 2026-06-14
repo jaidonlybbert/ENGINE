@@ -23,12 +23,17 @@ class Primitive;
 class Model;
 }
 
+// Helper for combining multiple lambdas
+template<class... Ts> struct overload : Ts... { using Ts::operator()...; };
+template<class... Ts> overload(Ts...) -> overload<Ts...>;
+
 namespace ENG
 {
 	using VertexT = std::variant<
 		std::vector<VertexPosColTex>,
 		std::vector<VertexPosNorCol>,
-		std::vector<VertexPosNorTex>
+		std::vector<VertexPosNorTex>,
+		std::vector<VertexPos>
 	>;
 
 	struct HostMeshData {
@@ -46,19 +51,21 @@ namespace ENG
 
 	size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc);
 
-	template <typename T>
 	class Mesh {
 
 	public:
-		Mesh() {}
 		explicit Mesh(const VkDevice& device, const VkPhysicalDevice& physicalDevice, ENG::Command* const commands,
-			std::string name, std::vector<T> vertices, std::vector<uint32_t> indices, const VkQueue& graphicsQueue);
+			std::string name, VertexT vertices, std::vector<uint32_t> indices, const VkQueue& graphicsQueue);
 
 		explicit Mesh(const VkDevice& device, const VkPhysicalDevice& physicalDevice, ENG::Command* const commands, const std::string& mesh_name, const tinygltf::Model& model,
-			const tinygltf::Primitive& primitive, const VkQueue& graphicsQueue);
+			const tinygltf::Primitive& primitive, const VkQueue& graphicsQueue, const VertexPosColTex* meshType = nullptr);
+		explicit Mesh(const VkDevice& device, const VkPhysicalDevice& physicalDevice, ENG::Command* const commands, const std::string& mesh_name, const tinygltf::Model& model,
+			const tinygltf::Primitive& primitive, const VkQueue& graphicsQueue, const VertexPosNorTex* meshType = nullptr);
+		explicit Mesh(const VkDevice& device, const VkPhysicalDevice& physicalDevice, ENG::Command* const commands, const std::string& mesh_name, const tinygltf::Model& model,
+			const tinygltf::Primitive& primitive, const VkQueue& graphicsQueue, const VertexPos* meshType = nullptr);
 
 		std::string name{};
-		std::vector<T> vertices{};
+		VertexT vertices{};
 		std::vector<uint32_t> indices{};
 		std::unique_ptr<ENG::Buffer> vertexBuffer;
 		std::unique_ptr<ENG::Buffer> indexBuffer;
@@ -67,6 +74,7 @@ namespace ENG
 		ENG::Command* const commands;
 		const VkQueue& graphicsQueue;
 
+		template<typename T>
 		static VkVertexInputBindingDescription getBindingDescription() {
 			VkVertexInputBindingDescription bindingDescription{};
 			bindingDescription.binding = 0;
@@ -76,27 +84,37 @@ namespace ENG
 			return bindingDescription;
 		}
 
+		template<typename T>
 		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 
 		void createVertexBuffer(const VkQueue& graphicsQueue)
 		{
 			ENG_LOG_TRACE("Entering create vertex buffer" << std::endl);
-			const auto vert_size = sizeof(vertices[0]);
-			const VkDeviceSize bufferSize = vert_size * vertices.size();
+			size_t vert_size_in_bytes{ 0 };
+			auto number_of_vertices{ 0 };
+			void* data_ptr{ nullptr };
 
-			const ENG::Buffer stagingBuffer{ device, physicalDevice, vert_size, bufferSize,
+			std::visit(overload{
+				[&vert_size_in_bytes, &number_of_vertices, &data_ptr](const std::vector<VertexPosColTex>& v) {vert_size_in_bytes = sizeof(VertexPosColTex); number_of_vertices = v.size(); data_ptr = (void*)(v.data()); },
+				[&vert_size_in_bytes, &number_of_vertices, &data_ptr](const std::vector<VertexPosNorCol>& v) {vert_size_in_bytes = sizeof(VertexPosNorCol); number_of_vertices = v.size(); data_ptr = (void*)(v.data()); },
+				[&vert_size_in_bytes, &number_of_vertices, &data_ptr](const std::vector<VertexPosNorTex>& v) {vert_size_in_bytes = sizeof(VertexPosNorTex); number_of_vertices = v.size(); data_ptr = (void*)(v.data()); },
+				[&vert_size_in_bytes, &number_of_vertices, &data_ptr](const std::vector<VertexPos>& v) {vert_size_in_bytes = sizeof(VertexPos); number_of_vertices = v.size(); data_ptr = (void*)(v.data()); },
+				}, vertices);
+
+			const VkDeviceSize bufferSize = vert_size_in_bytes * number_of_vertices;
+
+			const ENG::Buffer stagingBuffer{ device, physicalDevice, vert_size_in_bytes, bufferSize,
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT };
 
 			void* data;
 			vkMapMemory(device, stagingBuffer.bufferMemory, 0, bufferSize, 0, &data);
 			char* last_byte = (char*)data + bufferSize;
-			size_t buffSize = (size_t)vert_size * vertices.size();
-			assert((char*)data + buffSize <= last_byte);
-			memcpy(data, vertices.data(), buffSize);
-			data = (char*)data + buffSize;
+			assert((char*)data + bufferSize <= last_byte);
+			memcpy(data, data_ptr, bufferSize);
+			data = (char*)data + bufferSize;
 			vkUnmapMemory(device, stagingBuffer.bufferMemory);
 
-			vertexBuffer = std::make_unique<ENG::Buffer>(device, physicalDevice, vert_size, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			vertexBuffer = std::make_unique<ENG::Buffer>(device, physicalDevice, vert_size_in_bytes, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 			if (commands == nullptr)
 			{

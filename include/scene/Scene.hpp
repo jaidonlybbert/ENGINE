@@ -36,6 +36,10 @@ struct Properties {
 	std::uint32_t propertyFlags;
 };
 
+struct AABB {
+	glm::vec4 min;
+	glm::vec4 max;
+};
 
 class Node {
 	/*
@@ -68,6 +72,7 @@ class SceneGraph {
 public:
 	Node* root{ nullptr };
 	std::vector<Node> nodes;
+	std::vector<AABB> bvh;
 	std::vector<Camera> cameras;
 
 	Node& create_node() {
@@ -91,20 +96,17 @@ struct SceneState {
 
 	double cursor_x;
 	double cursor_y;
-	std::vector<ENG::Mesh<VertexPosColTex>> posColTexMeshes;
-	std::vector<ENG::Mesh<VertexPosNorTex>> posNorTexMeshes;
-	std::vector<ENG::Mesh<VertexPos>> posMeshes;
-	std::vector<ENG::Mesh<VertexPosNorCol>> posNorColMeshes;
+	std::vector<ENG::Mesh> meshes;
 	std::vector<glm::mat4> modelMatrices;
+	std::vector<AABB> aabbs;
 
 	std::mt19937 randomizer;
 	std::chrono::steady_clock::time_point previousPredictionTime;
 
 	~SceneState() {
-		posColTexMeshes.clear();
-		posNorTexMeshes.clear();
-		posMeshes.clear();
-		posNorColMeshes.clear();
+		meshes.clear();
+		modelMatrices.clear();
+		aabbs.clear();
 	}
 };
 

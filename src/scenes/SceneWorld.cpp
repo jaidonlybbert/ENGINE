@@ -199,74 +199,6 @@ void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState
 	}
 }
 
-void addBoundingBoxChild(ENG::Node* node, VkRenderer& app, const std::string &bbName, SceneState& sceneState)
-{
-	if (node == nullptr)
-	{
-		return;
-	}
-
-	if (!node->mesh_idx.has_value())
-	{
-		ENG_LOG_ERROR("Attempted to create bounding box on node " << node->name << " which has no mesh index");
-		return;
-	}
-	const auto& mesh = sceneState.posNorTexMeshes.at(node->mesh_idx.value());
-	const auto& minXIt = std::min_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-		return (rhs.pos.x < lhs.pos.x);
-	});
-	const auto& minYIt = std::min_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-		return (rhs.pos.y < lhs.pos.y);
-	});
-	const auto& minZIt = std::min_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-		return (rhs.pos.z < lhs.pos.z);
-	});
-	const auto& maxXIt = std::max_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-		return (rhs.pos.x < lhs.pos.x);
-	});
-	const auto& maxYIt = std::max_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-		return (rhs.pos.y < lhs.pos.y);
-	});
-	const auto& maxZIt = std::max_element(mesh.vertices.begin(), mesh.vertices.end(), [](const VertexPosNorTex& rhs, const VertexPosNorTex& lhs) {
-		return (rhs.pos.z < lhs.pos.z);
-	});
-
-	const auto& maxX = maxXIt->pos.x;
-	const auto& maxY = maxYIt->pos.y;
-	const auto& maxZ = maxZIt->pos.z;
-	const auto& minX = minXIt->pos.x;
-	const auto& minY = minYIt->pos.y;
-	const auto& minZ = minZIt->pos.z;
-
-	std::vector<VertexPos> bbVertices {
-		{ { minX, minY, maxZ } },
-		{ { maxX, minY, maxZ } },
-		{ { maxX, maxY, maxZ } },
-		{ { minX, maxY, maxZ } },
-		{ { minX, minY, minZ } },
-		{ { maxX, minY, minZ } },
-		{ { maxX, maxY, minZ } },
-		{ { minX, maxY, minZ } },
-	};
-
-	std::vector<uint32_t> bbIndices {
-		0, 1, 1, 2, 2, 3, 3, 0,
-		4, 5, 5, 6, 6, 7, 7, 4,
-		0, 4, 1, 5, 2, 6, 3, 7
-	};
-
-	auto& bbMesh = sceneState.posMeshes.emplace_back(app.device, app.physicalDevice, app.commands.get(), bbName, bbVertices, bbIndices, app.graphicsQueue);
-	auto& bbNode = sceneState.graph.nodes.emplace_back();
-	bbNode.name = bbName;
-	bbNode.nodeId = static_cast<uint32_t>(sceneState.graph.nodes.size()) - 1;
-	bbNode.parent = node;
-	bbNode.mesh_type = "VertexPos";
-	bbNode.mesh_idx = sceneState.posMeshes.size() - 1;
-	bbNode.shaderId = "PosBB";
-	node->children.push_back(&bbNode);
-}
-
-
 void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue, const std::string& nodeName)
 {
 	std::vector<VertexPosNorCol> tetraVertices {
@@ -341,10 +273,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	SceneWorldInput::set_callbacks();
 
 	// TODO: implement pools to avoid reference invalidation on reallocation problem
-	sceneState.posColTexMeshes.reserve(1000);
-	sceneState.posNorTexMeshes.reserve(1000);
-	sceneState.posMeshes.reserve(1000);
-	sceneState.posNorColMeshes.reserve(1000);
+	sceneState.meshes.reserve(1000);
 	sceneState.graph.nodes.reserve(1000);
 	sceneState.graph.cameras.reserve(100);
 
@@ -353,6 +282,8 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	sceneState.modelMatrices.resize(SCENE_WORLD_MAX_NODES);
 	renderer.createModelMatrices(sizeof(glm::mat4) * SCENE_WORLD_MAX_NODES);
 
+	// These are AABBs for nodes, with 1-1 indexing with scenegraph.nodes
+	sceneState.aabbs.resize(SCENE_WORLD_MAX_NODES);
 
 	auto& attachmentPoint = sceneState.graph.nodes.emplace_back();
 	sceneState.graph.root = &attachmentPoint;
@@ -378,20 +309,8 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	// Create world mesh
 	create_world_polyhedra(renderer, adapter, sceneState);
 
-	ENG_LOG_DEBUG("PosColTex Meshes loaded:" << std::endl);
-	for (const auto& mesh : sceneState.posColTexMeshes)
-	{
-		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
-	}
-
-	ENG_LOG_DEBUG("PosNorTex Meshes loaded:" << std::endl);
-	for (const auto& mesh : sceneState.posNorTexMeshes)
-	{
-		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
-	}
-
-	ENG_LOG_DEBUG("PosBB Meshes loaded:" << std::endl);
-	for (const auto& mesh : sceneState.posMeshes)
+	ENG_LOG_DEBUG("Meshes loaded:" << std::endl);
+	for (const auto& mesh : sceneState.meshes)
 	{
 		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
 	}

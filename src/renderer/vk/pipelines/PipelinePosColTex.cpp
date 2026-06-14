@@ -23,7 +23,7 @@ void Pipeline_PosColTex::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_PosColTex::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class PosColTex" << std::endl);
-	attributeDescriptions = Mesh<VertexPosColTex>::getAttributeDescriptions();
+	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosColTex>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosColTex);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -50,7 +50,7 @@ void Pipeline_PosNorTex::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_PosNorTex::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class PosNorTex" << std::endl);
-	attributeDescriptions = Mesh<VertexPosNorTex>::getAttributeDescriptions();
+	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosNorTex>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorTex);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -77,7 +77,7 @@ void Pipeline_PosNorCol::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_PosNorCol::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class PosNorCol" << std::endl);
-	attributeDescriptions = Mesh<VertexPosNorCol>::getAttributeDescriptions();
+	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosNorCol>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorCol);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -130,7 +130,7 @@ void Pipeline_PosBB::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_PosBB::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class PosBB" << std::endl);
-	attributeDescriptions = Mesh<VertexPos>::getAttributeDescriptions();
+	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPos>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPos);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -205,7 +205,7 @@ void Pipeline_Goldberg::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_Goldberg::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class Goldberg" << std::endl);
-	attributeDescriptions = Mesh<VertexPosNorCol>::getAttributeDescriptions();
+	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosNorCol>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorCol);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
