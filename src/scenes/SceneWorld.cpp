@@ -255,7 +255,6 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsE
 			HostMeshData{
 				std::move(tetraVerticesDuplicated),
 				std::move(tetraIndices),
-				"VertexPosNorCol",
 				"PosNorCol"
 			},
 			tetraNode.nodeId
@@ -273,7 +272,6 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	SceneWorldInput::set_callbacks();
 
 	// TODO: implement pools to avoid reference invalidation on reallocation problem
-	sceneState.meshes.reserve(1000);
 	sceneState.graph.nodes.reserve(1000);
 	sceneState.graph.cameras.reserve(100);
 
@@ -308,12 +306,6 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 
 	// Create world mesh
 	create_world_polyhedra(renderer, adapter, sceneState);
-
-	ENG_LOG_DEBUG("Meshes loaded:" << std::endl);
-	for (const auto& mesh : sceneState.meshes)
-	{
-		ENG_LOG_DEBUG("\t" << mesh.name << std::endl);
-	}
 
 	ENG_LOG_INFO("Finished loading data" << std::endl);
 

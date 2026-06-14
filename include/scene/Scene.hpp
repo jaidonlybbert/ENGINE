@@ -57,8 +57,6 @@ public:
 	std::vector<Node*> children;
 	std::vector<size_t> descriptorSetIds;
 	std::optional<std::string> shaderId;
-	std::optional<std::string> mesh_type;
-	std::optional<std::size_t> mesh_idx;
 	std::optional<std::size_t> draw_data_idx;
 	std::uint32_t propertyFlags{ 0 };
 	Camera* camera { nullptr };
@@ -96,7 +94,6 @@ struct SceneState {
 
 	double cursor_x;
 	double cursor_y;
-	std::vector<ENG::Mesh> meshes;
 	std::vector<glm::mat4> modelMatrices;
 	std::vector<AABB> aabbs;
 
@@ -104,7 +101,6 @@ struct SceneState {
 	std::chrono::steady_clock::time_point previousPredictionTime;
 
 	~SceneState() {
-		meshes.clear();
 		modelMatrices.clear();
 		aabbs.clear();
 	}

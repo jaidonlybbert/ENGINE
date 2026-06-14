@@ -222,7 +222,6 @@ void load_pmp_mesh(
 			HostMeshData{
 				std::move(vertices),
 				std::move(indices),
-				"VertexPosNorCol",
 				"PosNorCol"
 			},
 			pmpNode.nodeId

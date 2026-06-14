@@ -419,7 +419,6 @@ void mesh_bind_event_handler(VkRenderer& renderer, SceneState& sceneState, VkAda
 
 	//initializeBoundingBox(sceneState, node);
 
-	node.mesh_type = bindEvent.meshData.meshType;
 	node.shaderId = bindEvent.meshData.shaderId;
 	node.draw_data_idx = drawIdx;
 	ENG_LOG_INFO("Node: " << node.name << " DrawDataIndex: " << drawIdx << std::endl);

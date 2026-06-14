@@ -39,7 +39,6 @@ namespace ENG
 	struct HostMeshData {
 		VertexT vertexBuffer;
 		std::vector<uint32_t> indexBuffer;
-		std::string meshType;
 		std::string shaderId;
 		std::optional<std::filesystem::path> texturePath;
 	};

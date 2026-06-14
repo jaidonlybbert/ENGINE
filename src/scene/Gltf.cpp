@@ -199,7 +199,6 @@ void load_gltf_mesh_attributes(
 				HostMeshData{
 					std::move(vertices),
 					std::move(indices),
-					"VertexPosColTex",
 					"PosColTex",
 					get_room_tex()
 				},
@@ -224,7 +223,6 @@ void load_gltf_mesh_attributes(
 				HostMeshData{
 					std::move(vertices),
 					std::move(indices),
-					"VertexPosNorTex",
 					"PosNorTex",
 					get_room_tex()
 				},

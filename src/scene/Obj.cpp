@@ -85,7 +85,6 @@ void loadModel(
 				HostMeshData {
 					std::move(vertices.at(texPath)),
 					std::move(indices.at(texPath)),
-					"VertexPosColTex",
 					"PosColTex",
 					texPath
 				},

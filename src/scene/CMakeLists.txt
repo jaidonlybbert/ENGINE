@@ -3,7 +3,6 @@ add_library(engine_scene STATIC
 	"${PROJECT_SOURCE_DIR}/src/scene/Gltf.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/JCT.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Mesh.cpp"
-	"${PROJECT_SOURCE_DIR}/src/scene/Mesh2.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Obj.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Scene.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scene/Node.cpp"
