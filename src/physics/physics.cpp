@@ -24,6 +24,9 @@
 #include <cstdarg>
 #include <thread>
 
+// ENGINE includes
+#include "logger/Logging.hpp"
+
 // Disable common warnings triggered by Jolt, you can use JPH_SUPPRESS_WARNING_PUSH / JPH_SUPPRESS_WARNING_POP to store and restore the warning state
 JPH_SUPPRESS_WARNINGS
 
@@ -56,7 +59,7 @@ static void TraceImpl(const char *inFMT, ...)
 static bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine)
 {
 	// Print to the TTY
-	cout << inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr? inMessage : "") << endl;
+	ENG_LOG_ERROR(inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr? inMessage : "") << endl);
 
 	// Breakpoint
 	return true;
@@ -164,32 +167,32 @@ public:
 	}
 };
 
-// An example contact listener
+// An example contact listenerINFO
 class MyContactListener : public ContactListener
 {
 public:
 	// See: ContactListener
-	virtual ValidateResult	OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override
+	virtual ValidateResult OnContactValidate(const Body& inBody1, const Body& inBody2, RVec3Arg inBaseOffset, const CollideShapeResult& inCollisionResult) override
 	{
-		cout << "Contact validate callback" << endl;
+		ENG_LOG_INFO("Contact validate callback" << endl);
 
 		// Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
 		return ValidateResult::AcceptAllContactsForThisBodyPair;
 	}
 
-	virtual void			OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
+	virtual void OnContactAdded(const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold, ContactSettings& ioSettings) override
 	{
-		cout << "A contact was added" << endl;
+		ENG_LOG_INFO("A contact was added" << endl);
 	}
 
-	virtual void			OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
+	virtual void OnContactPersisted(const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold, ContactSettings& ioSettings) override
 	{
-		cout << "A contact was persisted" << endl;
+		ENG_LOG_INFO("A contact was persisted" << endl);
 	}
 
-	virtual void			OnContactRemoved(const SubShapeIDPair &inSubShapePair) override
+	virtual void OnContactRemoved(const SubShapeIDPair& inSubShapePair) override
 	{
-		cout << "A contact was removed" << endl;
+		ENG_LOG_INFO("A contact was removed" << endl);
 	}
 };
 
@@ -197,14 +200,14 @@ public:
 class MyBodyActivationListener : public BodyActivationListener
 {
 public:
-	virtual void		OnBodyActivated(const BodyID &inBodyID, uint64 inBodyUserData) override
+	virtual void OnBodyActivated(const BodyID &inBodyID, uint64 inBodyUserData) override
 	{
-		cout << "A body got activated" << endl;
+		ENG_LOG_INFO("A body got activated" << endl);
 	}
 
-	virtual void		OnBodyDeactivated(const BodyID &inBodyID, uint64 inBodyUserData) override
+	virtual void OnBodyDeactivated(const BodyID &inBodyID, uint64 inBodyUserData) override
 	{
-		cout << "A body went to sleep" << endl;
+		ENG_LOG_INFO("A body went to sleep" << endl);
 	}
 };
 
@@ -339,7 +342,7 @@ int run_physics()
 		// Output current position and velocity of the sphere
 		RVec3 position = body_interface.GetCenterOfMassPosition(sphere_id);
 		Vec3 velocity = body_interface.GetLinearVelocity(sphere_id);
-		cout << "Step " << step << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl;
+		ENG_LOG_INFO("Step " << step << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl);
 
 		// If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
 		const int cCollisionSteps = 1;
