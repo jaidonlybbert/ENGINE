@@ -334,7 +334,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	auto* camera = cameraNode.camera;
 	camera->fovy = 1.;
 
-	cameraNode.translation = glm::vec3(0., 0., 3.);
+	cameraNode.translation = glm::vec3(0., 0., 8.);
 
 	sceneState.activeNodeIdx = 3;
 }

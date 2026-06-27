@@ -515,12 +515,16 @@ int main() {
 			renderer.sceneReadyToRender = false;
 			initializeWorldScene(renderer, renderAdapter, sceneState);
 			renderer.sceneReadyToRender = true;
+			sceneState.initialized = true;
 			});
 
 		app.registerCoroutine("listener(tcp::acceptor)", []() {
 			return listener(tcp::acceptor(Application::io_ctx, { tcp::v4(), 8080 }));
 			});
-		app.registerDedicatedThread("physics.run_physics()", []() {
+
+		app.registerDedicatedThread("physics.run_physics()", [&sceneState]() {
+			using namespace std::chrono_literals;
+			while (!sceneState.initialized) { std::this_thread::sleep_for(500ms); }
 			run_physics();
 			});
 		ENG_LOG_DEBUG("Server listening on port 8080..." << std::endl);

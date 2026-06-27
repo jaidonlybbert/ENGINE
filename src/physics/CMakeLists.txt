@@ -11,3 +11,5 @@ if (WIN32)
 endif()
 
 target_link_libraries(engine_physics PUBLIC Jolt::Jolt)
+target_link_libraries(engine_physics PUBLIC engine::scene)
+target_link_libraries(engine_physics PUBLIC tinygltf)

@@ -99,6 +99,7 @@ struct SceneState {
 
 	std::mt19937 randomizer;
 	std::chrono::steady_clock::time_point previousPredictionTime;
+	bool initialized{ false };
 
 	~SceneState() {
 		modelMatrices.clear();
