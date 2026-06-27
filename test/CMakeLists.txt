@@ -7,6 +7,14 @@ add_executable(
 	test_main.cpp
 )
 
+# Because apple immediately kills unsigned executables
+if(APPLE)
+    add_custom_command(TARGET engine_test POST_BUILD
+        COMMAND codesign --force --deep --sign - $<TARGET_FILE:engine_test>
+        COMMENT "Ad-hoc signing engine_test to prevent SIGKILL"
+    )
+endif()
+
 target_link_libraries(
 	engine_test
 	GTest::gtest_main
