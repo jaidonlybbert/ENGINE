@@ -177,7 +177,7 @@ pmp::SurfaceMesh create_dodecahedron()
 
 void load_pmp_mesh(
 	ENG::Node& parent, const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, const glm::vec4& color,
-	VkAdapter& adapter, SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue)
+	SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue)
 {
 	std::vector<VertexPosNorCol> vertices;
 	std::vector<uint32_t> indices;
@@ -285,7 +285,7 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, con
 		nodeName << "GoldbergPolyhedra_" << meshcount;
 
 
-		load_pmp_mesh(parentNode, newMesh, meshName.str(), nodeName.str(), faceColor, adapter, sceneState, adapter.graphicsEventQueue);
+		load_pmp_mesh(parentNode, newMesh, meshName.str(), nodeName.str(), faceColor, sceneState, adapter.graphicsEventQueue);
 		meshcount++;
 	}
 

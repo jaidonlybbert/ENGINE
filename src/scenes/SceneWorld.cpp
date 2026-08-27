@@ -15,7 +15,7 @@ void create_sun_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 
 }
 
-void create_world_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
+void create_world_polyhedra(VkAdapter& adapter, SceneState& sceneState)
 {
 	// Seed randomizer
 	// first: 20398475
@@ -305,7 +305,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue, "Tetrahedron");
 
 	// Create world mesh
-	create_world_polyhedra(renderer, adapter, sceneState);
+	create_world_polyhedra(adapter, sceneState);
 
 	ENG_LOG_TRACE("Finished loading data" << std::endl);
 
