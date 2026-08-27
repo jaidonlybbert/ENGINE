@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import platform
 import subprocess
@@ -80,9 +81,27 @@ def main():
 
     # Generate .dot file for dependency graph visualization
     if args.graphviz:
-        # convert graphviz to svg
-        run_command(["dot", "-Tsvg", "-o", "graph.svg",
-                    "graph.dot"], cwd=graphviz_dir, env=env)
+        dot_path = os.path.join(graphviz_dir, "graph.dot")
+        cleaned_dot_path = os.path.join(graphviz_dir, "graph_clean.dot")
+
+        # ilter out leaf nodes ending with _DEPS_TARGET
+        with open(dot_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        # Remove any node or edge mentioning _DEPS_TARGET
+        filtered = [l for l in lines if not re.search(
+            r'\b(\w+_DEPS_TARGET|CONAN_LIB\w*)\b', l)]
+
+        with open(cleaned_dot_path, "w", encoding="utf-8") as f:
+            f.writelines(filtered)
+
+        # 🖼️ Convert cleaned Graphviz file to SVG
+        run_command(
+            ["dot", "-Tsvg", "-o", "graph.svg", "graph_clean.dot"],
+            cwd=graphviz_dir,
+            env=env
+        )
+
         svg_path = os.path.join(graphviz_dir, "graph.svg")
         shutil.copy(svg_path, docs_dir)
 
