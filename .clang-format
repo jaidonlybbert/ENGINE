@@ -1,4 +1,4 @@
-BasedOnStyle: LLVM
-Standard: Cpp20
+BasedOnStyle: Google
+Standard: Cpp2a
 IndentWidth: 4
 ColumnLimit: 120
