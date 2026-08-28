@@ -1,7 +1,8 @@
-#include<iterator>
-#include<stack>
-
 #include "scene/DFT.hpp"
+
+#include <iterator>
+#include <stack>
+
 #include "scene/Scene.hpp"
 
 using iterator_category = std::forward_iterator_tag;
@@ -11,41 +12,30 @@ using pointer = ENG::Node**;
 using reference = ENG::Node*&;
 
 DFIterator::DFIterator(ENG::Node* root) {
-	if (root) stack.emplace(Frame{ root, 0 });
+    if (root) stack.emplace(Frame{root, 0});
 }
 
-ENG::Node* DFIterator::operator*() const {
-	return stack.empty() ? nullptr : stack.top().node;
-}
+ENG::Node* DFIterator::operator*() const { return stack.empty() ? nullptr : stack.top().node; }
 
 DFIterator& DFIterator::operator++() {
-	if (stack.empty()) return *this;
+    if (stack.empty()) return *this;
 
-	Frame& top = stack.top();
-	ENG::Node* current = top.node;
+    Frame& top = stack.top();
+    ENG::Node* current = top.node;
 
-	if (top.childIndex < current->children.size()) {
-		ENG::Node* child = current->children[top.childIndex++];
-		stack.emplace(Frame{ child, 0 });
-	}
-	else {
-		stack.pop();
-		if (!stack.empty()) ++(*this); // Continue to next sibling or backtrack
-	}
+    if (top.childIndex < current->children.size()) {
+        ENG::Node* child = current->children[top.childIndex++];
+        stack.emplace(Frame{child, 0});
+    } else {
+        stack.pop();
+        if (!stack.empty()) ++(*this);  // Continue to next sibling or backtrack
+    }
 
-	return *this;
+    return *this;
 }
 
-bool DFIterator::operator!=(const DFIterator& other) const {
-	return stack != other.stack;
-}
+bool DFIterator::operator!=(const DFIterator& other) const { return stack != other.stack; }
 
-DFIterator DFTraversal::begin() const 
-{ 
-	return DFIterator(root); 
-}
+DFIterator DFTraversal::begin() const { return DFIterator(root); }
 
-DFIterator DFTraversal::end() const 
-{ 
-	return DFIterator(); 
-}
+DFIterator DFTraversal::end() const { return DFIterator(); }
