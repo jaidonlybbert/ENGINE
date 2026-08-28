@@ -6,7 +6,7 @@
 #include "scene/Mesh.hpp"
 
 namespace ENG {
-Pipeline::Pipeline(const VkDevice& device) : device(device) {
+Pipeline::Pipeline(const VkDevice device) : device(device) {
 
 }
 
@@ -66,16 +66,6 @@ void Pipeline::createDynamicStateInfo() {
 }
 
 void Pipeline::createVertexInputInfo() {
-	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosColTex>();
-	bindingDescription.binding = 0;
-	bindingDescription.stride = sizeof(VertexPosColTex);
-	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 }
 
 void Pipeline::createInputAssemblyInfo() {
@@ -139,7 +129,7 @@ void Pipeline::createColorBlendingStateInfo() {
 	colorBlending.blendConstants[3] = 0.0f;
 }
 
-void Pipeline::createDescriptorSetLayout(const VkDevice& device) {
+void Pipeline::createDescriptorSetLayout(const VkDevice device) {
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

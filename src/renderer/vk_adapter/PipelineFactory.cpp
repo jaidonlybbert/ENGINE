@@ -2,24 +2,29 @@
 #include<array>
 #include<assert.h>
 #include "vulkan/vulkan_core.h"
-#include "renderer/vk/pipelines/PipelineFactory.hpp"
+#include "renderer/vk_adapter/PipelineFactory.hpp"
+#include "renderer/vk_adapter/PipelinePosColTex.hpp"
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
 #include "renderer/vk/pipelines/Pipeline.hpp"
-#include "renderer/vk/pipelines/PipelinePosColTex.hpp"
+#include "renderer/vk/pipelines/PipelineFactoryI.hpp"
 
 namespace ENG {
-PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapChainImageFormat,
-								 const VkFormat& depthFormat) : device(device) {
-	std::vector<VkGraphicsPipelineCreateInfo> pipelineCreateInfos;
-	const ShaderFactory& shader_factory{device};
-	createRenderPass(device, swapChainImageFormat, depthFormat);
-
+PipelineFactory::PipelineFactory() {
 	// TODO: interim solution to decouple renderer from scene, should be loaded from a config file
 	pipeline_names.emplace("PosColTex", 0);
 	pipeline_names.emplace("PosNorTex", 1);
 	pipeline_names.emplace("PosBB", 2);
 	pipeline_names.emplace("PosNorCol", 3);
 	pipeline_names.emplace("Goldberg", 4);
+
+}
+
+void PipelineFactory::initialize(const VkDevice device, const VkFormat& swapChainImageFormat,
+		const VkFormat& depthFormat) {
+	this->device = device;
+	std::vector<VkGraphicsPipelineCreateInfo> pipelineCreateInfos;
+	const ShaderFactory& shader_factory{device};
+	createRenderPass(device, swapChainImageFormat, depthFormat);
 
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosColTex>(device, renderPass, shader_factory, pipelineCreateInfos));
 	eng_pipelines.emplace_back(std::make_unique<Pipeline_PosNorTex>(device, renderPass, shader_factory, pipelineCreateInfos));
@@ -36,18 +41,31 @@ PipelineFactory::PipelineFactory(const VkDevice& device, const VkFormat& swapCha
 	if (success != VK_SUCCESS) {
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
+
+}
+
+void PipelineFactory::cleanup()
+{
+	if (device != VK_NULL_HANDLE) {
+		eng_pipelines.clear();
+
+		for (const auto& pipeline : graphicsPipelines)
+		{
+			vkDestroyPipeline(device, pipeline, nullptr);
+		}
+		vkDestroyRenderPass(device, renderPass, nullptr);
+
+		device = VK_NULL_HANDLE;
+	}
 }
 
 PipelineFactory::~PipelineFactory()
 {
-	for (const auto& pipeline : graphicsPipelines)
-	{
-		vkDestroyPipeline(device, pipeline, nullptr);
-	}
-	vkDestroyRenderPass(device, renderPass, nullptr);
+	// should not do anything, cleanup should be called manually
+	cleanup();
 }
 
-void PipelineFactory::createRenderPass(const VkDevice& device, const VkFormat& swapChainImageFormat, const VkFormat& depthFormat) {
+void PipelineFactory::createRenderPass(const VkDevice device, const VkFormat& swapChainImageFormat, const VkFormat& depthFormat) {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;

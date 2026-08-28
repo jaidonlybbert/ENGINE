@@ -1,5 +1,9 @@
 add_library(engine_vk_adapter STATIC
-	"${CMAKE_CURRENT_SOURCE_DIR}/VkAdapter.cpp")
+	"${CMAKE_CURRENT_SOURCE_DIR}/VkAdapter.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/MeshAdapter.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/PipelineFactory.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/PipelinePosColTex.cpp"
+)
 add_library(engine::vk::adapter ALIAS engine_vk_adapter)
 
 target_include_directories(engine_vk_adapter PUBLIC "${PROJECT_SOURCE_DIR}/include/")

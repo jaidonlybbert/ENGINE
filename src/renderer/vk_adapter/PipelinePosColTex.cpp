@@ -3,12 +3,13 @@
 #include "logger/Logging.hpp"
 #include "renderer/vk/pipelines/Pipeline.hpp"
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
-#include "renderer/vk/pipelines/PipelinePosColTex.hpp"
+#include "renderer/vk_adapter/PipelinePosColTex.hpp"
+#include "renderer/vk_adapter/MeshAdapter.hpp"
 #include "scene/Mesh.hpp"
 
 namespace ENG {
 
-Pipeline_PosColTex::Pipeline_PosColTex(const VkDevice& device, const VkRenderPass& renderPass,
+Pipeline_PosColTex::Pipeline_PosColTex(const VkDevice device, const VkRenderPass& renderPass,
 	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
 {
 	Initialize(renderPass, shader_fac, pipelineCreateInfos);
@@ -22,8 +23,7 @@ void Pipeline_PosColTex::createShaderStages(const ShaderFactory& shader_fac) {
 }
 
 void Pipeline_PosColTex::createVertexInputInfo() {
-	ENG_LOG_DEBUG("Create vertex input info derived class PosColTex" << std::endl);
-	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosColTex>();
+	attributeDescriptions = MeshAdapter::getAttributeDescriptions<VertexPosColTex>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosColTex);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -35,7 +35,7 @@ void Pipeline_PosColTex::createVertexInputInfo() {
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 }
 
-Pipeline_PosNorTex::Pipeline_PosNorTex(const VkDevice& device, const VkRenderPass& renderPass,
+Pipeline_PosNorTex::Pipeline_PosNorTex(const VkDevice device, const VkRenderPass& renderPass,
 	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
 {
 	Initialize(renderPass, shader_fac, pipelineCreateInfos);
@@ -50,7 +50,7 @@ void Pipeline_PosNorTex::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_PosNorTex::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class PosNorTex" << std::endl);
-	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosNorTex>();
+	attributeDescriptions = MeshAdapter::getAttributeDescriptions<VertexPosNorTex>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorTex);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -62,7 +62,7 @@ void Pipeline_PosNorTex::createVertexInputInfo() {
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 }
 
-Pipeline_PosNorCol::Pipeline_PosNorCol(const VkDevice& device, const VkRenderPass& renderPass,
+Pipeline_PosNorCol::Pipeline_PosNorCol(const VkDevice device, const VkRenderPass& renderPass,
 	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
 {
 	Initialize(renderPass, shader_fac, pipelineCreateInfos);
@@ -77,7 +77,7 @@ void Pipeline_PosNorCol::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_PosNorCol::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class PosNorCol" << std::endl);
-	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosNorCol>();
+	attributeDescriptions = MeshAdapter::getAttributeDescriptions<VertexPosNorCol>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorCol);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -89,7 +89,7 @@ void Pipeline_PosNorCol::createVertexInputInfo() {
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 }
 
-void Pipeline_PosNorCol::createDescriptorSetLayout(const VkDevice& device) {
+void Pipeline_PosNorCol::createDescriptorSetLayout(const VkDevice device) {
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -115,7 +115,7 @@ void Pipeline_PosNorCol::createDescriptorSetLayout(const VkDevice& device) {
 	}
 }
 
-Pipeline_PosBB::Pipeline_PosBB(const VkDevice& device, const VkRenderPass& renderPass,
+Pipeline_PosBB::Pipeline_PosBB(const VkDevice device, const VkRenderPass& renderPass,
 	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
 {
 	Initialize(renderPass, shader_fac, pipelineCreateInfos);
@@ -130,7 +130,7 @@ void Pipeline_PosBB::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_PosBB::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class PosBB" << std::endl);
-	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPos>();
+	attributeDescriptions = MeshAdapter::getAttributeDescriptions<VertexPos>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPos);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -164,7 +164,7 @@ void Pipeline_PosBB::createRasterizationStateInfo() {
 }
 
 
-void Pipeline_PosBB::createDescriptorSetLayout(const VkDevice& device) {
+void Pipeline_PosBB::createDescriptorSetLayout(const VkDevice device) {
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -190,7 +190,7 @@ void Pipeline_PosBB::createDescriptorSetLayout(const VkDevice& device) {
 	}
 }
 
-Pipeline_Goldberg::Pipeline_Goldberg(const VkDevice& device, const VkRenderPass& renderPass,
+Pipeline_Goldberg::Pipeline_Goldberg(const VkDevice device, const VkRenderPass& renderPass,
 	const ShaderFactory& shader_fac, std::vector<VkGraphicsPipelineCreateInfo>& pipelineCreateInfos) : Pipeline(device)
 {
 	Initialize(renderPass, shader_fac, pipelineCreateInfos);
@@ -205,7 +205,7 @@ void Pipeline_Goldberg::createShaderStages(const ShaderFactory& shader_fac) {
 
 void Pipeline_Goldberg::createVertexInputInfo() {
 	ENG_LOG_DEBUG("Create vertex input info derived class Goldberg" << std::endl);
-	attributeDescriptions = Mesh::getAttributeDescriptions<VertexPosNorCol>();
+	attributeDescriptions = MeshAdapter::getAttributeDescriptions<VertexPosNorCol>();
 	bindingDescription.binding = 0;
 	bindingDescription.stride = sizeof(VertexPosNorCol);
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -217,7 +217,7 @@ void Pipeline_Goldberg::createVertexInputInfo() {
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 }
 
-void Pipeline_Goldberg::createDescriptorSetLayout(const VkDevice& device) {
+void Pipeline_Goldberg::createDescriptorSetLayout(const VkDevice device) {
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
 	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

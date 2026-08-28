@@ -12,12 +12,11 @@
 #include "vk_mem_alloc.h"
 
 #include "renderer/vk/pipelines/Pipeline.hpp"
-#include "renderer/vk/pipelines/PipelineFactory.hpp"
+#include "renderer/vk/pipelines/PipelineFactoryI.hpp"
 #include "renderer/vk/Instance.hpp"
 #include "renderer/vk/Buffer.hpp"
 #include "renderer/vk/Command.hpp"
 #include "renderer/vk/Swapchain.hpp"
-#include "scene/Scene.hpp"
 
 
 namespace ENG
@@ -73,7 +72,7 @@ struct UniformBufferObject {
 class VkRenderer {
 public:
 	VkRenderer(bool& framebufferResized, std::vector<std::function<void(void)>> initFunctions,
-		std::vector<std::function<void(void)>> cleanupFunctions);
+		std::vector<std::function<void(void)>> cleanupFunctions, PipelineFactoryI& pipelineFactory);
 	void initialize();
 	~VkRenderer();
 	void cleanupGui();
@@ -107,7 +106,7 @@ public:
 	std::unordered_map<std::filesystem::path, VkSampler> textureSamplers;
 
 	std::unique_ptr<ENG::InstanceFactory> instanceFactory;
-	std::unique_ptr<ENG::PipelineFactory> pipelineFactory;
+	PipelineFactoryI& pipelineFactory;
 	std::unique_ptr<ENG::Command> commands;
 	std::unique_ptr<ENG::Swapchain> swapchain;
 	std::vector<std::function<void(VkCommandBuffer)>> commandRecorders;
@@ -138,8 +137,6 @@ public:
 	/// Must be called after all nodes are loaded
 	/// </summary>
 	void createModelMatrices(const size_t size_bytes);
-	void createFaceIdBuffers(const uint32_t number_of_faces);
-	void createFaceColorBuffers(const uint32_t number_of_faces);
 
 	void registerUniformBufferProducer(std::function<UniformBufferObject(void)> producer);
 	void registerUniformBufferConsumer(std::function<void(const UniformBufferObject&)> consumer);
@@ -166,42 +163,12 @@ public:
 		const size_t bindingIdx
 	);
 
-	VkWriteDescriptorSet createDescriptorWriteModelMatrix(
-		const ENG::Node& node, 
-		const size_t frameIdx, 
-		const size_t bindingIdx, 
-		const VkDescriptorBufferInfo& modelMatrixBufferInfo);
-
-	VkWriteDescriptorSet createDescriptorWriteSampler(
-		const ENG::Node& node, 
-		const size_t frameIdx, 
-		const size_t bindingIdx, 
-		const VkDescriptorImageInfo& imageInfo);
-
-	VkWriteDescriptorSet createDescriptorWriteUbo(
-		const ENG::Node& node, 
-		const size_t frameIdx, 
-		const size_t bindingIdx, 
-		const VkDescriptorBufferInfo& bufferInfo);
-
-	VkWriteDescriptorSet createDescriptorWriteFaceColorMatrix(
-		const ENG::Node& node,
-		const size_t frameIdx,
-		const size_t bindingIdx,
-		const VkDescriptorBufferInfo& bufferInfo);
-
-	VkWriteDescriptorSet createDescriptorWriteFaceIdMapBuffer(
-		const ENG::Node& node,
-		const size_t frameIdx,
-		const size_t bindingIdx,
-		const VkDescriptorBufferInfo& bufferInfo);
 
 	void writeDescriptorSets(
 		const std::vector<VkDescriptorSet>& descriptorSets, 
 		const std::string& shaderId,
 		const std::optional<std::filesystem::path> texturePath);
 
-	void createDescriptorSets(ENG::Node& node);
 
 	void createDescriptorSets(
 		std::vector<VkDescriptorSet>& descriptorSetsP, const std::string& shaderId, const std::optional<std::filesystem::path> texturePath);
@@ -212,5 +179,3 @@ public:
 	void createTexture(const std::filesystem::path& fpath);
 	void initGui();
 };
-
-void checkedVkMapMemory(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceMemory bufferMemory, VkDeviceSize dataSize, void* hostData);
