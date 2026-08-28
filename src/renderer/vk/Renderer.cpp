@@ -29,8 +29,6 @@
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include<vk_mem_alloc.h>
 #include "GLFW/glfw3.h"
-#include<tiny_gltf.h>
-#include<tiny_obj_loader.h>
 #include<stb_image.h>
 #ifdef _WIN32
 #include "tracy/Tracy.hpp"
@@ -561,62 +559,6 @@ VkWriteDescriptorSet VkRenderer::createWriteDescriptorSet(
 	return descriptorWrite;
 }
 
-VkWriteDescriptorSet VkRenderer::createDescriptorWriteModelMatrix(
-	const ENG::Node& node, 
-	const size_t frameIdx, 
-	const size_t bindingIdx, 
-	const VkDescriptorBufferInfo& modelMatrixBufferInfo) 
-{
-	assert(node.descriptorSetIds.size() > frameIdx);
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
-	descriptorWrite.dstBinding = bindingIdx;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pBufferInfo = &modelMatrixBufferInfo;
-
-	return descriptorWrite;
-}
-
-VkWriteDescriptorSet VkRenderer::createDescriptorWriteSampler(
-	const ENG::Node& node, 
-	const size_t frameIdx, 
-	const size_t bindingIdx, 
-	const VkDescriptorImageInfo& imageInfo) 
-{
-	assert(node.descriptorSetIds.size() > frameIdx);
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
-	descriptorWrite.dstBinding = bindingIdx;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pImageInfo = &imageInfo;
-
-	return descriptorWrite;
-}
-
-VkWriteDescriptorSet VkRenderer::createDescriptorWriteUbo(
-	const ENG::Node& node, 
-	const size_t frameIdx, 
-	const size_t bindingIdx, 
-	const VkDescriptorBufferInfo& bufferInfo) 
-{
-	assert(node.descriptorSetIds.size() > frameIdx);
-	VkWriteDescriptorSet descriptorWrite{};
-	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	descriptorWrite.dstSet = descriptorSets.get(node.descriptorSetIds.at(frameIdx));
-	descriptorWrite.dstBinding = bindingIdx;
-	descriptorWrite.dstArrayElement = 0;
-	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	descriptorWrite.descriptorCount = 1;
-	descriptorWrite.pBufferInfo = &bufferInfo;
-
-	return descriptorWrite;
-}
 
 
 void VkRenderer::writeDescriptorSets(
@@ -691,41 +633,6 @@ void VkRenderer::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSe
 	writeDescriptorSets(descriptorSetsP, shaderId, texturePath);
 }
 
-void VkRenderer::createDescriptorSets(ENG::Node& node) 
-{
-	if (!node.shaderId.has_value())
-	{
-		return;
-	}
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory.getDescriptorSetLayout(node.shaderId.value()));
-	VkDescriptorSetAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	allocInfo.descriptorPool = descriptorPool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-	allocInfo.pSetLayouts = layouts.data();
-
-	node.descriptorSetIds.reserve(MAX_FRAMES_IN_FLIGHT);
-	for (auto i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-	{
-		auto new_set = descriptorSets.emplace_back();
-		node.descriptorSetIds.push_back(new_set.first);
-	}
-
-	assert(node.descriptorSetIds.size() > 0);
-	auto &firstSet = descriptorSets.get(node.descriptorSetIds.at(0));
-	if (vkAllocateDescriptorSets(device, &allocInfo, &firstSet) != VK_SUCCESS) {
-		throw std::runtime_error("failed to allocate descriptor sets!");
-	}
-
-	std::vector<VkDescriptorSet> descriptorSetVec{};
-	for (auto descriptorSetId : node.descriptorSetIds)
-	{
-		descriptorSetVec.emplace_back(descriptorSets.get(descriptorSetId));
-	}
-
-	ENG_LOG_ERROR("Calling deprecated function: createDescriptorSets" << std::endl);
-	writeDescriptorSets(descriptorSetVec, node.shaderId.value(), std::nullopt);
-}
 
 void VkRenderer::createTextureImage(const std::filesystem::path& fpath) 
 {

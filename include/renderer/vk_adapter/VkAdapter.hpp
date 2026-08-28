@@ -313,5 +313,4 @@ public:
 	}
 };
 
-void recordDrawCommand(VkCommandBuffer& commandBuffer, const ENG::Mesh& mesh);
 #endif

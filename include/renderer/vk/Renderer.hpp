@@ -17,7 +17,6 @@
 #include "renderer/vk/Buffer.hpp"
 #include "renderer/vk/Command.hpp"
 #include "renderer/vk/Swapchain.hpp"
-#include "scene/Scene.hpp"
 
 
 namespace ENG
@@ -138,8 +137,6 @@ public:
 	/// Must be called after all nodes are loaded
 	/// </summary>
 	void createModelMatrices(const size_t size_bytes);
-	void createFaceIdBuffers(const uint32_t number_of_faces);
-	void createFaceColorBuffers(const uint32_t number_of_faces);
 
 	void registerUniformBufferProducer(std::function<UniformBufferObject(void)> producer);
 	void registerUniformBufferConsumer(std::function<void(const UniformBufferObject&)> consumer);
@@ -166,42 +163,12 @@ public:
 		const size_t bindingIdx
 	);
 
-	VkWriteDescriptorSet createDescriptorWriteModelMatrix(
-		const ENG::Node& node, 
-		const size_t frameIdx, 
-		const size_t bindingIdx, 
-		const VkDescriptorBufferInfo& modelMatrixBufferInfo);
-
-	VkWriteDescriptorSet createDescriptorWriteSampler(
-		const ENG::Node& node, 
-		const size_t frameIdx, 
-		const size_t bindingIdx, 
-		const VkDescriptorImageInfo& imageInfo);
-
-	VkWriteDescriptorSet createDescriptorWriteUbo(
-		const ENG::Node& node, 
-		const size_t frameIdx, 
-		const size_t bindingIdx, 
-		const VkDescriptorBufferInfo& bufferInfo);
-
-	VkWriteDescriptorSet createDescriptorWriteFaceColorMatrix(
-		const ENG::Node& node,
-		const size_t frameIdx,
-		const size_t bindingIdx,
-		const VkDescriptorBufferInfo& bufferInfo);
-
-	VkWriteDescriptorSet createDescriptorWriteFaceIdMapBuffer(
-		const ENG::Node& node,
-		const size_t frameIdx,
-		const size_t bindingIdx,
-		const VkDescriptorBufferInfo& bufferInfo);
 
 	void writeDescriptorSets(
 		const std::vector<VkDescriptorSet>& descriptorSets, 
 		const std::string& shaderId,
 		const std::optional<std::filesystem::path> texturePath);
 
-	void createDescriptorSets(ENG::Node& node);
 
 	void createDescriptorSets(
 		std::vector<VkDescriptorSet>& descriptorSetsP, const std::string& shaderId, const std::optional<std::filesystem::path> texturePath);
@@ -212,5 +179,3 @@ public:
 	void createTexture(const std::filesystem::path& fpath);
 	void initGui();
 };
-
-void checkedVkMapMemory(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceMemory bufferMemory, VkDeviceSize dataSize, void* hostData);
