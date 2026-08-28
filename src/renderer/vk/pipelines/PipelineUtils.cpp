@@ -1,22 +1,23 @@
-#include<fstream>
 #include "renderer/vk/pipelines/PipelineUtils.hpp"
+
+#include <fstream>
 
 namespace eng_pipe {
 static std::vector<char> readFile(const std::string& filename) {
-	std::ifstream file(filename, std::ios::ate | std::ios::binary);
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
-	if (!file.is_open()) {
-		throw std::runtime_error("failed to open file!");
-	}
+    if (!file.is_open()) {
+        throw std::runtime_error("failed to open file!");
+    }
 
-	size_t fileSize = (size_t) file.tellg();
-	std::vector<char> buffer(fileSize);
-	file.seekg(0);
-	file.read(buffer.data(), fileSize);
+    size_t fileSize = (size_t)file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
 
-	file.close();
-	
-	return buffer;
+    file.close();
+
+    return buffer;
 }
 
-} // end namespace
+}  // namespace eng_pipe

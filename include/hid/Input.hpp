@@ -1,46 +1,48 @@
+#include <deque>
+
+#include "GLFW/glfw3.h"
 #include "events/Event.hpp"
-#include<deque>
+#include "scene/Scene.hpp"
 
 namespace ENG {
-	class Node;
+class Node;
 }
 
 struct InputCallbacks {
-	std::vector<std::function<void(GLFWwindow*, double, double)>> mouseMovementCallbacks;
-	std::vector<std::function<void(GLFWwindow*, double, double)>> mouseScrollCallbacks;
-	std::vector<std::function<void(GLFWwindow*, int, int, int)>> mouseButtonCallbacks;
-	std::vector<std::function<void(GLFWwindow*, int, int, int, int)>> keyCallbacks;
-	std::vector<std::function<void(GLFWwindow*, int, int)>> framebufferResizeCallbacks;
+    std::vector<std::function<void(GLFWwindow*, double, double)>> mouseMovementCallbacks;
+    std::vector<std::function<void(GLFWwindow*, double, double)>> mouseScrollCallbacks;
+    std::vector<std::function<void(GLFWwindow*, int, int, int)>> mouseButtonCallbacks;
+    std::vector<std::function<void(GLFWwindow*, int, int, int, int)>> keyCallbacks;
+    std::vector<std::function<void(GLFWwindow*, int, int)>> framebufferResizeCallbacks;
 };
 
 struct WindowUserData {
-	double cursorXScreenCoords{ 0. };
-	double cursorYScreenCoords{ 0. };
-	int windowWidthScreenCoords{ 0 };
-	int windowHeightScreenCoords{ 0 };
-	std::deque<ClientHidEvent> eventQueue;
-	bool windowResized{ false };
+    double cursorXScreenCoords{0.};
+    double cursorYScreenCoords{0.};
+    int windowWidthScreenCoords{0};
+    int windowHeightScreenCoords{0};
+    std::deque<ClientHidEvent> eventQueue;
+    bool windowResized{false};
 };
 
 struct InputController {
-	
-	static void set_callbacks(InputCallbacks&& inputCallbacks);
-	static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-	static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos);
-	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-	
-private:
-	inline static InputCallbacks inputCallbacks;
-	inline static std::mutex callbacksComplete;
+    static void set_callbacks(InputCallbacks&& inputCallbacks);
+    static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+    static void mouse_movement_callback(GLFWwindow* window, double xpos, double ypos);
+    static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+
+   private:
+    inline static InputCallbacks inputCallbacks;
+    inline static std::mutex callbacksComplete;
 };
 
 struct GLFWwindow;
 
 /*
-* Blender style camera - rotation around y axis is global, rotation around x axis is local to active object.
-* Reverses rotation around y-axis when camera is 'upside down'
-*/
+ * Blender style camera - rotation around y axis is global, rotation around x axis is local to active object.
+ * Reverses rotation around y-axis when camera is 'upside down'
+ */
 void node_rotation_follows_input_preserve_y_as_up(ENG::Node& activeNode, const double dx, const double dy);
 void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const double dy);

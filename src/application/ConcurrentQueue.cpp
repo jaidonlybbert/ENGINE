@@ -1,5 +1,5 @@
-#include <queue>
-#include <mutex>
-#include <condition_variable>
 #include "application/ConcurrentQueue.hpp"
 
+#include <condition_variable>
+#include <mutex>
+#include <queue>
