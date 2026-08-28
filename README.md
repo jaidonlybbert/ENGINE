@@ -1,4 +1,5 @@
 [![Ubuntu-GCC](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml)
+[![Code Style Check](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml/badge.svg)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml)
 # ENGINE
 Cross-platform real-time 3D rendering application template based on Vulkan
 
