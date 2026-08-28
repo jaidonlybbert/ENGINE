@@ -102,12 +102,12 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 		vkCmdBindPipeline(
 				commandBuffer, 
 				VK_PIPELINE_BIND_POINT_GRAPHICS, 
-				renderer.pipelineFactory->getVkPipeline(shaderId));
+				renderer.pipelineFactory.getVkPipeline(shaderId));
 
 		vkCmdBindDescriptorSets(
 				commandBuffer, 
 				VK_PIPELINE_BIND_POINT_GRAPHICS, 
-				renderer.pipelineFactory->getVkPipelineLayout(shaderId),
+				renderer.pipelineFactory.getVkPipelineLayout(shaderId),
 				0, 
 				1, 
 				descriptorSets.data(),
@@ -117,7 +117,7 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
         const PushConstants pushConstants {node.nodeId};
 		vkCmdPushConstants(
 				commandBuffer, 
-				renderer.pipelineFactory->getVkPipelineLayout(shaderId), 
+				renderer.pipelineFactory.getVkPipelineLayout(shaderId), 
 				VK_SHADER_STAGE_VERTEX_BIT, 
 				0,
 				sizeof(pushConstants),

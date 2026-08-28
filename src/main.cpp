@@ -22,6 +22,7 @@
 
 #include "renderer/vk/Renderer.hpp"
 #include "renderer/vk_adapter/VkAdapter.hpp"
+#include "renderer/vk_adapter/PipelineFactory.hpp"
 #include "logger/Logging.hpp"
 #include "sockets/SocketSessionServer.h"
 #include "scenes/SceneWorld.hpp"
@@ -483,21 +484,23 @@ int main() {
 		ENG_LOG_TRACE("Starting app" << std::endl);
 
 		WindowUserData windowUserData;
+		auto pipelineFactory = PipelineFactory();
 
 		VkRenderer renderer{
 			windowUserData.windowResized,
 			{
-				[&renderer, &windowUserData]() {initWindow(renderer, windowUserData);},
-				[&renderer]() {renderer.initVulkan();},
-				[&renderer]() {renderer.initGui();},
-				[]() {initLua();}
+				[&renderer, &windowUserData]() {initWindow(renderer, windowUserData); },
+				[&renderer]() {renderer.initVulkan(); },
+				[&renderer]() {renderer.initGui(); },
+				[]() {initLua(); }
 			},
 			{
 				[]() {lua_close(luaState); },
 				[&renderer]() { renderer.cleanupGui(); },
 				[&renderer]() { renderer.cleanupVulkan(); },
 				[&renderer]() { renderer.cleanupWindow(); }
-			}
+			},
+			pipelineFactory
 		};
 
 		Gui gui;

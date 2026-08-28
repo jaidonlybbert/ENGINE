@@ -48,7 +48,7 @@
 // renderer includes
 #include "renderer/vk/Utils.hpp"
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
-#include "renderer/vk/pipelines/PipelineFactory.hpp"
+#include "renderer/vk/pipelines/PipelineFactoryI.hpp"
 #include "renderer/vk/Command.hpp"
 #include "renderer/vk/Swapchain.hpp"
 #include "renderer/vk/Device.hpp"
@@ -63,8 +63,9 @@ using namespace ENG;
 VkRenderer::VkRenderer(
 	bool& framebufferResized,
 	std::vector<std::function<void(void)>> initFunctions,
-	std::vector<std::function<void(void)>> cleanFunctions
-) : framebufferResized(framebufferResized), initializationFunctions(std::move(initFunctions)), cleanupFunctions(std::move(cleanFunctions))
+	std::vector<std::function<void(void)>> cleanFunctions,
+	PipelineFactoryI& pipelineFactory
+) : framebufferResized(framebufferResized), initializationFunctions(std::move(initFunctions)), cleanupFunctions(std::move(cleanFunctions)), pipelineFactory(pipelineFactory)
 {
 	initialize();
 };
@@ -128,7 +129,7 @@ void VkRenderer::cleanupVulkan()
 	}
 
 	commands.reset();
-	pipelineFactory.reset();
+	pipelineFactory.cleanup();
 
 	if (enableValidationLayers) {
 		ENG::InstanceFactory::DestroyDebugUtilsMessengerEXT(instanceFactory->instance, instanceFactory->debugMessenger, nullptr);
@@ -204,8 +205,8 @@ void VkRenderer::initVulkan()
 	ENG::PhysicalDevice::pickPhysicalDevice(instanceFactory->instance, physicalDevice, surface);
 	ENG::Device::createLogicalDevice(surface, physicalDevice, validationLayers, graphicsQueue, presentQueue, device);
 	swapchain = std::make_unique<Swapchain>(physicalDevice, surface, device, *window);
-	pipelineFactory = std::make_unique<ENG::PipelineFactory>(device, swapchain->swapChainImageFormat, findDepthFormat(physicalDevice));
-	renderPass = pipelineFactory->getRenderPass();
+	pipelineFactory.initialize(device, swapchain->swapChainImageFormat, findDepthFormat(physicalDevice));
+	renderPass = pipelineFactory.getRenderPass();
 	commands = std::make_unique<Command>(physicalDevice, device, surface); // creates command pool
 	createDepthResources(device, physicalDevice, swapchain->swapChainExtent, swapchain->depthImage, swapchain->depthImageMemory, swapchain->depthImageView);
 	swapchain->createFramebuffers(renderPass, device);
@@ -670,7 +671,7 @@ void VkRenderer::writeDescriptorSets(
 
 void VkRenderer::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSetsP, const std::string& shaderId, const std::optional<std::filesystem::path> texturePath)
 {
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory->getDescriptorSetLayout(shaderId));
+	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory.getDescriptorSetLayout(shaderId));
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = descriptorPool;
@@ -696,7 +697,7 @@ void VkRenderer::createDescriptorSets(ENG::Node& node)
 	{
 		return;
 	}
-	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory->getDescriptorSetLayout(node.shaderId.value()));
+	std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, pipelineFactory.getDescriptorSetLayout(node.shaderId.value()));
 	VkDescriptorSetAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = descriptorPool;

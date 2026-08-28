@@ -12,7 +12,7 @@
 #include "vk_mem_alloc.h"
 
 #include "renderer/vk/pipelines/Pipeline.hpp"
-#include "renderer/vk/pipelines/PipelineFactory.hpp"
+#include "renderer/vk/pipelines/PipelineFactoryI.hpp"
 #include "renderer/vk/Instance.hpp"
 #include "renderer/vk/Buffer.hpp"
 #include "renderer/vk/Command.hpp"
@@ -73,7 +73,7 @@ struct UniformBufferObject {
 class VkRenderer {
 public:
 	VkRenderer(bool& framebufferResized, std::vector<std::function<void(void)>> initFunctions,
-		std::vector<std::function<void(void)>> cleanupFunctions);
+		std::vector<std::function<void(void)>> cleanupFunctions, PipelineFactoryI& pipelineFactory);
 	void initialize();
 	~VkRenderer();
 	void cleanupGui();
@@ -107,7 +107,7 @@ public:
 	std::unordered_map<std::filesystem::path, VkSampler> textureSamplers;
 
 	std::unique_ptr<ENG::InstanceFactory> instanceFactory;
-	std::unique_ptr<ENG::PipelineFactory> pipelineFactory;
+	PipelineFactoryI& pipelineFactory;
 	std::unique_ptr<ENG::Command> commands;
 	std::unique_ptr<ENG::Swapchain> swapchain;
 	std::vector<std::function<void(VkCommandBuffer)>> commandRecorders;

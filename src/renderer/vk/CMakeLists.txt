@@ -9,8 +9,6 @@ add_library(engine_vk_renderer STATIC
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Swapchain.cpp"
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Utils.cpp"
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/Pipeline.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelineFactory.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelinePosColTex.cpp"
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelineUtils.cpp"
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/ShaderFactory.cpp"
 )
