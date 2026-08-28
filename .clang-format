@@ -1,4 +1,5 @@
 BasedOnStyle: Google
-Standard: Cpp2a
+Standard: c++20
 IndentWidth: 4
+UseTab: Never
 ColumnLimit: 120
