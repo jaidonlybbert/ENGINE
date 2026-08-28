@@ -1,7 +1,6 @@
 #pragma once
 #include "scene/Mesh.hpp"
-#include "renderer/vk/Renderer.hpp"
-#include "renderer/vk_adapter/VkAdapter.hpp"
+#include "scene/Scene.hpp"
 // Necessary definition for PMP header compilation
 #ifndef M_PI
 #define M_PI 3.1415926
@@ -25,5 +24,5 @@ pmp::SurfaceMesh create_icosahedron();
 pmp::SurfaceMesh create_dodecahedron();
 void load_pmp_mesh(
 	ENG::Node& parent, const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, const glm::vec4& color,
-	SceneState& sceneState);
-void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors, SceneState& sceneState);
+	ENG::SceneState& sceneState);
+void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors, ENG::SceneState& sceneState);

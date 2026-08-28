@@ -12,7 +12,6 @@ if (WIN32)
 endif()
 
 target_link_libraries(scenes PUBLIC engine::renderer_interface)
-target_link_libraries(scenes PUBLIC engine::vk::adapter)
 target_link_libraries(scenes PUBLIC engine::scene)
 target_link_libraries(scenes PUBLIC engine::hid)
 target_link_libraries(scenes PUBLIC engine::filesystem)

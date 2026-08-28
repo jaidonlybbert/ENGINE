@@ -1,4 +1,5 @@
 #include "scene/Mesh.hpp"
+#include "scene/Scene.hpp"
 #include "scenes/ProceduralGeometry.hpp"
 #include "application/ConcurrentQueue.hpp"
 #include "pmp/surface_mesh.h"

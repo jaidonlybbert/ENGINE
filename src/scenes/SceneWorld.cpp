@@ -1,13 +1,17 @@
 #include <optional>
+#include <stack>
 #include "scenes/ProceduralGeometry.hpp"
 #include "scene/Mesh.hpp"
+#include "scene/Scene.hpp"
 #include "application/ConcurrentQueue.hpp"
+#include "filesystem/FilesystemInterface.hpp"
 #include "scenes/SceneWorld.hpp"
 #include "scenes/SceneWorldInput.hpp"
+#include "renderer/RenderAdapterI.hpp"
 
 static constexpr size_t SCENE_WORLD_MAX_NODES = 10000;
 
-void create_world_polyhedra(SceneState& sceneState)
+void create_world_polyhedra(ENG::SceneState& sceneState)
 {
 	// Seed randomizer
 	// first: 20398475
@@ -191,9 +195,9 @@ void create_world_polyhedra(SceneState& sceneState)
 	}
 }
 
-void create_tetrahedron_no_pmp(SceneState& sceneState, const std::string& nodeName)
+void create_tetrahedron_no_pmp(ENG::SceneState& sceneState, const std::string& nodeName)
 {
-	std::vector<VertexPosNorCol> tetraVertices {
+	std::vector<ENG::VertexPosNorCol> tetraVertices {
 		{ {1.,  1.,  1.} },
 		{ {1., -1., -1.} },
 		{ {-1., 1., -1.} },
@@ -215,7 +219,7 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, const std::string& nodeNa
 	};
 
 	// vertices are duplicated for face-specific color
-	std::vector<VertexPosNorCol> tetraVerticesDuplicated {
+	std::vector<ENG::VertexPosNorCol> tetraVerticesDuplicated {
 		tetraVertices.at(0), tetraVertices.at(1), tetraVertices.at(2),
 		tetraVertices.at(0), tetraVertices.at(3), tetraVertices.at(1),
 		tetraVertices.at(0), tetraVertices.at(2), tetraVertices.at(3),
@@ -243,8 +247,8 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, const std::string& nodeNa
 	sceneState.graph.root->children.push_back(&tetraNode);
 
 	sceneState.hostMeshDataBindQueue.push(
-		BindHostMeshDataEvent{
-			HostMeshData{
+		ENG::BindHostMeshDataEvent{
+			ENG::HostMeshData{
 				std::move(tetraVerticesDuplicated),
 				std::move(tetraIndices),
 				"PosNorCol"
@@ -254,12 +258,12 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, const std::string& nodeNa
 	);
 }
 
-void unloadWorldScene(SceneState& sceneState)
+void unloadWorldScene(ENG::SceneState& sceneState)
 {
 
 }
 
-void initializeWorldScene(SceneState& sceneState, RenderAdapterI& renderAdapter) {
+void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAdapter) {
 	// Set callback handlers for inputs
 	SceneWorldInput::set_callbacks();
 
@@ -279,14 +283,14 @@ void initializeWorldScene(SceneState& sceneState, RenderAdapterI& renderAdapter)
 	sceneState.graph.root = &attachmentPoint;
 	sceneState.graph.root->name = "Root";
 
-	load_gltf(get_gltf_dir(), sceneState, attachmentPoint);
+	load_gltf(ENG::get_gltf_dir(), sceneState, attachmentPoint);
 	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
 	const auto& meshName = std::string("Room");
-	ENG::loadModel(meshName, get_room_obj(), get_room_tex(), sceneState, attachmentPoint);
+	ENG::loadModel(meshName, ENG::get_room_obj(), ENG::get_room_tex(), sceneState, attachmentPoint);
 
 	// load space floor
-	ENG::loadModel("Spacefloor3", get_spacefloor_obj2(), get_spacefloor_tex(), sceneState, attachmentPoint);
+	ENG::loadModel("Spacefloor3", ENG::get_spacefloor_obj2(), ENG::get_spacefloor_tex(), sceneState, attachmentPoint);
 
 
 	// Create bounding box around Suzanne

@@ -1,8 +1,8 @@
 #pragma once
-#include "scenes/ProceduralGeometry.hpp"
-#include "application/ConcurrentQueue.hpp"
+#include "scene/Scene.hpp"
+#include "renderer/RenderAdapterI.hpp"
 
-void create_world_polyhedra(SceneState& sceneState);
+void create_world_polyhedra(ENG::SceneState& sceneState);
 //void addBoundingBoxChild(ENG::Node* node, const std::string &bbName, SceneState& sceneState);
-void create_tetrahedron_no_pmp(SceneState& sceneState, const std::string& nodeName);
-void initializeWorldScene(SceneState& sceneState, RenderAdapterI& renderAdapter);
+void create_tetrahedron_no_pmp(ENG::SceneState& sceneState, const std::string& nodeName);
+void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAdapter);
