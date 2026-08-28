@@ -1,5 +1,7 @@
-#include "events/Event.hpp"
 #include<deque>
+#include "events/Event.hpp"
+#include "GLFW/glfw3.h"
+#include "scene/Scene.hpp"
 
 namespace ENG {
 	class Node;
