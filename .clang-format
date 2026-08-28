@@ -1,0 +1,4 @@
+BasedOnStyle: LLVM
+Standard: Cpp20
+IndentWidth: 4
+ColumnLimit: 120
