@@ -1,8 +1,8 @@
 #ifndef ENG_SCENE
 #define ENG_SCENE
-#include<optional>
-#include<random>
-#include<chrono>
+#include <chrono>
+#include <optional>
+#include <random>
 
 #include "tiny_gltf.h"
 #define GLM_FORCE_RADIANS
@@ -10,112 +10,110 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "scene/Mesh.hpp"
 #include "application/ConcurrentQueue.hpp"
+#include "scene/Mesh.hpp"
 
 using namespace tinygltf;
 
-namespace ENG
-{
+namespace ENG {
 
 class Camera {
-public:
-	Camera(const tinygltf::Camera& camera) {
-		fovy = static_cast<float>(camera.perspective.yfov);
-		aspect = static_cast<float>(camera.perspective.aspectRatio);
-		znear = static_cast<float>(camera.perspective.znear);
-		zfar = static_cast<float>(camera.perspective.zfar);
-	}
-	float fovy {0.f};
-	float aspect {0.f}; 
-	float znear {0.f}; 
-	float zfar {0.f};
+   public:
+    Camera(const tinygltf::Camera& camera) {
+        fovy = static_cast<float>(camera.perspective.yfov);
+        aspect = static_cast<float>(camera.perspective.aspectRatio);
+        znear = static_cast<float>(camera.perspective.znear);
+        zfar = static_cast<float>(camera.perspective.zfar);
+    }
+    float fovy{0.f};
+    float aspect{0.f};
+    float znear{0.f};
+    float zfar{0.f};
 };
 
-
 struct Properties {
-	std::uint32_t propertyFlags;
+    std::uint32_t propertyFlags;
 };
 
 struct AABB {
-	glm::vec4 min;
-	glm::vec4 max;
+    glm::vec4 min;
+    glm::vec4 max;
 };
 
 class Node {
-	/*
-	 * Base class entities in a scene graph
-	 */
+    /*
+     * Base class entities in a scene graph
+     */
 
-public:
-	unsigned int nodeId;  // index into "nodes" vector
-	std::string name{};
-	glm::vec3 scale { 1.f };
-	glm::vec3 translation{ 0.f };
-	glm::quat rotation{ 1.f, 0.f, 0.f, 0.f };
+   public:
+    unsigned int nodeId;  // index into "nodes" vector
+    std::string name{};
+    glm::vec3 scale{1.f};
+    glm::vec3 translation{0.f};
+    glm::quat rotation{1.f, 0.f, 0.f, 0.f};
 
-	Node* parent{ nullptr };
-	std::vector<Node*> children;
-	std::vector<size_t> descriptorSetIds;
-	std::optional<std::string> shaderId;
-	std::optional<std::size_t> draw_data_idx;
-	std::uint32_t propertyFlags{ 0 };
-	Camera* camera { nullptr };
-	bool visible{ true };
-	bool selectable{ false };
+    Node* parent{nullptr};
+    std::vector<Node*> children;
+    std::vector<size_t> descriptorSetIds;
+    std::optional<std::string> shaderId;
+    std::optional<std::size_t> draw_data_idx;
+    std::uint32_t propertyFlags{0};
+    Camera* camera{nullptr};
+    bool visible{true};
+    bool selectable{false};
 };
 
 glm::mat4 transformation_matrix(const Node& node);
 
 class SceneGraph {
-public:
-	Node* root{ nullptr };
-	std::vector<Node> nodes;
-	std::vector<AABB> bvh;
-	std::vector<Camera> cameras;
+   public:
+    Node* root{nullptr};
+    std::vector<Node> nodes;
+    std::vector<AABB> bvh;
+    std::vector<Camera> cameras;
 
-	Node& create_node() {
-		std::lock_guard lock(mut);
-		auto& node = nodes.emplace_back();
-		node.nodeId = nodes.size() - 1;
-		return node;
-	}
+    Node& create_node() {
+        std::lock_guard lock(mut);
+        auto& node = nodes.emplace_back();
+        node.nodeId = nodes.size() - 1;
+        return node;
+    }
 
-private:
-	std::mutex mut;
+   private:
+    std::mutex mut;
 };
 
 Node& get_node_by_id(SceneGraph& sceneGraph, const size_t nodeId);
 
 struct SceneState {
-	SceneGraph graph;
-	size_t activeCameraNodeIdx;
-	int activeNodeIdx{ 0 };
-	uint32_t selectedWorldFace{ 0 };
+    SceneGraph graph;
+    size_t activeCameraNodeIdx;
+    int activeNodeIdx{0};
+    uint32_t selectedWorldFace{0};
 
-	double cursor_x;
-	double cursor_y;
-	
-	// The events pushed to this queue are to be consumed by the render adapter
-	// implementation to bind the host data for a particular mesh to the device 
-	// and initialize it for rendering
-	ConcurrentQueue<BindHostMeshDataEvent> hostMeshDataBindQueue;
+    double cursor_x;
+    double cursor_y;
 
-	std::vector<glm::mat4> modelMatrices;
-	std::vector<AABB> aabbs;
+    // The events pushed to this queue are to be consumed by the render adapter
+    // implementation to bind the host data for a particular mesh to the device
+    // and initialize it for rendering
+    ConcurrentQueue<BindHostMeshDataEvent> hostMeshDataBindQueue;
 
-	std::mt19937 randomizer;
-	std::chrono::steady_clock::time_point previousPredictionTime;
-	bool initialized{ false };
+    std::vector<glm::mat4> modelMatrices;
+    std::vector<AABB> aabbs;
 
-	~SceneState() {
-		modelMatrices.clear();
-		aabbs.clear();
-	}
+    std::mt19937 randomizer;
+    std::chrono::steady_clock::time_point previousPredictionTime;
+    bool initialized{false};
+
+    ~SceneState() {
+        modelMatrices.clear();
+        aabbs.clear();
+    }
 };
 
 Camera* get_active_camera(const SceneState& sceneState);
 Node* find_node_by_name(const SceneGraph& graph, const std::string& name);
 
-} // end namespace
+}  // namespace ENG
 #endif
