@@ -186,7 +186,7 @@ void get_vertex_and_index_buffer(
 }
 
 void load_gltf_mesh_attributes(
-	VkAdapter& adapter,
+	SceneState& sceneState,
 	const tinygltf::Model& model,
 	const tinygltf::Primitive& primitive,
 	const uint32_t nodeId)
@@ -203,7 +203,7 @@ void load_gltf_mesh_attributes(
 
 		get_vertex_and_index_buffer(primitive, model, vertices, indices);
 
-		adapter.graphicsEventQueue.push(
+		sceneState.hostMeshDataBindQueue.push(
 			BindHostMeshDataEvent{
 				HostMeshData{
 					std::move(vertices),
@@ -223,7 +223,7 @@ void load_gltf_mesh_attributes(
 
 		get_vertex_and_index_buffer(primitive, model, vertices, indices);
 
-		adapter.graphicsEventQueue.push(
+		sceneState.hostMeshDataBindQueue.push(
 			BindHostMeshDataEvent{
 				HostMeshData{
 					std::move(vertices),
@@ -238,7 +238,6 @@ void load_gltf_mesh_attributes(
 }
 
 void load_gltf_node(
-	VkAdapter& adapter,
 	const tinygltf::Node& node,
 	SceneState& sceneState,
 	ENG::Node& eng_node,
@@ -258,12 +257,11 @@ void load_gltf_node(
 	for (const auto& primitive : gltf_mesh.primitives)
 	{
 		const auto& mesh_name = gltf_mesh.name;
-		load_gltf_mesh_attributes(adapter, model, primitive, eng_node.nodeId);
+		load_gltf_mesh_attributes(sceneState, model, primitive, eng_node.nodeId);
 	}
 }
 
 bool load_gltf(
-	VkAdapter& adapter,
 	const std::filesystem::path gltf_path,
 	SceneState& sceneState,
 	Node& attachmentPoint)
@@ -291,7 +289,7 @@ bool load_gltf(
 			ENG_LOG_DEBUG("Camera node set with idx: " << newNode.nodeId << std::endl);
 		}
 
-		load_gltf_node(adapter, node, sceneState, newNode, model);
+		load_gltf_node(node, sceneState, newNode, model);
 	}
 
 	// Iterate again now that all nodes are loaded, and update parent-child relationships

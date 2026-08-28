@@ -12,7 +12,6 @@
 #include "pmp/algorithms/utilities.h"
 
 #include "logger/Logging.hpp"
-#include "renderer/vk/Utils.hpp"
 #include "scene/Gltf.hpp"
 #include "filesystem/FilesystemInterface.hpp"
 #include "scene/Obj.hpp"
@@ -26,5 +25,5 @@ pmp::SurfaceMesh create_icosahedron();
 pmp::SurfaceMesh create_dodecahedron();
 void load_pmp_mesh(
 	ENG::Node& parent, const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, const glm::vec4& color,
-	VkAdapter& adapter, SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue);
-void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors, VkAdapter& adapter, SceneState& sceneState);
+	SceneState& sceneState);
+void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors, SceneState& sceneState);

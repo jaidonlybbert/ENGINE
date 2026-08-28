@@ -513,7 +513,7 @@ int main() {
 		Application app;
 		app.registerInitFunction("renderer.initializeScene()", [&renderer, &sceneState, &renderAdapter]() { 
 			renderer.sceneReadyToRender = false;
-			initializeWorldScene(renderer, renderAdapter, sceneState);
+			initializeWorldScene(sceneState, renderAdapter);
 			renderer.sceneReadyToRender = true;
 			sceneState.initialized = true;
 			});

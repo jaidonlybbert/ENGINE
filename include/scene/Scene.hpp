@@ -11,6 +11,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "scene/Mesh.hpp"
+#include "application/ConcurrentQueue.hpp"
 
 using namespace tinygltf;
 
@@ -94,6 +95,12 @@ struct SceneState {
 
 	double cursor_x;
 	double cursor_y;
+	
+	// The events pushed to this queue are to be consumed by the render adapter
+	// implementation to bind the host data for a particular mesh to the device 
+	// and initialize it for rendering
+	ConcurrentQueue<BindHostMeshDataEvent> hostMeshDataBindQueue;
+
 	std::vector<glm::mat4> modelMatrices;
 	std::vector<AABB> aabbs;
 

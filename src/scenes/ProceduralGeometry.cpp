@@ -1,7 +1,5 @@
 #include "scene/Mesh.hpp"
 #include "scenes/ProceduralGeometry.hpp"
-#include "renderer/vk/Renderer.hpp"
-#include "renderer/vk_adapter/VkAdapter.hpp"
 #include "application/ConcurrentQueue.hpp"
 #include "pmp/surface_mesh.h"
 #include "pmp/algorithms/triangulation.h"
@@ -9,7 +7,6 @@
 #include "pmp/algorithms/utilities.h"
 
 #include "logger/Logging.hpp"
-#include "renderer/vk/Utils.hpp"
 #include "scene/Gltf.hpp"
 #include "filesystem/FilesystemInterface.hpp"
 #include "scene/Obj.hpp"
@@ -177,7 +174,7 @@ pmp::SurfaceMesh create_dodecahedron()
 
 void load_pmp_mesh(
 	ENG::Node& parent, const pmp::SurfaceMesh& mesh, const std::string& mesh_name, const std::string& node_name, const glm::vec4& color,
-	SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue)
+	SceneState& sceneState)
 {
 	std::vector<VertexPosNorCol> vertices;
 	std::vector<uint32_t> indices;
@@ -217,7 +214,7 @@ void load_pmp_mesh(
 	pmpNode.selectable = true;
 	parent.children.push_back(&pmpNode);
 
-	graphicsEventQueue.push(
+	sceneState.hostMeshDataBindQueue.push(
 		BindHostMeshDataEvent{
 			HostMeshData{
 				std::move(vertices),
@@ -229,7 +226,7 @@ void load_pmp_mesh(
 	);
 }
 
-void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors, VkAdapter& adapter, SceneState& sceneState)
+void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors, SceneState& sceneState)
 {
 	// parent node for all submeshes
 	auto& parentNode = sceneState.graph.create_node();
@@ -285,7 +282,7 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, con
 		nodeName << "GoldbergPolyhedra_" << meshcount;
 
 
-		load_pmp_mesh(parentNode, newMesh, meshName.str(), nodeName.str(), faceColor, sceneState, adapter.graphicsEventQueue);
+		load_pmp_mesh(parentNode, newMesh, meshName.str(), nodeName.str(), faceColor, sceneState);
 		meshcount++;
 	}
 

@@ -4,13 +4,11 @@
 #include "filesystem/FilesystemInterface.hpp"
 #include "scene/Scene.hpp"
 #include "scene/Obj.hpp"
-#include "renderer/vk_adapter/VkAdapter.hpp"
 
 namespace ENG
 {
 
 void loadModel(
-	VkAdapter& adapter,
 	std::string name, 
 	const std::filesystem::path& objPath, 
 	const std::filesystem::path& texturePath,
@@ -80,7 +78,7 @@ void loadModel(
 			indices.at(texPath).push_back(indices.at(texPath).size());
 		}
 
-		adapter.graphicsEventQueue.push(
+		sceneState.hostMeshDataBindQueue.push(
 			BindHostMeshDataEvent{
 				HostMeshData {
 					std::move(vertices.at(texPath)),

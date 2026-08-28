@@ -2,7 +2,7 @@
 #define VK_ADAPTER_HPP
 #include "scene/Scene.hpp"
 #include "renderer/vk/Renderer.hpp"
-#include "renderer/RendererI.hpp"
+#include "renderer/RenderAdapterI.hpp"
 #include "application/ConcurrentQueue.hpp"
 
 
@@ -50,7 +50,7 @@ using GraphicsEvent = std::variant<
 	CommandCompletionEvent
 >;
 
-class VkAdapter : RenderAdapterI
+class VkAdapter : public RenderAdapterI
 {
 private:
 	mutable std::mutex drawDataMutex;
@@ -62,6 +62,12 @@ public:
 	std::vector<DrawData> drawDataBuffer;
 
 	ConcurrentQueue<GraphicsEvent> graphicsEventQueue{};
+
+	void init(size_t sceneSize) override;
+
+	// externally defined queue for passing events from application to
+	// render adapter
+	void draw(ConcurrentQueue<BindHostMeshDataEvent>& bindHostMeshDataQueue) override;
 
 	VkAdapter(VkRenderer& renderer) : renderer(renderer)
 	{
@@ -79,8 +85,6 @@ public:
 		allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
 		vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator);
-
-
 	}
 
 	bool has_property(const size_t drawDataIdx, const DrawDataProperties propertyEnum)

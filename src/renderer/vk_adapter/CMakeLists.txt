@@ -13,4 +13,5 @@ target_link_libraries(engine_vk_adapter PUBLIC
 	Vulkan::Vulkan 
 	GPUOpen::VulkanMemoryAllocator
 	engine::scene 
-	engine::vk::renderer)
+	engine::vk::renderer
+	engine::renderer_interface)

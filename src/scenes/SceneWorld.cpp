@@ -1,21 +1,13 @@
 #include <optional>
 #include "scenes/ProceduralGeometry.hpp"
 #include "scene/Mesh.hpp"
-#include "renderer/vk_adapter/VkAdapter.hpp"
 #include "application/ConcurrentQueue.hpp"
 #include "scenes/SceneWorld.hpp"
 #include "scenes/SceneWorldInput.hpp"
 
 static constexpr size_t SCENE_WORLD_MAX_NODES = 10000;
 
-void create_sun_polyhedra(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState)
-{
-	auto mesh = pmp::icosphere(5);
-	dual(mesh);
-
-}
-
-void create_world_polyhedra(VkAdapter& adapter, SceneState& sceneState)
+void create_world_polyhedra(SceneState& sceneState)
 {
 	// Seed randomizer
 	// first: 20398475
@@ -194,12 +186,12 @@ void create_world_polyhedra(VkAdapter& adapter, SceneState& sceneState)
 		}
 
 
-		triangulate_as_triangle_fan_preserving_face_ids(mesh, faceColors, adapter, sceneState);
+		triangulate_as_triangle_fan_preserving_face_ids(mesh, faceColors, sceneState);
 
 	}
 }
 
-void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsEvent>& graphicsEventQueue, const std::string& nodeName)
+void create_tetrahedron_no_pmp(SceneState& sceneState, const std::string& nodeName)
 {
 	std::vector<VertexPosNorCol> tetraVertices {
 		{ {1.,  1.,  1.} },
@@ -250,7 +242,7 @@ void create_tetrahedron_no_pmp(SceneState& sceneState, ConcurrentQueue<GraphicsE
 	tetraNode.parent = sceneState.graph.root;
 	sceneState.graph.root->children.push_back(&tetraNode);
 
-	graphicsEventQueue.push(
+	sceneState.hostMeshDataBindQueue.push(
 		BindHostMeshDataEvent{
 			HostMeshData{
 				std::move(tetraVerticesDuplicated),
@@ -267,7 +259,7 @@ void unloadWorldScene(SceneState& sceneState)
 
 }
 
-void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& sceneState) {
+void initializeWorldScene(SceneState& sceneState, RenderAdapterI& renderAdapter) {
 	// Set callback handlers for inputs
 	SceneWorldInput::set_callbacks();
 
@@ -278,7 +270,7 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	// Create modelMatrices mapped to SceneGraph node idx (index is 1-1 with scenegraph.nodes)
 	// set to max node size
 	sceneState.modelMatrices.resize(SCENE_WORLD_MAX_NODES);
-	renderer.createModelMatrices(sizeof(glm::mat4) * SCENE_WORLD_MAX_NODES);
+	renderAdapter.init(SCENE_WORLD_MAX_NODES);
 
 	// These are AABBs for nodes, with 1-1 indexing with scenegraph.nodes
 	sceneState.aabbs.resize(SCENE_WORLD_MAX_NODES);
@@ -287,14 +279,14 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	sceneState.graph.root = &attachmentPoint;
 	sceneState.graph.root->name = "Root";
 
-	load_gltf(adapter, get_gltf_dir(), sceneState, attachmentPoint);
+	load_gltf(get_gltf_dir(), sceneState, attachmentPoint);
 	auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
 	const auto& meshName = std::string("Room");
-	ENG::loadModel(adapter, meshName, get_room_obj(), get_room_tex(), sceneState, attachmentPoint);
+	ENG::loadModel(meshName, get_room_obj(), get_room_tex(), sceneState, attachmentPoint);
 
 	// load space floor
-	ENG::loadModel(adapter, "Spacefloor3", get_spacefloor_obj2(), get_spacefloor_tex(), sceneState, attachmentPoint);
+	ENG::loadModel("Spacefloor3", get_spacefloor_obj2(), get_spacefloor_tex(), sceneState, attachmentPoint);
 
 
 	// Create bounding box around Suzanne
@@ -302,10 +294,14 @@ void initializeWorldScene(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
 	//addBoundingBoxChild(suzanneNodeIdx, renderer, "SuzanneBoundingBox", sceneState);
 
 	ENG_LOG_TRACE("Creating tetrahedron2" << std::endl);
-	create_tetrahedron_no_pmp(sceneState, adapter.graphicsEventQueue, "Tetrahedron");
+	create_tetrahedron_no_pmp(sceneState, "Tetrahedron");
 
-	// Create world mesh
-	create_world_polyhedra(adapter, sceneState);
+	// sends object data to graphics queue for rendering
+	renderAdapter.draw(sceneState.hostMeshDataBindQueue);
+
+	create_world_polyhedra(sceneState);
+
+	renderAdapter.draw(sceneState.hostMeshDataBindQueue);
 
 	ENG_LOG_TRACE("Finished loading data" << std::endl);
 

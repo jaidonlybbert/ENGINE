@@ -4,14 +4,17 @@
 
 std::vector<DrawData> nodeIdToDrawDataMap;
 
-void initForVulkan(
-	const SceneState& sceneState
-)
+void VkAdapter::init(size_t sceneSize)
 {
-	// For node in scene:
-		// create vertex and index VkBuffers
-		// create VkDescriptorSet
+	renderer.createModelMatrices(sizeof(glm::mat4) * sceneSize);
+}
 
+void VkAdapter::draw(ConcurrentQueue<BindHostMeshDataEvent>& bindHostMeshDataQueue)
+{
+	// forwards event to backend graphics queue
+	while (!bindHostMeshDataQueue.empty()) {
+		graphicsEventQueue.push(bindHostMeshDataQueue.pop());
+	}
 }
 
 void recordDrawDataCommand(
