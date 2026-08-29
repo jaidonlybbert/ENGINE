@@ -32,6 +32,16 @@ if (NOT "$ENV{VK_DRIVER_FILES}" STREQUAL "")
 	cmake_print_variables(VK_DRIVER_FILES)
 endif()
 
+if (NOT "$ENV{Vulkan_LIBRARY}" STREQUAL "")
+	set(Vulkan_LIBRARY "$ENV{Vulkan_LIBRARY}" CACHE INTERNAL "Copied from environment variable")
+	cmake_print_variables(Vulkan_LIBRARY)
+endif()
+
+if (NOT "$ENV{Vulkan_INCLUDE_DIR}" STREQUAL "")
+	set(Vulkan_INCLUDE_DIR "$ENV{Vulkan_INCLUDE_DIR}" CACHE INTERNAL "Copied from environment variable")
+	cmake_print_variables(Vulkan_INCLUDE_DIR)
+endif()
+
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 
 set(SOURCE_FILES
