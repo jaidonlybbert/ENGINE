@@ -1,0 +1,44 @@
+{
+  "name": "ENGINE Dev Container",
+  "dockerFile": "Dockerfile",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "args": {
+      "UBUNTU_VERSION": "22.04",
+      "CLANG_VERSION": "18",
+      "VULKAN_TOOLS_VERSION": "1.4.347",
+      "VULKAN_VALIDATIONLAYERS_VERSION": "1.4.347"
+    }
+  },
+
+  // Mount the workspace
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+
+  // Recommended VS Code extensions
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.gitlens"
+      ],
+      // Use clangd instead of cpptools for IntelliSense
+      "settings": {
+        "C_Cpp.intelliSenseEngine": "disabled",
+        "clangd.arguments": [
+          "--header-insertion=never",
+          "--completion-style=detailed"
+        ]
+      }
+    }
+  },
+
+  // Forward common dev ports (if you add tools later)
+  "forwardPorts": [],
+
+  // Run post-create commands inside the container
+  "postCreateCommand": "conan profile detect --force && python3 buildfile.py --buildtype=Debug"
+}
