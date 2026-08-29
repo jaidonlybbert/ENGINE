@@ -9,7 +9,9 @@ find_program(GLSLC_EXECUTABLE
     NAMES glslc
     HINTS
         ENV VULKAN_SDK
-    PATH_SUFFIXES bin
+    PATH_SUFFIXES
+        bin
+        x86_64/bin
     DOC "Path to the glslc shader compiler from the Vulkan SDK"
     REQUIRED
 )

@@ -80,9 +80,11 @@ RUN curl -L https://sdk.lunarg.com/sdk/download/${VULKAN_SDK_VERSION}/linux/vulk
 
 ENV LD_LIBRARY_PATH=""
 ENV VULKAN_SDK=/opt/vulkan-sdk
-ENV PATH=${VULKAN_SDK}/bin:${PATH}
-ENV LD_LIBRARY_PATH=${VULKAN_SDK}/lib:${LD_LIBRARY_PATH}
-ENV VK_LAYER_PATH=${VULKAN_SDK}/share/vulkan/explicit_layer.d
+ENV PATH=${VULKAN_SDK}/x86_64/bin:${PATH}
+ENV LD_LIBRARY_PATH=${VULKAN_SDK}/x86_64/lib:${LD_LIBRARY_PATH}
+ENV VK_LAYER_PATH=${VULKAN_SDK}/x86_64/share/vulkan/explicit_layer.d
+ENV Vulkan_LIBRARY ${VULKAN_SDK}/x86_64/lib/libvulkan.so
+ENV Vulkan_INCLUDE_DIR ${VULKAN_SDK}/x86_64/include
 
 # Create workspace directory
 RUN mkdir -p /workspace
