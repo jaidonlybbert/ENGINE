@@ -1,8 +1,10 @@
-FROM ubuntu:24.04
+ARG UBUNTU_VERSION=24.04
+
+FROM ubuntu:${UBUNTU_VERSION}
 # Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-ARG VULKAN_SDK_VERSION=1.4.335.0
+ARG VULKAN_SDK_VERSION
 
 # Install core build tools + LLVM/Clang from standard repos
 RUN apt-get update && apt-get install -y \
@@ -83,8 +85,8 @@ ENV VULKAN_SDK=/opt/vulkan-sdk
 ENV PATH=${VULKAN_SDK}/x86_64/bin:${PATH}
 ENV LD_LIBRARY_PATH=${VULKAN_SDK}/x86_64/lib:${LD_LIBRARY_PATH}
 ENV VK_LAYER_PATH=${VULKAN_SDK}/x86_64/share/vulkan/explicit_layer.d
-ENV Vulkan_LIBRARY ${VULKAN_SDK}/x86_64/lib/libvulkan.so
-ENV Vulkan_INCLUDE_DIR ${VULKAN_SDK}/x86_64/include
+ENV Vulkan_LIBRARY=${VULKAN_SDK}/x86_64/lib/libvulkan.so
+ENV Vulkan_INCLUDE_DIR=${VULKAN_SDK}/x86_64/include
 
 # Create workspace directory
 RUN mkdir -p /workspace

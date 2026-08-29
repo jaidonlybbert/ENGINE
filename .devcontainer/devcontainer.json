@@ -5,10 +5,8 @@
     "dockerfile": "Dockerfile",
     "context": ".",
     "args": {
-      "UBUNTU_VERSION": "22.04",
-      "CLANG_VERSION": "18",
-      "VULKAN_TOOLS_VERSION": "1.4.347",
-      "VULKAN_VALIDATIONLAYERS_VERSION": "1.4.347"
+      "UBUNTU_VERSION": "24.04",
+      "VULKAN_SDK_VERSION": "1.4.335.0"
     }
   },
 
@@ -35,9 +33,6 @@
       }
     }
   },
-
-  // Forward common dev ports (if you add tools later)
-  "forwardPorts": [],
 
   // Run post-create commands inside the container
   "postCreateCommand": "conan profile detect --force && python3 buildfile.py --buildtype=Debug"
