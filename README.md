@@ -47,7 +47,12 @@ sudo apt-get install libwayland-dev xorg-dev gcc-14 cmake
 ```
 
 ### macOS (with AppleClang)
+#### Install homebrew
+https://brew.sh/
+
+#### Install python, cmake, xcode tools
 ```bash
+brew install python cmake
 xcode-select --install
 ```
 
@@ -113,8 +118,8 @@ python buildfile.py --buildtype=Debug
 #### Open the Visual Studio solution and run
 The solution file (.sln) should be located in the "build" folder. After it opens, in the "solution explorer" right-click on the "Engine" project and "Set as Startup Project" - then hit the big green play button. 
 
-## macOS specific
-### Create a CMake preset pointing to the Vulkan SDK (and MoltenVK)
+### macOS (AppleClang)
+#### Create a CMake preset pointing to the Vulkan SDK (and MoltenVK)
 In the project root (same level as CMakeLists.txt), create a file named "CMakeUserPresets.json" and paste the following, but change the VULKAN_SDK variable to point to your SDK installation path. Note in some SDK distributions the subdirectory for VK_ICD_FILENAMES and VK_LAYER_PATH is different, and you may have to fix the pathing.
 ```json
 {
@@ -152,12 +157,12 @@ In the project root (same level as CMakeLists.txt), create a file named "CMakeUs
 }
 ```
 
-### Execute the buildfile.py script
+#### Execute the buildfile.py script
 ```bash
 python buildfile.py --preset=mac-default --buildtype=Debug
 ```
 
-### Run the executable
+#### Run the executable
 ```bash
 ./build/Debug/Engine
 ```
