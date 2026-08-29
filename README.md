@@ -28,24 +28,41 @@ These are the platforms I routinely build on and actively maintain
 - x86_64-gcc-ubuntu
 
 # Recommended Build Instructions
-There are many ways you can build this, at the end of the day it's a CMake project. I've chosen to use conda, python, and conan to manage dependencies for cross-platform support.
-If everything works, a window should pop up with a render of a default .obj mesh
+There are many ways you can build this, at the end of the day it's a Conan + CMake project. I've captured platform specific instructions and system dependencies as best I can.
 
 After you have installed all the system dependencies there are three things you need to do to compile the code for any new build type (Release, Debug, RelWithDebInfo, MinSizeRel)
 1. conan install
 2. cmake configure
 3. cmake build
 
-To make it easier to run those commands, I wrote a `buildfile.py` script that takes two optional arguments: `preset` and `buildtype` which correspond to CMake presets and buildtypes. By default, the CMake preset used is defined in the CMakePresets.json file, you will notice that it inherits from the conan-default preset that is generated when you run `conan install`. To run with other compilers, you will need to define your own preset in a CMakeUserPresets.json file to override the default, and pass that preset into the `buildfile.py` script as`--preset=<your_preset>`
+To make it easier to run those commands, I wrote a `buildfile.py` script that takes two optional arguments: `preset` and `buildtype` which correspond to CMake presets and buildtypes. By default, the CMake preset used is defined in the CMakePresets.json file, you will notice that it inherits from the conan-default preset that is generated when you run `conan install`. To run with other compilers, you will need to define your own preset in a CMakeUserPresets.json file to override the default, and pass that preset into the `buildfile.py` script as `--preset=<your_preset>`
 
-## All platforms (macOS, Windows, Ubuntu)
-### Clone this repo
+## Install System Dependencies
+### Ubuntu (with GCC)
 ```bash
-git clone --recurse-submodules https://github.com/jaidonlybbert/ENGINE.git
-cd Engine
+sudo add-apt-repository universe
+sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa -y
+sudo apt-get update
+sudo apt-get install libwayland-dev xorg-dev gcc-14 cmake
 ```
 
-### Install the Vulkan SDK
+### macOS (with AppleClang)
+```bash
+xcode-select --install
+```
+
+### Windows (with MSVC)
+#### Install Microsoft Visual Studio 17 Community 2022
+https://visualstudio.microsoft.com/vs/community/
+
+#### Install Python 3.10 or later
+https://www.python.org/downloads/windows/
+
+#### Install CMake
+https://cmake.org/download/
+
+### All platforms (macOS, Windows, Ubuntu)
+#### Install the Vulkan SDK
 https://www.lunarg.com/vulkan-sdk/
 
 Check that the environment variable VULKAN_SDK is defined and points to the SDK directory
@@ -59,40 +76,46 @@ echo %VULKAN_SDK%
 
 If it's not defined after installation, you can create a [CMakeUserPresets.json](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html) at the project root to set this variable, or define it another way. The environment variables are copied to the python buildfile.py script, so it has to be defined in the environment where you call that script.
 
-### Install miniconda
-https://www.anaconda.com/docs/getting-started/miniconda/install
-
-### Create a new conda environment with the system dependencies, and activate it
+#### Clone this repo
 ```bash
-conda create -n Engine cmake conan -c conda-forge
-conda activate Engine
+git clone --recurse-submodules https://github.com/jaidonlybbert/ENGINE.git
 ```
 
-### Generate a default conan profile for your system
+#### Install Conan
+```bash
+python -m install conan
+```
+
+#### Generate a default conan profile for your system
 ```bash
 conan profile detect --force
 ```
 
-## Windows specific
-### Install Microsoft Visual Studio 17 Community 2022
-https://visualstudio.microsoft.com/vs/community/
+## Build Project
 
-### Execute the buildfile.py script
+### Ubuntu (GCC)
+#### Execute the buildfile.py script
 ```bash
-python buildfile.py
+python buildfile.py --buildtype=Debug
 ```
 
-### Open the Visual Studio solution and run
+#### Run executable
+```bash
+./build/Debug/Engine
+```
+
+### Windows (MSVC)
+#### Execute the buildfile.py script
+```bash
+python buildfile.py --buildtype=Debug
+```
+
+#### Open the Visual Studio solution and run
 The solution file (.sln) should be located in the "build" folder. After it opens, in the "solution explorer" right-click on the "Engine" project and "Set as Startup Project" - then hit the big green play button. 
 
 ## macOS specific
-### Install Xcode command-line tools
-```bash
-xcode-select --install
-```
-
 ### Create a CMake preset pointing to the Vulkan SDK (and MoltenVK)
-In the project root (same level as CMakeLists.txt), create a file named "CMakeUserPresets.json" and paste the following, but change the VULKAN_SDK variable to point to your SDK installation path
+In the project root (same level as CMakeLists.txt), create a file named "CMakeUserPresets.json" and paste the following, but change the VULKAN_SDK variable to point to your SDK installation path. Note in some SDK distributions the subdirectory for VK_ICD_FILENAMES and VK_LAYER_PATH is different, and you may have to fix the pathing.
 ```json
 {
   "version": 10,
