@@ -1,0 +1,11 @@
+{
+  // Disable cpptools language server so clangd can take over
+  "C_Cpp.intelliSenseEngine": "disabled",
+
+  // Point clangd to your compilation database directory if not in root
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}/build",
+    "--background-index",
+    "--clang-tidy"
+  ]
+}

@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include <functional>
 #include <thread>
 
@@ -8,11 +6,7 @@
 #define M_PI 3.1415926
 #endif
 
-#include "asio/awaitable.hpp"
-#include "asio/co_spawn.hpp"
-#include "asio/detached.hpp"
 #include "asio/io_context.hpp"
-#include "asio/post.hpp"
 
 #ifdef _WIN32
 #include "tracy/Tracy.hpp"
@@ -167,13 +161,27 @@ void profilerMarkStop(const std::string& name) {
 UniformBufferObject createUniformBufferObject(const SceneState& sceneState) {
     UniformBufferObject ubo{};
 
-    auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
-    auto* cameraPtr = get_active_camera(sceneState);
-
-    // The global translation is stored in the last column
-    const glm::vec3& cam_pos = glm::vec3(sceneState.modelMatrices.at(cameraNode.nodeId)[3]);
-    const glm::vec3& up = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(0., 1., 0., 0.);
-    const glm::vec3& right = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(1., 0., 0., 0.);
+    // use default camera values if no camera is active
+    glm::vec3 cam_pos = glm::vec4(0, 0, 1, 0);
+    glm::vec3 up = glm::vec4(0, 1, 0, 0);
+    glm::vec3 right = glm::vec4(1, 0, 0, 0);
+    auto fovy = 1.0;
+    auto aspect = 1.7;
+    auto znear = 0.1;
+    auto zfar = 100.0;
+    if (sceneState.activeCameraNodeIdx.has_value() &&
+        sceneState.activeCameraNodeIdx.value() < sceneState.graph.nodes.size()) {
+        const auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx.value());
+        const auto* cameraPtr = dynamic_cast<ENG::Camera*>(cameraNode.camera);
+        cam_pos = glm::vec3(sceneState.modelMatrices.at(cameraNode.nodeId)[3]);
+        // The global translation is stored in the last column
+        up = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(0., 1., 0., 0.);
+        right = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(1., 0., 0., 0.);
+        fovy = cameraPtr->fovy;
+        aspect = cameraPtr->aspect;
+        znear = cameraPtr->znear;
+        zfar = cameraPtr->zfar;
+    }
 
     ubo.view = glm::lookAt(cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(up));
     // const auto& cam_rot = camera_node.rotation;
@@ -186,10 +194,6 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState) {
     //	ubo.view[2][3] = glm_cam_pos.z;
     // }
 
-    const auto fovy = cameraPtr->fovy;
-    const auto aspect = cameraPtr->aspect;
-    const auto znear = cameraPtr->znear;
-    const auto zfar = cameraPtr->zfar;
     ubo.proj = glm::perspective(fovy, aspect, znear, zfar);
     ubo.proj[1][1] *= -1;
     ENG_LOG_TRACE("Projection matrix set" << std::endl);

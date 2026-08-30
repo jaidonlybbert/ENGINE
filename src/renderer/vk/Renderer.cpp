@@ -491,7 +491,7 @@ void VkRenderer::createDescriptorPool() {
 }
 
 VkWriteDescriptorSet VkRenderer::createWriteDescriptorSet(const VkDescriptorSet descriptorSet,
-                                                          const VkDescriptorImageInfo imageInfo,
+                                                          const VkDescriptorImageInfo& imageInfo,
                                                           const VkDescriptorType descriptorType,
                                                           const size_t bindingIdx) {
     VkWriteDescriptorSet descriptorWrite{};
@@ -507,7 +507,7 @@ VkWriteDescriptorSet VkRenderer::createWriteDescriptorSet(const VkDescriptorSet 
 }
 
 VkWriteDescriptorSet VkRenderer::createWriteDescriptorSet(const VkDescriptorSet descriptorSet,
-                                                          const VkDescriptorBufferInfo bufferInfo,
+                                                          const VkDescriptorBufferInfo& bufferInfo,
                                                           const VkDescriptorType descriptorType,
                                                           const size_t bindingIdx) {
     VkWriteDescriptorSet descriptorWrite{};
