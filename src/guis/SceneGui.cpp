@@ -3,8 +3,6 @@
 #include <glm/glm.hpp>
 
 #include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_vulkan.h"
 #include "logger/Logging.hpp"
 #include "scene/DFT.hpp"
 #include "scene/Scene.hpp"
@@ -52,19 +50,23 @@ void SceneGui::drawGui(ENG::SceneState& sceneState) {
         ImGui::Begin("DebugTools");
         ImGui::Text("Camera settings");
         if (ImGui::Button("Save")) MySaveFunction();
-        auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
-        auto* camera = dynamic_cast<ENG::Camera*>(cameraNode.camera);
 
-        if (camera == nullptr) {
-            throw(std::runtime_error("Camera is nullptr!"));
+        if (sceneState.activeCameraNodeIdx.has_value() &&
+            sceneState.activeCameraNodeIdx.value() < sceneState.graph.nodes.size()) {
+            auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx.value());
+            auto* camera = dynamic_cast<ENG::Camera*>(cameraNode.camera);
+
+            if (camera == nullptr) {
+                throw(std::runtime_error("Camera is nullptr!"));
+            }
+
+            ImGui::SliderFloat("Aspect", &(camera->aspect), 0.0f, 10.0f);
+            ImGui::SliderFloat("Fovy", &(camera->fovy), 0.0f, 1.0f);
+            ImGui::SliderFloat("zfar", &(camera->zfar), 0.0f, 100.0f);
+            ImGui::SliderFloat("znear", &(camera->znear), 0.0f, 10.0f);
+            ImGui::InputFloat3("Camera position", &cameraNode.translation.x);
+            ImGui::InputFloat3("Camera rotation", &cameraNode.rotation.x);
         }
-
-        ImGui::SliderFloat("Aspect", &(camera->aspect), 0.0f, 10.0f);
-        ImGui::SliderFloat("Fovy", &(camera->fovy), 0.0f, 1.0f);
-        ImGui::SliderFloat("zfar", &(camera->zfar), 0.0f, 100.0f);
-        ImGui::SliderFloat("znear", &(camera->znear), 0.0f, 10.0f);
-        ImGui::InputFloat3("Camera position", &cameraNode.translation.x);
-        ImGui::InputFloat3("Camera rotation", &cameraNode.rotation.x);
 
         ImGui::Text("IDX: Name");
         for (auto& node : sceneState.graph.nodes) {

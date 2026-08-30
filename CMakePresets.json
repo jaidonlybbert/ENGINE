@@ -17,6 +17,21 @@
         "CMAKE_CXX_STANDARD": "20",
         "CMAKE_CXX_STANDARD_REQUIRED": "True"
       }
+    },
+    {
+      "name": "gcc14-debug",
+      "displayName": "GCC 14 Debug",
+      "description": "Build using GCC 14",
+      "binaryDir": "${sourceDir}/build",
+      "environment": {
+        "CC": "gcc-14",
+        "CXX": "g++-14"
+      },
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "True"
+      }
     }
   ],
   "buildPresets": [
@@ -24,6 +39,12 @@
       "name": "default",
       "configurePreset": "default",
       "description": "Build using default preset",
+      "jobs": 8
+    },
+    {
+      "name": "gcc14-debug",
+      "configurePreset": "gcc14-debug",
+      "description": "Build using gcc14 preset",
       "jobs": 8
     }
   ]

@@ -1,11 +1,12 @@
 #pragma once
+#include <cassert>
 #include <functional>
-#include <iterator>
+#include <filesystem>
 #include <memory>
-#include <stack>
 #include <vector>
 
 #include "vulkan/vulkan_core.h"
+#include <glm/glm.hpp>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
@@ -13,7 +14,6 @@
 #include "renderer/vk/Command.hpp"
 #include "renderer/vk/Instance.hpp"
 #include "renderer/vk/Swapchain.hpp"
-#include "renderer/vk/pipelines/Pipeline.hpp"
 #include "renderer/vk/pipelines/PipelineFactoryI.hpp"
 #include "vk_mem_alloc.h"
 
@@ -140,11 +140,11 @@ class VkRenderer {
     void createDescriptorPool();
 
     VkWriteDescriptorSet createWriteDescriptorSet(const VkDescriptorSet descriptorSet,
-                                                  const VkDescriptorBufferInfo bufferInfo,
+                                                  const VkDescriptorBufferInfo& bufferInfo,
                                                   const VkDescriptorType descriptorType, const size_t bindingIdx);
 
     VkWriteDescriptorSet createWriteDescriptorSet(const VkDescriptorSet descriptorSet,
-                                                  const VkDescriptorImageInfo imageInfo,
+                                                  const VkDescriptorImageInfo& imageInfo,
                                                   const VkDescriptorType descriptorType, const size_t bindingIdx);
 
     void writeDescriptorSets(const std::vector<VkDescriptorSet>& descriptorSets, const std::string& shaderId,

@@ -87,7 +87,7 @@ Node& get_node_by_id(SceneGraph& sceneGraph, const size_t nodeId);
 
 struct SceneState {
     SceneGraph graph;
-    size_t activeCameraNodeIdx;
+    std::optional<size_t> activeCameraNodeIdx;
     int activeNodeIdx{0};
     uint32_t selectedWorldFace{0};
 
@@ -112,7 +112,6 @@ struct SceneState {
     }
 };
 
-Camera* get_active_camera(const SceneState& sceneState);
 Node* find_node_by_name(const SceneGraph& graph, const std::string& name);
 
 }  // namespace ENG

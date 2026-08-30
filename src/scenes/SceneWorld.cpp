@@ -227,7 +227,6 @@ void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAda
     sceneState.graph.root->name = "Root";
 
     load_gltf(ENG::get_gltf_dir(), sceneState, attachmentPoint);
-    auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx);
 
     const auto& meshName = std::string("Room");
     ENG::loadModel(meshName, ENG::get_room_obj(), ENG::get_room_tex(), sceneState, attachmentPoint);
@@ -270,10 +269,12 @@ void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAda
         tetrahedronNode->translation = glm::vec3(0., 1., 0.);
     }
 
-    auto* camera = cameraNode.camera;
-    camera->fovy = 1.;
-
-    cameraNode.translation = glm::vec3(0., 0., 8.);
+    if (sceneState.activeCameraNodeIdx.has_value() && sceneState.activeCameraNodeIdx.value() < sceneState.graph.nodes.size()) {
+        auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx.value());
+        auto* camera = dynamic_cast<ENG::Camera*>(cameraNode.camera);
+        camera->fovy = 1.;
+        cameraNode.translation = glm::vec3(0., 0., 8.);
+    }
 
     sceneState.activeNodeIdx = 3;
 }

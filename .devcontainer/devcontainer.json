@@ -1,6 +1,6 @@
 {
+  "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
   "name": "ENGINE Dev Container",
-  "dockerFile": "Dockerfile",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".",
