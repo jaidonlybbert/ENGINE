@@ -169,7 +169,8 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState) {
     auto aspect = 1.7;
     auto znear = 0.1;
     auto zfar = 100.0;
-    if (sceneState.activeCameraNodeIdx.has_value() && sceneState.activeCameraNodeIdx.value() < sceneState.graph.nodes.size()) {
+    if (sceneState.activeCameraNodeIdx.has_value() &&
+        sceneState.activeCameraNodeIdx.value() < sceneState.graph.nodes.size()) {
         const auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx.value());
         const auto* cameraPtr = dynamic_cast<ENG::Camera*>(cameraNode.camera);
         cam_pos = glm::vec3(sceneState.modelMatrices.at(cameraNode.nodeId)[3]);
@@ -181,7 +182,6 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState) {
         znear = cameraPtr->znear;
         zfar = cameraPtr->zfar;
     }
-
 
     ubo.view = glm::lookAt(cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(up));
     // const auto& cam_rot = camera_node.rotation;

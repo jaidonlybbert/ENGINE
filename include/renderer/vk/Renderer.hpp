@@ -1,12 +1,12 @@
 #pragma once
 #include <cassert>
-#include <functional>
 #include <filesystem>
+#include <functional>
+#include <glm/glm.hpp>
 #include <memory>
 #include <vector>
 
 #include "vulkan/vulkan_core.h"
-#include <glm/glm.hpp>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1

@@ -269,7 +269,8 @@ void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAda
         tetrahedronNode->translation = glm::vec3(0., 1., 0.);
     }
 
-    if (sceneState.activeCameraNodeIdx.has_value() && sceneState.activeCameraNodeIdx.value() < sceneState.graph.nodes.size()) {
+    if (sceneState.activeCameraNodeIdx.has_value() &&
+        sceneState.activeCameraNodeIdx.value() < sceneState.graph.nodes.size()) {
         auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx.value());
         auto* camera = dynamic_cast<ENG::Camera*>(cameraNode.camera);
         camera->fovy = 1.;
