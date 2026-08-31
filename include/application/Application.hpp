@@ -1,13 +1,10 @@
+#pragma once
+#include <asio/awaitable.hpp>
+#include <asio/io_context.hpp>
+#include <asio/signal_set.hpp>
 #include <functional>
-#include <iostream>
 #include <thread>
 #include <vector>
-
-#include "asio/co_spawn.hpp"
-#include "asio/detached.hpp"
-#include "asio/io_context.hpp"
-#include "asio/post.hpp"
-#include "asio/signal_set.hpp"
 
 class Application {
    public:

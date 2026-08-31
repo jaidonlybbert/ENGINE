@@ -1,17 +1,10 @@
 #pragma once
-#include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
 // Necessary definition for PMP header compilation
 #ifndef M_PI
 #define M_PI 3.1415926
 #endif
-#include "filesystem/FilesystemInterface.hpp"
-#include "logger/Logging.hpp"
-#include "pmp/algorithms/shapes.h"
-#include "pmp/algorithms/triangulation.h"
-#include "pmp/algorithms/utilities.h"
 #include "pmp/surface_mesh.h"
-#include "scene/Gltf.hpp"
 #include "scene/Obj.hpp"
 
 pmp::Point centroid(const pmp::SurfaceMesh& mesh, pmp::Face f);

@@ -1,13 +1,8 @@
 #include "scenes/ProceduralGeometry.hpp"
 
 #include "application/ConcurrentQueue.hpp"
-#include "filesystem/FilesystemInterface.hpp"
 #include "logger/Logging.hpp"
-#include "pmp/algorithms/shapes.h"
-#include "pmp/algorithms/triangulation.h"
-#include "pmp/algorithms/utilities.h"
 #include "pmp/surface_mesh.h"
-#include "scene/Gltf.hpp"
 #include "scene/Mesh.hpp"
 #include "scene/Obj.hpp"
 #include "scene/Scene.hpp"

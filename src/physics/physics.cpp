@@ -23,7 +23,6 @@
 // STL includes
 #include <cstdarg>
 #include <iostream>
-#include <thread>
 
 // ENGINE includes
 #include "logger/Logging.hpp"

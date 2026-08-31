@@ -21,12 +21,9 @@
 #include <asio/write.hpp>
 #include <cstdlib>
 #include <deque>
-#include <iostream>
-#include <list>
 #include <memory>
 #include <set>
 #include <string>
-#include <utility>
 
 using asio::awaitable;
 using asio::co_spawn;

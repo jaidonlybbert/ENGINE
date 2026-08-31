@@ -6,6 +6,7 @@
   "clangd.arguments": [
     "--compile-commands-dir=${workspaceFolder}/build",
     "--background-index",
-    "--clang-tidy"
+    "--clang-tidy",
+    "--query-driver=/usr/bin/c++,/usr/bin/g++*,/usr/bin/gcc*"
   ]
 }

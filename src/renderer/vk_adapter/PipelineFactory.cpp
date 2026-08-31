@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "renderer/vk/pipelines/Pipeline.hpp"
-#include "renderer/vk/pipelines/PipelineFactoryI.hpp"
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
 #include "renderer/vk_adapter/PipelinePosColTex.hpp"
 #include "vulkan/vulkan_core.h"

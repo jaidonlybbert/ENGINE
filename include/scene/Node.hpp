@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <vector>
 
 #include "renderer/vk_adapter/VkAdapter.hpp"
 

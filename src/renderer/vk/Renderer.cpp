@@ -1,20 +1,12 @@
 // stdlib includes
-#include <algorithm>
-#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <iterator>
-#include <limits>
-#include <locale>
 #include <optional>
-#include <queue>
-#include <random>
 #include <set>
-#include <stack>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -42,7 +34,6 @@
 // project includes
 #include "EngineConfig.hpp"
 #include "filesystem/FilesystemInterface.hpp"
-#include "gui/Gui.hpp"
 #include "logger/Logging.hpp"
 
 // renderer includes
@@ -56,7 +47,6 @@
 #include "renderer/vk/Swapchain.hpp"
 #include "renderer/vk/Utils.hpp"
 #include "renderer/vk/pipelines/PipelineFactoryI.hpp"
-#include "renderer/vk/pipelines/ShaderFactory.hpp"
 
 using namespace ENG;
 

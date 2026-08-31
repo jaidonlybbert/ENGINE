@@ -4,7 +4,6 @@
 #include <map>
 #include <vector>
 
-#include "renderer/vk/pipelines/PipelineUtils.hpp"
 #include "vulkan/vulkan_core.h"
 
 class ShaderFactory {

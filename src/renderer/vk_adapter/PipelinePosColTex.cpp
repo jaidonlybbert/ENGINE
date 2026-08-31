@@ -1,13 +1,13 @@
-#include "renderer/vk_adapter/PipelinePosColTex.hpp"
-
+#include <cassert>
 #include <array>
 #include <iostream>
 
 #include "logger/Logging.hpp"
 #include "renderer/vk/pipelines/Pipeline.hpp"
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
+#include "renderer/vk_adapter/PipelinePosColTex.hpp"
 #include "renderer/vk_adapter/MeshAdapter.hpp"
-#include "scene/Mesh.hpp"
+#include "scene/Primitives.hpp"
 
 namespace ENG {
 

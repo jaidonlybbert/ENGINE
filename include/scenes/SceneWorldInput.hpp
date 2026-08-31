@@ -1,5 +1,5 @@
+#pragma once
 #include "GLFW/glfw3.h"
-#include "scene/Scene.hpp"
 
 struct SceneWorldInput {
     static void set_callbacks();

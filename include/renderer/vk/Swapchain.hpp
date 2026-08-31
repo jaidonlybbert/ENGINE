@@ -1,12 +1,8 @@
 #ifndef ENG_SWAPCHAIN
 #define ENG_SWAPCHAIN
+#include <vector>
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
-
-#include <vector>
-
-#include "renderer/vk/Image.hpp"
-#include "renderer/vk/PhysicalDevice.hpp"
 
 namespace ENG {
 
