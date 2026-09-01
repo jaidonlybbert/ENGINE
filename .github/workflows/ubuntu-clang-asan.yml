@@ -58,7 +58,7 @@ jobs:
         env:
           CC: clang
           CXX: clang++
-        run: conan install . -pr:a Ubuntu-Clang-x86_64 --output-folder ${{github.workspace}} --build=missing
+        run: conan install . -pr:a Ubuntu-Clang-x86_64 -o joltphysics/*:rtti=True --output-folder ${{github.workspace}} --build=missing
 
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
