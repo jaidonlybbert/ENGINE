@@ -1,5 +1,5 @@
 #include "scenes/SceneWorld.hpp"
-#include "scene/Gltf.hpp"
+
 #include <pmp/algorithms/shapes.h>
 
 #include <optional>
@@ -9,6 +9,7 @@
 #include "filesystem/FilesystemInterface.hpp"
 #include "logger/Logging.hpp"
 #include "renderer/RenderAdapterI.hpp"
+#include "scene/Gltf.hpp"
 #include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
 #include "scenes/ProceduralGeometry.hpp"
