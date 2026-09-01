@@ -1,8 +1,8 @@
 #ifndef ENG_PIPELINE_FACTORY_DEF
 #define ENG_PIPELINE_FACTORY_DEF
+#include <map>
 #include <memory>
 #include <vector>
-#include <map>
 
 #include "renderer/vk/pipelines/Pipeline.hpp"
 #include "renderer/vk/pipelines/PipelineFactoryI.hpp"

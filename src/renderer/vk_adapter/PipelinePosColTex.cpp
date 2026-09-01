@@ -1,11 +1,12 @@
-#include <cassert>
+#include "renderer/vk_adapter/PipelinePosColTex.hpp"
+
 #include <array>
+#include <cassert>
 #include <iostream>
 
 #include "logger/Logging.hpp"
 #include "renderer/vk/pipelines/Pipeline.hpp"
 #include "renderer/vk/pipelines/ShaderFactory.hpp"
-#include "renderer/vk_adapter/PipelinePosColTex.hpp"
 #include "renderer/vk_adapter/MeshAdapter.hpp"
 #include "scene/Primitives.hpp"
 

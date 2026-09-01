@@ -1,10 +1,11 @@
+#include "scenes/SceneWorldInput.hpp"
+
 #include <iostream>
 
 #include "GLFW/glfw3.h"
 #include "events/Event.hpp"
 #include "hid/Input.hpp"
 #include "logger/Logging.hpp"
-#include "scenes/SceneWorldInput.hpp"
 
 void SceneWorldInput::set_callbacks() {
     InputCallbacks inputCallbacks;
