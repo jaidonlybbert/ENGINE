@@ -1,0 +1,82 @@
+name: Ubuntu-Clang-ASan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Debug
+  DISPLAY: ':99.0'
+  ASAN_OPTIONS: 'detect_leaks=1:symbolize=1:abort_on_error=1'
+  UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies (apt)
+        if: runner.os == 'Linux'
+        run: |
+          sudo add-apt-repository universe
+          sudo apt-get update
+          sudo apt-get install -y libwayland-dev xorg-dev clang llvm cmake
+
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install conan
+        run: |
+          python -m pip install conan
+
+      - name: Virtual X server
+        if: runner.os == 'Linux'
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
+      - name: Install Conan profile
+        run: conan config install ${{github.workspace}}/profiles/Ubuntu-GCC-x86_64 --type=file --target-folder=profiles
+
+      - name: Clear PKG_CONFIG_PATH
+        shell: bash
+        run: echo "PKG_CONFIG_PATH=" >> $GITHUB_ENV
+
+      - name: Install deps (Conan)
+        run: conan install . -pr:a Ubuntu-Clang-x86_64 --output-folder ${{github.workspace}} --build=missing
+
+      - name: Install Vulkan SDK
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.335.0
+          cache: true
+
+      - name: verify vulkan
+        run: ls ${VULKAN_SDK}
+
+      - name: CMake Configure & Build with ASan
+        run: |
+          cmake -B build -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
+            -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/conan_toolchain.cmake
+          cmake --build build --config Debug
+
+      - name: Run Tests / Application
+        run: |
+          ctest --test-dir build --output-on-failure
