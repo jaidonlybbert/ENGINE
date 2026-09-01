@@ -31,7 +31,7 @@ jobs:
         run: |
           sudo add-apt-repository universe
           sudo apt-get update
-          sudo apt-get install -y libwayland-dev xorg-dev clang llvm cmake
+          sudo apt-get install -y libwayland-dev xorg-dev clang llvm cmake ninja-build
 
       - name: Install python
         uses: actions/setup-python@v5
