@@ -48,7 +48,7 @@ jobs:
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
       - name: Install Conan profile
-        run: conan config install ${{github.workspace}}/profiles/Ubuntu-GCC-x86_64 --type=file --target-folder=profiles
+        run: conan config install ${{github.workspace}}/profiles/Ubuntu-Clang-x86_64 --type=file --target-folder=profiles
 
       - name: Clear PKG_CONFIG_PATH
         shell: bash
