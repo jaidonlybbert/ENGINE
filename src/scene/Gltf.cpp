@@ -2,9 +2,7 @@
 
 #include "filesystem/FilesystemInterface.hpp"
 #include "logger/Logging.hpp"
-#include "renderer/vk_adapter/VkAdapter.hpp"
 #include "scene/Mesh.hpp"
-#include "vulkan/vulkan.h"
 
 namespace ENG {
 

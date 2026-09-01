@@ -1,8 +1,8 @@
 #pragma once
+#include <vulkan/vulkan_core.h>
+
 #include <string>
 #include <vector>
-
-#include "renderer/vk/pipelines/Pipeline.hpp"
 
 class PipelineFactoryI {
    public:

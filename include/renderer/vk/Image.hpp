@@ -1,9 +1,8 @@
 #ifndef ENG_IMAGE
 #define ENG_IMAGE
-#include <stdexcept>
 #include <vector>
 
-#include "vulkan/vulkan.h"
+#include "vulkan/vulkan_core.h"
 
 namespace ENG {
 class Device;

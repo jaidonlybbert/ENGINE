@@ -1,5 +1,6 @@
 #pragma once
-#include "nlohmann/json.hpp"
+#include <nlohmann/detail/macro_scope.hpp>
+#include <nlohmann/detail/meta/type_traits.hpp>
 
 enum EventType : uint32_t {
     CLIENT_HID_EVENT,

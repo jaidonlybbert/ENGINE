@@ -1,6 +1,7 @@
 #ifndef VK_ADAPTER_HPP
 #define VK_ADAPTER_HPP
 #include "application/ConcurrentQueue.hpp"
+#include "logger/Logging.hpp"
 #include "renderer/RenderAdapterI.hpp"
 #include "renderer/vk/Renderer.hpp"
 #include "scene/Scene.hpp"

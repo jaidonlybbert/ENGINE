@@ -1,9 +1,9 @@
 #ifndef ENG_GLTF
 #define ENG_GLTF
-#include <filesystem>
-#include <optional>
+#include <vulkan/vulkan_core.h>
 
-#include "scene/Mesh.hpp"
+#include <filesystem>
+
 #include "scene/Scene.hpp"
 #include "tiny_gltf.h"
 

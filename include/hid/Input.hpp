@@ -1,3 +1,5 @@
+#pragma once
+
 #include <deque>
 
 #include "GLFW/glfw3.h"

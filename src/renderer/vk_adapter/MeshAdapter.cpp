@@ -2,8 +2,6 @@
 
 #include <vector>
 
-#include "logger/Logging.hpp"
-#include "scene/Mesh.hpp"
 #include "scene/Primitives.hpp"
 #include "vulkan/vulkan_core.h"
 

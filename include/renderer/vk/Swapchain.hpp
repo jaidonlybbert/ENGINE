@@ -5,9 +5,6 @@
 
 #include <vector>
 
-#include "renderer/vk/Image.hpp"
-#include "renderer/vk/PhysicalDevice.hpp"
-
 namespace ENG {
 
 class Swapchain {

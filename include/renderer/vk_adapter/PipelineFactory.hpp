@@ -1,11 +1,11 @@
 #ifndef ENG_PIPELINE_FACTORY_DEF
 #define ENG_PIPELINE_FACTORY_DEF
+#include <map>
 #include <memory>
 #include <vector>
 
 #include "renderer/vk/pipelines/Pipeline.hpp"
 #include "renderer/vk/pipelines/PipelineFactoryI.hpp"
-#include "renderer/vk/pipelines/ShaderFactory.hpp"
 #include "vulkan/vulkan_core.h"
 
 namespace ENG {

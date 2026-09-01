@@ -4,6 +4,7 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "vulkan/vulkan_core.h"

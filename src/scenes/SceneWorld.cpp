@@ -1,11 +1,15 @@
 #include "scenes/SceneWorld.hpp"
 
+#include <pmp/algorithms/shapes.h>
+
 #include <optional>
 #include <stack>
 
 #include "application/ConcurrentQueue.hpp"
 #include "filesystem/FilesystemInterface.hpp"
+#include "logger/Logging.hpp"
 #include "renderer/RenderAdapterI.hpp"
+#include "scene/Gltf.hpp"
 #include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
 #include "scenes/ProceduralGeometry.hpp"

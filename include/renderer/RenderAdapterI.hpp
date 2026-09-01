@@ -1,8 +1,5 @@
 #pragma once
-#include <memory>
-
 #include "application/ConcurrentQueue.hpp"
-#include "logger/Logging.hpp"
 #include "scene/Mesh.hpp"
 
 class RenderAdapterI {

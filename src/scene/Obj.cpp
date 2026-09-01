@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "filesystem/FilesystemInterface.hpp"
+#include "logger/Logging.hpp"
 #include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
 #include "tiny_obj_loader.h"

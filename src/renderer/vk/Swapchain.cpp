@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <limits>
+#include <stdexcept>
 
 #include "renderer/vk/Image.hpp"
 #include "renderer/vk/PhysicalDevice.hpp"
