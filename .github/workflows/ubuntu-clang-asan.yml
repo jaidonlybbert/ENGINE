@@ -71,13 +71,20 @@ jobs:
 
       - name: CMake Configure & Build with ASan
         run: |
-          cmake -B build -G "Ninja" \
+          # 1. Find where Conan generated the toolchain file
+          TOOLCHAIN_PATH=$(find ${{github.workspace}} -name "conan_toolchain.cmake" | head -n 1)
+          echo "Found toolchain at: ${TOOLCHAIN_PATH}"
+
+          # 2. Configure using explicit toolchain path
+          cmake -B build \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_PATH}" \
             -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
-            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
-            -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/conan_toolchain.cmake
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+          # 3. Build using default generator (Unix Makefiles / Ninja)
           cmake --build build --config Debug
 
       - name: Run Tests / Application
