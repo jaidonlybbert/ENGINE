@@ -60,7 +60,8 @@ void SceneGui::drawGui(ENG::SceneState& sceneState) {
                 throw(std::runtime_error("Camera is nullptr!"));
             }
 
-            ImGui::SliderFloat("Aspect", &(camera->aspect), 0.0f, 10.0f);
+            // Aspect ratio is derived from the framebuffer size at render time (issue #9),
+            // so it is not exposed as a camera control here.
             ImGui::SliderFloat("Fovy", &(camera->fovy), 0.0f, 1.0f);
             ImGui::SliderFloat("zfar", &(camera->zfar), 0.0f, 100.0f);
             ImGui::SliderFloat("znear", &(camera->znear), 0.0f, 10.0f);

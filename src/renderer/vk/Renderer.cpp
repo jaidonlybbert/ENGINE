@@ -278,7 +278,7 @@ void VkRenderer::registerCommandRecorder(std::function<void(VkCommandBuffer)> co
     commandRecorders.push_back(commandRecorder);
 }
 
-void VkRenderer::registerUniformBufferProducer(std::function<UniformBufferObject()> producer) {
+void VkRenderer::registerUniformBufferProducer(std::function<UniformBufferObject(float)> producer) {
     uniformBufferProducer = producer;
 }
 
@@ -319,7 +319,12 @@ void VkRenderer::drawFrame() {
     if (sceneReadyToRender) {
         assert(uniformBufferProducer);
         assert(modelMatrixBufferUpdateFunction);
-        const auto& ubo = uniformBufferProducer();
+        const float aspectRatio =
+            swapchain->swapChainExtent.height == 0
+                ? 1.0f
+                : static_cast<float>(swapchain->swapChainExtent.width) /
+                      static_cast<float>(swapchain->swapChainExtent.height);
+        const auto& ubo = uniformBufferProducer(aspectRatio);
         notifyUboConsumers(ubo);
         copyUniformBufferToGpu(currentFrame, ubo);
         copyModelMatrixBufferToGpu(modelMatrixBufferUpdateFunction());

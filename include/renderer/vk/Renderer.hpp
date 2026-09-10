@@ -104,7 +104,9 @@ class VkRenderer {
     std::vector<std::function<void(void)>> initializationFunctions;
     std::vector<std::function<void(void)>> cleanupFunctions;
     std::vector<std::function<void(void)>> renderStateUpdaters;
-    std::function<UniformBufferObject(void)> uniformBufferProducer;
+    // The argument is the current framebuffer aspect ratio (width / height), so the
+    // producer can build a projection matrix that matches the live window size.
+    std::function<UniformBufferObject(float)> uniformBufferProducer;
     std::vector<std::function<void(const UniformBufferObject&)>> uniformBufferConsumers;
     std::function<std::vector<glm::mat4>&(void)> modelMatrixBufferUpdateFunction;
 
@@ -129,7 +131,7 @@ class VkRenderer {
     /// </summary>
     void createModelMatrices(const size_t size_bytes);
 
-    void registerUniformBufferProducer(std::function<UniformBufferObject(void)> producer);
+    void registerUniformBufferProducer(std::function<UniformBufferObject(float)> producer);
     void registerUniformBufferConsumer(std::function<void(const UniformBufferObject&)> consumer);
     void notifyUboConsumers(const UniformBufferObject& ubo);
 
