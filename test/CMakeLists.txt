@@ -5,6 +5,7 @@ enable_testing()
 add_executable(
 	engine_test
 	test_main.cpp
+	logger/LoggingTest.cpp
 )
 
 # Because apple immediately kills unsigned executables
@@ -18,6 +19,7 @@ endif()
 target_link_libraries(
 	engine_test
 	GTest::gtest_main
+	engine::logger
 )
 
 include(GoogleTest)
