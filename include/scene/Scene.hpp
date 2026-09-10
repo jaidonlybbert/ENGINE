@@ -21,12 +21,16 @@ class Camera {
    public:
     Camera(const tinygltf::Camera& camera) {
         fovy = static_cast<float>(camera.perspective.yfov);
-        aspect = static_cast<float>(camera.perspective.aspectRatio);
         znear = static_cast<float>(camera.perspective.znear);
         zfar = static_cast<float>(camera.perspective.zfar);
     }
     float fovy{0.f};
-    float aspect{0.f};
+    // Manual multiplier applied on top of the live framebuffer aspect ratio. 1.0 leaves the
+    // framebuffer ratio untouched (no stretching when the window is resized); other values
+    // intentionally stretch (>1) or squash (<1) the rendered geometry horizontally.
+    // The glTF-authored perspective.aspectRatio is a viewport hint and is intentionally not
+    // used here - the actual framebuffer dimensions drive the base ratio.
+    float aspectRatioScale{1.f};
     float znear{0.f};
     float zfar{0.f};
 };

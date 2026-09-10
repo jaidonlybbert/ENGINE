@@ -158,7 +158,7 @@ void profilerMarkStop(const std::string& name) {
 #endif
 }
 
-UniformBufferObject createUniformBufferObject(const SceneState& sceneState) {
+UniformBufferObject createUniformBufferObject(const SceneState& sceneState, float aspectRatio) {
     UniformBufferObject ubo{};
 
     // use default camera values if no camera is active
@@ -166,7 +166,12 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState) {
     glm::vec3 up = glm::vec4(0, 1, 0, 0);
     glm::vec3 right = glm::vec4(1, 0, 0, 0);
     auto fovy = 1.0;
-    auto aspect = 1.7;
+    // The projection aspect ratio is the live framebuffer ratio (width / height) scaled by
+    // the camera's manual aspect scale. A scale of 1.0 keeps the framebuffer ratio, so the
+    // scene is not stretched when the window is resized; instead a wider/narrower window
+    // reveals more/less of the scene around the camera's focus (issue #9). Other scale
+    // values intentionally stretch or squash the geometry horizontally.
+    auto aspectScale = 1.0;
     auto znear = 0.1;
     auto zfar = 100.0;
     if (sceneState.activeCameraNodeIdx.has_value() &&
@@ -178,10 +183,12 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState) {
         up = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(0., 1., 0., 0.);
         right = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(1., 0., 0., 0.);
         fovy = cameraPtr->fovy;
-        aspect = cameraPtr->aspect;
+        aspectScale = cameraPtr->aspectRatioScale;
         znear = cameraPtr->znear;
         zfar = cameraPtr->zfar;
     }
+
+    const auto aspect = static_cast<double>(aspectRatio) * aspectScale;
 
     ubo.view = glm::lookAt(cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(up));
     // const auto& cam_rot = camera_node.rotation;
@@ -469,8 +476,9 @@ int main() {
         renderer.registerCommandRecorder([&renderAdapter, &renderer, &sceneState](VkCommandBuffer commandBuffer) {
             renderAdapter.recordCommandsForSceneGraph2(renderer, commandBuffer, sceneState);
         });
-        renderer.registerUniformBufferProducer(
-            [&sceneState]() -> UniformBufferObject { return createUniformBufferObject(sceneState); });
+        renderer.registerUniformBufferProducer([&sceneState](float aspectRatio) -> UniformBufferObject {
+            return createUniformBufferObject(sceneState, aspectRatio);
+        });
         renderer.registerModelMatrixBufferUpdateFunction([&sceneState]() -> std::vector<glm::mat4>& {
             updateModelMatrices(sceneState);
             return sceneState.modelMatrices;

@@ -1,5 +1,9 @@
 #include "scenes/SceneWorld.hpp"
 
+// Necessary definition for PMP header compilation
+#ifndef M_PI
+#define M_PI 3.1415926
+#endif
 #include <pmp/algorithms/shapes.h>
 
 #include <optional>
