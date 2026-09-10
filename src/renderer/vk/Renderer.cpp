@@ -319,11 +319,11 @@ void VkRenderer::drawFrame() {
     if (sceneReadyToRender) {
         assert(uniformBufferProducer);
         assert(modelMatrixBufferUpdateFunction);
-        const float aspectRatio =
-            swapchain->swapChainExtent.height == 0
-                ? 1.0f
-                : static_cast<float>(swapchain->swapChainExtent.width) /
-                      static_cast<float>(swapchain->swapChainExtent.height);
+        const VkExtent2D& extent = swapchain->swapChainExtent;
+        float aspectRatio = 1.0f;
+        if (extent.height != 0) {
+            aspectRatio = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+        }
         const auto& ubo = uniformBufferProducer(aspectRatio);
         notifyUboConsumers(ubo);
         copyUniformBufferToGpu(currentFrame, ubo);
