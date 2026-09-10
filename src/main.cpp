@@ -430,6 +430,7 @@ void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData
 
 int main() {
     try {
+        ENG::log::init();
         ENG_LOG_TRACE("Starting app" << std::endl);
 
         WindowUserData windowUserData;

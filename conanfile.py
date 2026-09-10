@@ -20,6 +20,7 @@ class EngineRecipe(ConanFile):
         "vulkan-memory-allocator/3.3.0",
         "joltphysics/5.2.0",
         "gtest/1.17.0",
+        "spdlog/1.15.3",
     )
 
     if platform.platform() == "Windows":

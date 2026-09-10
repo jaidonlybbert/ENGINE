@@ -75,6 +75,7 @@ find_package(asio REQUIRED)
 find_package(VulkanMemoryAllocator REQUIRED)
 find_package(Jolt REQUIRED)
 find_package(GTest REQUIRED)
+find_package(spdlog REQUIRED)
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/include")
 add_subdirectory("${PROJECT_SOURCE_DIR}/third_party")
