@@ -13,6 +13,7 @@
 #endif
 
 #include "application/Application.hpp"
+#include "config/RuntimeConfig.hpp"
 #include "events/Event.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "gui/Gui.hpp"
@@ -132,10 +133,11 @@ void consumeClientEvent() {
     dispatchEventFromClient(serializedEvent);
 }
 
-void initWindow(VkRenderer& app, WindowUserData& windowUserData) {
+void initWindow(VkRenderer& app, WindowUserData& windowUserData, const ENG::RuntimeConfig& config) {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    app.window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+    app.window = glfwCreateWindow(static_cast<int>(config.windowWidth), static_cast<int>(config.windowHeight), "Vulkan",
+                                  nullptr, nullptr);
     glfwSetWindowUserPointer(app.window, &windowUserData);
     glfwSetFramebufferSizeCallback(app.window, InputController::framebufferResizeCallback);
     glfwGetCursorPos(app.window, &windowUserData.cursorXScreenCoords, &windowUserData.cursorYScreenCoords);
@@ -428,17 +430,19 @@ void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData
     vkDeviceWaitIdle(renderer.device);
 }
 
-int main() {
+int main(int argc, char** argv) {
     try {
         ENG::log::init();
         ENG_LOG_TRACE("Starting app" << std::endl);
+
+        const ENG::RuntimeConfig runtimeConfig = ENG::load_runtime_config(argc, argv);
 
         WindowUserData windowUserData;
         auto pipelineFactory = PipelineFactory();
 
         VkRenderer renderer{
             windowUserData.windowResized,
-            {[&renderer, &windowUserData]() { initWindow(renderer, windowUserData); },
+            {[&renderer, &windowUserData, &runtimeConfig]() { initWindow(renderer, windowUserData, runtimeConfig); },
              [&renderer]() { renderer.initVulkan(); }, [&renderer]() { renderer.initGui(); }, []() { initLua(); }},
             {[]() { lua_close(luaState); }, [&renderer]() { renderer.cleanupGui(); },
              [&renderer]() { renderer.cleanupVulkan(); }, [&renderer]() { renderer.cleanupWindow(); }},
