@@ -71,9 +71,10 @@ TEST(LoggingTest, StreamingSyntaxIsConcatenated) {
     EXPECT_EQ(capture.str(), "file:42 boom\n");
 }
 
-TEST(LoggingTest, TrailingNewlineFromEndlIsTrimmed) {
+TEST(LoggingTest, EndlIsPassedThroughVerbatim) {
     LogCapture capture;
     ENG_LOG_ERROR("msg" << std::endl);
-    // The std::endl newline is stripped; spdlog still appends exactly one line ending.
-    EXPECT_EQ(capture.str(), "msg\n");
+    // The logged message is used as-is, so a call site's own std::endl newline plus
+    // spdlog's own line ending results in two newlines.
+    EXPECT_EQ(capture.str(), "msg\n\n");
 }
