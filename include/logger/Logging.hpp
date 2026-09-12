@@ -20,6 +20,7 @@ inline void init() {
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
     // Leave runtime filtering to the compile-time ENG_LOG_LEVEL gate below.
     spdlog::set_level(spdlog::level::trace);
+    spdlog::flush_on(spdlog::level::trace);
 }
 
 namespace detail {

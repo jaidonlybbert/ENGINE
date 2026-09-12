@@ -60,7 +60,7 @@ void SceneGui::drawGui(ENG::SceneState& sceneState) {
                 throw(std::runtime_error("Camera is nullptr!"));
             }
 
-            // The base aspect ratio follows the framebuffer size (issue #9); this scale is a
+            // The base aspect ratio follows the framebuffer size; this scale is a
             // manual multiplier on top of it. 1.0 = no stretching.
             ImGui::SliderFloat("Aspect scale", &(camera->aspectRatioScale), 0.1f, 10.0f);
             ImGui::SliderFloat("Fovy", &(camera->fovy), 0.0f, 1.0f);

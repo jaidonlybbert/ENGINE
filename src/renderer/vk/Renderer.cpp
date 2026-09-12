@@ -199,6 +199,7 @@ void VkRenderer::initVulkan() {
     createDescriptorPool();
     commands->createCommandBuffers(device);
     createSyncObjects();
+    recalculateAspectRatio();
 }
 
 VkShaderModule VkRenderer::createShaderModule(const std::vector<char>& code) {
@@ -296,6 +297,13 @@ void VkRenderer::registerModelMatrixBufferUpdateFunction(std::function<std::vect
     modelMatrixBufferUpdateFunction = updateFun;
 }
 
+void VkRenderer::recalculateAspectRatio() {
+	const VkExtent2D& extent = swapchain->swapChainExtent;
+	if (extent.height != 0) {
+		aspectRatio = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+	}
+}
+
 void VkRenderer::drawFrame() {
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     uint32_t imageIndex;
@@ -306,6 +314,7 @@ void VkRenderer::drawFrame() {
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
         recreateRenderFinishedSemaphores();
+        recalculateAspectRatio();
         return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("failed to acquire swap chain image!");
@@ -319,11 +328,6 @@ void VkRenderer::drawFrame() {
     if (sceneReadyToRender) {
         assert(uniformBufferProducer);
         assert(modelMatrixBufferUpdateFunction);
-        const VkExtent2D& extent = swapchain->swapChainExtent;
-        float aspectRatio = 1.0f;
-        if (extent.height != 0) {
-            aspectRatio = static_cast<float>(extent.width) / static_cast<float>(extent.height);
-        }
         const auto& ubo = uniformBufferProducer(aspectRatio);
         notifyUboConsumers(ubo);
         copyUniformBufferToGpu(currentFrame, ubo);
@@ -369,6 +373,7 @@ void VkRenderer::drawFrame() {
         framebufferResized = false;
         swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
         recreateRenderFinishedSemaphores();
+        recalculateAspectRatio();
     } else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");
     }

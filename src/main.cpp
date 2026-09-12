@@ -171,7 +171,7 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState, floa
     // The projection aspect ratio is the live framebuffer ratio (width / height) scaled by
     // the camera's manual aspect scale. A scale of 1.0 keeps the framebuffer ratio, so the
     // scene is not stretched when the window is resized; instead a wider/narrower window
-    // reveals more/less of the scene around the camera's focus (issue #9). Other scale
+    // reveals more/less of the scene around the camera's focus. Other scale
     // values intentionally stretch or squash the geometry horizontally.
     auto aspectScale = 1.0;
     auto znear = 0.1;
