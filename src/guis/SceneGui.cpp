@@ -7,14 +7,14 @@
 #include "scene/DFT.hpp"
 #include "scene/Scene.hpp"
 
-void SceneGui::MySaveFunction() { ENG_LOG_DEBUG("Save function call" << std::endl); }
+void SceneGui::MySaveFunction() { ENG_LOG_DEBUG("Save function call"); }
 
 void SceneGui::DrawNodeTree(ENG::Node* node) {
     if (ImGui::TreeNode(node->name.c_str())) {
         ImGui::Text("Properties");
 
         if (ImGui::Checkbox("Visible", &node->visible)) {
-            ENG_LOG_DEBUG("Visible checked" << std::endl);
+            ENG_LOG_DEBUG("Visible checked");
 
             // Set visibility of all children
             for (auto* child : DFTraversal(node)) {

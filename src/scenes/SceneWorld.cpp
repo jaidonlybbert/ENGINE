@@ -38,7 +38,7 @@ void create_world_polyhedra(ENG::SceneState& sceneState) {
         auto facecount = static_cast<uint32_t>(0);
         for (auto f : mesh.faces()) {
             faceId[f] = facecount++;
-            ENG_LOG_TRACE("PRE TRIANGULARIZATION FACEID: " << faceId[f] << std::endl);
+            ENG_LOG_TRACE("PRE TRIANGULARIZATION FACEID: " << faceId[f]);
         }
 
         const auto& UNVISITED = 0;
@@ -89,7 +89,7 @@ void create_world_polyhedra(ENG::SceneState& sceneState) {
             landStack.push({start_h, h});
             while (!landStack.empty()) {
                 auto f = mesh.face(mesh.opposite_halfedge(h));  // opposite face from current h
-                ENG_LOG_TRACE("At iteration " << i++ << " face is " << climate[f.idx()] << std::endl);
+                ENG_LOG_TRACE("At iteration " << i++ << " face is " << climate[f.idx()]);
 
                 // If previously visited, simply iterate the halfedge, and re-evaluate next iteration
                 if (climate[f.idx()] == OCEAN || climate[f.idx()] == LAND) {
@@ -101,7 +101,7 @@ void create_world_polyhedra(ENG::SceneState& sceneState) {
                     if (randFloatDistribution(sceneState.randomizer) < continentGrowthFactor) {
                         climate[f.idx()] = LAND;
                         landStack.push({start_h, h});
-                        ENG_LOG_TRACE("PUSH: " << h.idx() << std::endl);
+                        ENG_LOG_TRACE("PUSH: " << h.idx());
                         start_h = mesh.opposite_halfedge(h);
                         h = start_h;
                         continue;
@@ -117,7 +117,7 @@ void create_world_polyhedra(ENG::SceneState& sceneState) {
                     landStack.pop();
                     start_h = context.start;
                     h = context.current;
-                    ENG_LOG_TRACE("POP: " << h.idx() << std::endl);
+                    ENG_LOG_TRACE("POP: " << h.idx());
                 }
             }
         }
@@ -246,7 +246,7 @@ void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAda
     // const auto suzanneNodeIdx = find_node_by_name(sceneState.graph, "Suzanne")->nodeId;
     // addBoundingBoxChild(suzanneNodeIdx, renderer, "SuzanneBoundingBox", sceneState);
 
-    ENG_LOG_TRACE("Creating tetrahedron2" << std::endl);
+    ENG_LOG_TRACE("Creating tetrahedron2");
     create_tetrahedron_no_pmp(sceneState, "Tetrahedron");
 
     // sends object data to graphics queue for rendering
@@ -256,9 +256,9 @@ void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAda
 
     renderAdapter.draw(sceneState.hostMeshDataBindQueue);
 
-    ENG_LOG_TRACE("Finished loading data" << std::endl);
+    ENG_LOG_TRACE("Finished loading data");
 
-    ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node) << std::endl);
+    ENG_LOG_DEBUG("Size of NODE (bytes): " << sizeof(ENG::Node));
 
     // custom settings overrides
     auto* roomNode = find_node_by_name(sceneState.graph, "Room-0");

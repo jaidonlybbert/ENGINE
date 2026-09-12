@@ -139,14 +139,13 @@ class VkAdapter : public RenderAdapterI {
                                      : nullptr;
 
         if (!vertexData) {
-            ENG_LOG_ERROR("Vertex data is null!" << std::endl);
+            ENG_LOG_ERROR("Vertex data is null!");
             return {};
         }
 
         VkDeviceSize indexSize = sizeof(uint32_t) * indices.size();
 
-        ENG_LOG_DEBUG("Binding vertex and index buffers of size: (" << vertexSize << "," << indexSize << ")"
-                                                                    << std::endl);
+        ENG_LOG_DEBUG("Binding vertex and index buffers of size: (" << vertexSize << "," << indexSize << ")");
 
         VkBufferCreateInfo vbInfo{};
         vbInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -218,24 +217,23 @@ class VkAdapter : public RenderAdapterI {
         auto& drawData{drawDataBuffer.at(drawDataIdx)};
 
         if (!drawData.bufferAllocationInfo.has_value()) {
-            ENG_LOG_ERROR("Attempted to create descriptor sets for draw data with no DrawDataBufferAllocationInfo"
-                          << std::endl);
+            ENG_LOG_ERROR("Attempted to create descriptor sets for draw data with no DrawDataBufferAllocationInfo");
             return;
         }
 
         if (!drawData.nodeId.has_value()) {
-            ENG_LOG_ERROR("Attempted to create descriptor set for DrawData with no nodeId" << std::endl);
+            ENG_LOG_ERROR("Attempted to create descriptor set for DrawData with no nodeId");
             return;
         }
 
         const auto& bufferAllocationInfo = drawData.bufferAllocationInfo.value();
 
         if (!node.shaderId.has_value()) {
-            ENG_LOG_ERROR("Attempted to create descriptor set for DrawData with no shaderId" << std::endl);
+            ENG_LOG_ERROR("Attempted to create descriptor set for DrawData with no shaderId");
             return;
         }
 
-        ENG_LOG_DEBUG("Writing descriptor sets for: " << node.name << std::endl);
+        ENG_LOG_DEBUG("Writing descriptor sets for: " << node.name);
 
         drawData.descriptorSets = std::vector<VkDescriptorSet>{};
         assert(drawData.descriptorSets.has_value());
@@ -270,7 +268,7 @@ class VkAdapter : public RenderAdapterI {
     DrawData getDrawDataFromIdx(uint32_t idx) {
         if (idx >= drawDataBuffer.size()) {
             ENG_LOG_ERROR("Attempted to access drawData at idx: " << idx << " but the buffer is only of length: "
-                                                                  << drawDataBuffer.size() << std::endl);
+                                                                  << drawDataBuffer.size());
             return {};
         }
         return drawDataBuffer.at(idx);

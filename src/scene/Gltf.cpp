@@ -42,17 +42,17 @@ bool load_gltf_model(const std::filesystem::path gltf_path, tinygltf::Model& mod
     bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, gltf_path.string());
 
     if (!warn.empty()) {
-        ENG_LOG_ERROR("Warn: " << warn.c_str() << std::endl);
+        ENG_LOG_ERROR("Warn: " << warn.c_str());
     }
 
     if (!err.empty()) {
-        ENG_LOG_ERROR("Err: " << err.c_str() << std::endl);
+        ENG_LOG_ERROR("Err: " << err.c_str());
     }
 
     if (!ret) {
-        ENG_LOG_ERROR("Failed to parse glTF" << std::endl);
+        ENG_LOG_ERROR("Failed to parse glTF");
     } else {
-        ENG_LOG_DEBUG("Load glTF successful" << std::endl);
+        ENG_LOG_DEBUG("Load glTF successful");
     }
 
     return ret;
@@ -115,7 +115,7 @@ void get_vertex_and_index_buffer(const tinygltf::Primitive& primitive, const tin
 
 void get_vertex_and_index_buffer(const tinygltf::Primitive& primitive, const tinygltf::Model& model,
                                  std::vector<VertexPosColTex>& vertices, std::vector<uint32_t>& indices) {
-    ENG_LOG_DEBUG("debug PosColTex mesh entry" << std::endl);
+    ENG_LOG_DEBUG("debug PosColTex mesh entry");
 
     const auto& pos_acc = model.accessors[primitive.attributes.at("POSITION")];
     const auto& col_acc = model.accessors[primitive.attributes.at("COLOR0")];
@@ -148,7 +148,7 @@ void get_vertex_and_index_buffer(const tinygltf::Primitive& primitive, const tin
     assert(num_elements == tex_bv.byteLength / tex_size);
     assert(num_elements == ind_bv.byteLength / ind_size);
 
-    ENG_LOG_DEBUG("Debug posCoTex pos1 " << std::endl);
+    ENG_LOG_DEBUG("Debug posCoTex pos1 ");
     vertices.resize(num_elements);
     indices.resize(num_indices);
     for (size_t i = 0; i < num_elements; ++i) {
@@ -167,7 +167,7 @@ void get_vertex_and_index_buffer(const tinygltf::Primitive& primitive, const tin
         indices[i] = static_cast<uint32_t>(ind_buff.data[ind_bv.byteOffset + i * ind_size]);
     }
 
-    ENG_LOG_DEBUG("Debug posCoTex pos2" << std::endl);
+    ENG_LOG_DEBUG("Debug posCoTex pos2");
 }
 
 void load_gltf_mesh_attributes(SceneState& sceneState, const tinygltf::Model& model,
@@ -202,9 +202,9 @@ void load_gltf_node(const tinygltf::Node& node, SceneState& sceneState, ENG::Nod
     if (node.camera != -1) {
         auto* new_cam = &sceneState.graph.cameras.emplace_back(model.cameras.at(node.camera));
         eng_node.camera = new_cam;
-        ENG_LOG_TRACE("Set camera on node with name: " << eng_node.name << std::endl);
-        ENG_LOG_TRACE("Camera address: " << eng_node.camera << std::endl);
-        ENG_LOG_TRACE("Cameras vec address: " << &sceneState.graph.cameras << std::endl);
+        ENG_LOG_TRACE("Set camera on node with name: " << eng_node.name);
+        ENG_LOG_TRACE("Camera address: " << eng_node.camera);
+        ENG_LOG_TRACE("Cameras vec address: " << &sceneState.graph.cameras);
     }
 
     if (node.mesh < 0) return;
@@ -225,7 +225,7 @@ bool load_gltf(const std::filesystem::path gltf_path, SceneState& sceneState, No
     // the number of nodes loaded before this function is called
     const auto& nodeOffset = sceneState.graph.nodes.size();
 
-    ENG_LOG_DEBUG("Nodes found:" << std::endl);
+    ENG_LOG_DEBUG("Nodes found:");
     for (const auto& node : model.nodes) {
         auto& newNode = sceneState.graph.create_node();
         // Default to adding node as child of root
@@ -233,10 +233,10 @@ bool load_gltf(const std::filesystem::path gltf_path, SceneState& sceneState, No
         newNode.name = node.name;
         newNode.parent = &attachmentPoint;
 
-        ENG_LOG_DEBUG("\t" << node.name << "\t" << newNode.nodeId << std::endl);
+        ENG_LOG_DEBUG("\t" << node.name << "\t" << newNode.nodeId);
         if (node.name == "main_camera") {
             sceneState.activeCameraNodeIdx = newNode.nodeId;
-            ENG_LOG_DEBUG("Camera node set with idx: " << newNode.nodeId << std::endl);
+            ENG_LOG_DEBUG("Camera node set with idx: " << newNode.nodeId);
         }
 
         load_gltf_node(node, sceneState, newNode, model);

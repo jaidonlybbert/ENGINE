@@ -112,7 +112,7 @@ void Application::shutdown() {
         try {
             lst();
         } catch (std::exception& e) {
-            ENG_LOG_ERROR("Exception in shutdown listener: " << e.what() << std::endl);
+            ENG_LOG_ERROR("Exception in shutdown listener: " << e.what());
         }
     }
 
@@ -120,7 +120,7 @@ void Application::shutdown() {
         try {
             io_ctx.stop();
         } catch (std::exception& e) {
-            ENG_LOG_ERROR("Exeption in io_ctx.stop(): " << e.what() << std::endl);
+            ENG_LOG_ERROR("Exeption in io_ctx.stop(): " << e.what());
         }
     }
 
@@ -129,7 +129,7 @@ void Application::shutdown() {
             try {
                 thd.join();
             } catch (std::exception& e) {
-                ENG_LOG_ERROR("Exception calling join on a thread: " << e.what() << std::endl);
+                ENG_LOG_ERROR("Exception calling join on a thread: " << e.what());
             }
         }
     }
@@ -145,7 +145,7 @@ void Application::printRecordedExceptions(std::vector<std::exception_ptr> errs, 
             try {
                 std::rethrow_exception(err);
             } catch (std::exception& e) {
-                ENG_LOG_ERROR("Exception was recorded in " << category << " thread: " << e.what() << std::endl);
+                ENG_LOG_ERROR("Exception was recorded in " << category << " thread: " << e.what());
             }
         }
     }

@@ -18,7 +18,7 @@ Buffer::Buffer(const VkDevice& device, const VkPhysicalDevice& physicalDevice, c
 }
 
 Buffer::~Buffer() {
-    ENG_LOG_TRACE("Buffer destruction! at address " << &buffer << std::endl);
+    ENG_LOG_TRACE("Buffer destruction! at address " << &buffer);
     vkDestroyBuffer(device, buffer, nullptr);
     vkFreeMemory(device, bufferMemory, nullptr);
 }

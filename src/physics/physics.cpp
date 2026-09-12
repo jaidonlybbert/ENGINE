@@ -59,8 +59,7 @@ static void TraceImpl(const char* inFMT, ...) {
 // Callback for asserts, connect this to your own assert handler if you have one
 static bool AssertFailedImpl(const char* inExpression, const char* inMessage, const char* inFile, uint inLine) {
     // Print to the TTY
-    ENG_LOG_ERROR(inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr ? inMessage : "")
-                         << endl);
+    ENG_LOG_ERROR(inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr ? inMessage : ""));
 
     // Breakpoint
     return true;
@@ -162,7 +161,7 @@ class MyContactListener : public ContactListener {
     // See: ContactListener
     virtual ValidateResult OnContactValidate(const Body& inBody1, const Body& inBody2, RVec3Arg inBaseOffset,
                                              const CollideShapeResult& inCollisionResult) override {
-        ENG_LOG_INFO("Contact validate callback" << endl);
+        ENG_LOG_INFO("Contact validate callback");
 
         // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
         return ValidateResult::AcceptAllContactsForThisBodyPair;
@@ -170,16 +169,16 @@ class MyContactListener : public ContactListener {
 
     virtual void OnContactAdded(const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold,
                                 ContactSettings& ioSettings) override {
-        ENG_LOG_INFO("A contact was added" << endl);
+        ENG_LOG_INFO("A contact was added");
     }
 
     virtual void OnContactPersisted(const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold,
                                     ContactSettings& ioSettings) override {
-        ENG_LOG_INFO("A contact was persisted" << endl);
+        ENG_LOG_INFO("A contact was persisted");
     }
 
     virtual void OnContactRemoved(const SubShapeIDPair& inSubShapePair) override {
-        ENG_LOG_INFO("A contact was removed" << endl);
+        ENG_LOG_INFO("A contact was removed");
     }
 };
 
@@ -187,11 +186,11 @@ class MyContactListener : public ContactListener {
 class MyBodyActivationListener : public BodyActivationListener {
    public:
     virtual void OnBodyActivated(const BodyID& inBodyID, uint64 inBodyUserData) override {
-        ENG_LOG_INFO("A body got activated" << endl);
+        ENG_LOG_INFO("A body got activated");
     }
 
     virtual void OnBodyDeactivated(const BodyID& inBodyID, uint64 inBodyUserData) override {
-        ENG_LOG_INFO("A body went to sleep" << endl);
+        ENG_LOG_INFO("A body went to sleep");
     }
 };
 
@@ -344,7 +343,7 @@ int run_physics() {
         Vec3 velocity = body_interface.GetLinearVelocity(sphere_id);
         ENG_LOG_INFO("Step " << step << ": Position = (" << position.GetX() << ", " << position.GetY() << ", "
                              << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY()
-                             << ", " << velocity.GetZ() << ")" << endl);
+                             << ", " << velocity.GetZ() << ")");
 
         // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep
         // the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
