@@ -466,9 +466,8 @@ int main(int argc, char** argv) {
             sceneState.initialized = true;
         });
 
-        app.registerCoroutine("listener(tcp::acceptor)", []() {
-            return listener(tcp::acceptor(Application::io_ctx, {tcp::v4(), 8080}));
-        });
+        app.registerCoroutine("listener(tcp::acceptor)",
+                              []() { return listener(tcp::acceptor(Application::io_ctx, {tcp::v4(), 8080})); });
 
         app.registerDedicatedThread("physics.run_physics()", [&sceneState]() {
             using namespace std::chrono_literals;
