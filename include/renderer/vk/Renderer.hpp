@@ -112,7 +112,7 @@ class VkRenderer {
 
     std::mutex scene_mtx;
     bool sceneReadyToRender = false;
-	float aspectRatio = 1.0f;
+    float aspectRatio = 1.0f;
 
     void registerInitializationFunction(std::function<void(void)> initFunc);
     void initVulkan();

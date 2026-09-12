@@ -298,10 +298,10 @@ void VkRenderer::registerModelMatrixBufferUpdateFunction(std::function<std::vect
 }
 
 void VkRenderer::recalculateAspectRatio() {
-	const VkExtent2D& extent = swapchain->swapChainExtent;
-	if (extent.height != 0) {
-		aspectRatio = static_cast<float>(extent.width) / static_cast<float>(extent.height);
-	}
+    const VkExtent2D& extent = swapchain->swapChainExtent;
+    if (extent.height != 0) {
+        aspectRatio = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+    }
 }
 
 void VkRenderer::drawFrame() {

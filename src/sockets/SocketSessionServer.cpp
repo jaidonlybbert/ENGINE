@@ -61,9 +61,11 @@ chat_session::chat_session(tcp::socket socket, chat_room& room)
 void chat_session::start() {
     room_.join(shared_from_this());
 
-    co_spawn(socket_.get_executor(), [self = shared_from_this()] { return self->reader(); }, detached);
+    co_spawn(
+        socket_.get_executor(), [self = shared_from_this()] { return self->reader(); }, detached);
 
-    co_spawn(socket_.get_executor(), [self = shared_from_this()] { return self->writer(); }, detached);
+    co_spawn(
+        socket_.get_executor(), [self = shared_from_this()] { return self->writer(); }, detached);
 }
 
 void chat_session::deliver(const std::string& msg) {
