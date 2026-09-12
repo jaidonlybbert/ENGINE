@@ -432,7 +432,7 @@ void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData
 
 int main(int argc, char** argv) {
     try {
-        ENG::log::init();
+        spdlog::set_level(spdlog::level::trace);
         ENG_LOG_TRACE("Starting app" << std::endl);
 
         const ENG::RuntimeConfig runtimeConfig = ENG::load_runtime_config(argc, argv);
