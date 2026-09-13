@@ -27,8 +27,8 @@
 #include "renderer/vk_adapter/PipelineFactory.hpp"
 #include "renderer/vk_adapter/VkAdapter.hpp"
 #include "scene/DFT.hpp"
-#include "scenes/SceneBlueSky.hpp"
-#include "scenes/SceneWorld.hpp"
+#include "scenes/blue_sky/SceneBlueSky.hpp"
+#include "scenes/world/SceneWorld.hpp"
 #include "sockets/SocketSessionServer.h"
 
 void stop(asio::io_context& io_context) {

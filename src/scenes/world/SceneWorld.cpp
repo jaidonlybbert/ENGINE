@@ -1,4 +1,4 @@
-#include "scenes/SceneWorld.hpp"
+#include "scenes/world/SceneWorld.hpp"
 
 // Necessary definition for PMP header compilation
 #ifndef M_PI
@@ -16,8 +16,8 @@
 #include "scene/Gltf.hpp"
 #include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
-#include "scenes/ProceduralGeometry.hpp"
-#include "scenes/SceneWorldInput.hpp"
+#include "scenes/common/CameraControls.hpp"
+#include "scenes/common/ProceduralGeometry.hpp"
 
 static constexpr size_t SCENE_WORLD_MAX_NODES = 10000;
 
@@ -174,49 +174,11 @@ void create_world_polyhedra(ENG::SceneState& sceneState) {
     }
 }
 
-void create_tetrahedron_no_pmp(ENG::SceneState& sceneState, const std::string& nodeName) {
-    std::vector<ENG::VertexPosNorCol> tetraVertices{
-        {{1., 1., 1.}}, {{1., -1., -1.}}, {{-1., 1., -1.}}, {{-1., -1., 1.}}};
-
-    std::vector<uint32_t> tetraIndices{0, 1, 2, 0, 3, 1, 0, 2, 3, 3, 2, 1};
-
-    std::vector<glm::vec4> colors{
-        {1.0, 0.5, 0.5, 1.0},
-        {0.5, 1.0, 0.5, 1.0},
-        {0.5, 0.5, 1.0, 1.0},
-        {0.5, 0.5, 0.5, 1.0},
-    };
-
-    // vertices are duplicated for face-specific color
-    std::vector<ENG::VertexPosNorCol> tetraVerticesDuplicated{
-        tetraVertices.at(0), tetraVertices.at(1), tetraVertices.at(2), tetraVertices.at(0),
-        tetraVertices.at(3), tetraVertices.at(1), tetraVertices.at(0), tetraVertices.at(2),
-        tetraVertices.at(3), tetraVertices.at(3), tetraVertices.at(2), tetraVertices.at(1)};
-
-    for (size_t i = 0; i < 4; ++i) {
-        auto normal = glm::normalize(
-            glm::cross(tetraVerticesDuplicated.at(i * 3 + 1).pos - tetraVerticesDuplicated.at(i * 3).pos,
-                       tetraVerticesDuplicated.at(i * 3 + 2).pos - tetraVerticesDuplicated.at(i * 3).pos));
-        for (size_t j = 0; j < 3; ++j) {
-            tetraVerticesDuplicated.at(i * 3 + j).normal = normal;
-            tetraVerticesDuplicated.at(i * 3 + j).color = colors.at(i);
-        }
-    }
-
-    auto& tetraNode = sceneState.graph.create_node();
-    tetraNode.name = nodeName;
-    tetraNode.parent = sceneState.graph.root;
-    sceneState.graph.root->children.push_back(&tetraNode);
-
-    sceneState.hostMeshDataBindQueue.push(ENG::BindHostMeshDataEvent{
-        ENG::HostMeshData{std::move(tetraVerticesDuplicated), std::move(tetraIndices), "PosNorCol"}, tetraNode.nodeId});
-}
-
 void unloadWorldScene(ENG::SceneState& sceneState) {}
 
 void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAdapter) {
     // Set callback handlers for inputs
-    SceneWorldInput::set_callbacks();
+    CameraControls::set_callbacks();
 
     // TODO: implement pools to avoid reference invalidation on reallocation problem
     sceneState.graph.nodes.reserve(1000);
@@ -285,5 +247,9 @@ void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAda
         cameraNode.translation = glm::vec3(0., 0., 8.);
     }
 
+    // Node 3 is "camera_pivot" from suzanne.gltf: an empty at the origin with the camera
+    // as its child (offset by the camera's own translation set above). Rotating the pivot
+    // - not the camera itself - is what makes mouse-look orbit around the origin instead
+    // of just spinning the camera in place.
     sceneState.activeNodeIdx = 3;
 }

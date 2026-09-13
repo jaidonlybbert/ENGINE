@@ -1,4 +1,4 @@
-#include "scenes/SceneBlueSky.hpp"
+#include "scenes/blue_sky/SceneBlueSky.hpp"
 
 #include <vector>
 
@@ -6,8 +6,8 @@
 #include "logger/Logging.hpp"
 #include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
-#include "scenes/SceneWorld.hpp"
-#include "scenes/SceneWorldInput.hpp"
+#include "scenes/common/CameraControls.hpp"
+#include "scenes/common/ProceduralGeometry.hpp"
 
 static constexpr size_t SCENE_BLUE_SKY_MAX_NODES = 64;
 
@@ -82,7 +82,7 @@ void create_blue_skybox(ENG::SceneState& sceneState, const std::string& nodeName
 void initializeBlueSkyScene(ENG::SceneState& sceneState, RenderAdapterI& renderAdapter) {
     // Set callback handlers for inputs (shared with WorldScene - camera orbit / zoom
     // controls are generic, not tied to a particular scene's contents).
-    SceneWorldInput::set_callbacks();
+    CameraControls::set_callbacks();
 
     sceneState.graph.nodes.reserve(SCENE_BLUE_SKY_MAX_NODES);
     sceneState.graph.cameras.reserve(4);
@@ -104,12 +104,21 @@ void initializeBlueSkyScene(ENG::SceneState& sceneState, RenderAdapterI& renderA
     gltfCamera.perspective.zfar = 100.0;
     auto* camera = &sceneState.graph.cameras.emplace_back(gltfCamera);
 
+    // Mouse-look rotates a pivot at the origin rather than the camera itself, with the
+    // camera offset from it by translation. That way rotating the pivot orbits the camera
+    // around the origin instead of just spinning it in place - matching how WorldScene's
+    // camera (a child of glTF node "camera_pivot") behaves.
+    auto& cameraPivot = sceneState.graph.create_node();
+    cameraPivot.name = "CameraPivot";
+    cameraPivot.parent = sceneState.graph.root;
+    sceneState.graph.root->children.push_back(&cameraPivot);
+
     auto& cameraNode = sceneState.graph.create_node();
     cameraNode.name = "MainCamera";
-    cameraNode.parent = sceneState.graph.root;
+    cameraNode.parent = &cameraPivot;
     cameraNode.camera = camera;
     cameraNode.translation = glm::vec3(0.f, 0.f, 8.f);
-    sceneState.graph.root->children.push_back(&cameraNode);
+    cameraPivot.children.push_back(&cameraNode);
     sceneState.activeCameraNodeIdx = cameraNode.nodeId;
 
     create_blue_skybox(sceneState, "BlueSkybox", 50.0f);
@@ -125,6 +134,5 @@ void initializeBlueSkyScene(ENG::SceneState& sceneState, RenderAdapterI& renderA
         tetrahedronNode->visible = true;
     }
 
-    // Mouse-look rotates the camera node.
-    sceneState.activeNodeIdx = static_cast<int>(cameraNode.nodeId);
+    sceneState.activeNodeIdx = static_cast<int>(cameraPivot.nodeId);
 }
