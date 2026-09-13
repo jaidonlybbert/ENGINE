@@ -15,7 +15,7 @@ Minimal application to load some gltf data, and render it, with some light abstr
 This code is for my own benefit to use as a baseline for application development
 
 # AI Usage Disclosure
-Much of this repository's code, tests, and CI pipeline configuration is written with substantial assistance from AI coding agents (Claude Code). AI-generated commits and pull requests are attributed as such in the git history via `Co-Authored-By` trailers, and every change is reviewed before merging. If you're evaluating this code as a sample of hand-written work, keep that in mind.
+This has been a side project I work on sporadically since 2022. In 2026, I began using AI agents (Claude Code) to progress the project. I make no claims about the quality or security of this code (nor did I ever). Use at your own risk, per the license.
 
 # License
 MIT — see [LICENSE](LICENSE).
