@@ -56,7 +56,15 @@ jobs:
           cache: true
 
       - name: verify vulkan
-        run: ls "${VULKAN_SDK}"
+        run: |
+          ls "${VULKAN_SDK}"
+          # TEMPORARY: find(1) doesn't like Windows-style backslashes, so lean on find's
+          # own recursion instead - CMake's FindVulkan can't locate vulkan-1.lib here even
+          # though $VULKAN_SDK/Bin exists, so print the actual tree once to see where this
+          # action's Windows extraction (7z on the raw installer, not a real install)
+          # actually put Lib/Include, then set Vulkan_LIBRARY/Vulkan_INCLUDE_DIR to match
+          # (CMakeLists.txt already honors those two env vars if set).
+          find "${VULKAN_SDK}" -iname "vulkan-1.lib" -o -iname "vulkan.h" 2>/dev/null
 
       - name: CMake Configure
         run: cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
