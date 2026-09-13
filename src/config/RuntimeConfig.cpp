@@ -14,6 +14,7 @@ RuntimeConfig default_runtime_config() {
     RuntimeConfig config{};
     config.windowWidth = WIDTH;
     config.windowHeight = HEIGHT;
+    config.startupScene = "world";
     return config;
 }
 
@@ -41,6 +42,12 @@ void overlay_window(RuntimeConfig& config, const nlohmann::json& root) {
     }
 }
 
+void overlay_scene(RuntimeConfig& config, const nlohmann::json& root) {
+    if (const auto scene = root.find("scene"); scene != root.end()) {
+        config.startupScene = scene->get<std::string>();
+    }
+}
+
 }  // namespace
 
 RuntimeConfig load_runtime_config(int argc, char** argv) {
@@ -64,6 +71,7 @@ RuntimeConfig load_runtime_config(int argc, char** argv) {
     }
 
     overlay_window(config, root);
+    overlay_scene(config, root);
     ENG_LOG_INFO("Loaded configuration from " << path);
     return config;
 }

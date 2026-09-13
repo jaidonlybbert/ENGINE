@@ -87,7 +87,9 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/gui")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/guis")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/scene")
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes/common")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes/world")
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes/blue_sky")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/hid")
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/events")
@@ -130,7 +132,10 @@ target_link_libraries(Engine PUBLIC engine::events)
 target_link_libraries(Engine PUBLIC engine::physics)
 
 target_link_libraries(Engine PUBLIC engine::scene::gui)
-target_link_libraries(Engine PUBLIC scenes)
+# The application links every scene it wants to offer at startup (see main.cpp's
+# initializeScene()). Neither scene library depends on the other.
+target_link_libraries(Engine PUBLIC engine::scenes::world)
+target_link_libraries(Engine PUBLIC engine::scenes::blue_sky)
 
 if (WIN32)
 	target_link_libraries(Engine PUBLIC Tracy::TracyClient)

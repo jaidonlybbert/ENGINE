@@ -1,4 +1,4 @@
-#include "scenes/SceneWorldInput.hpp"
+#include "scenes/common/CameraControls.hpp"
 
 #include <iostream>
 
@@ -7,7 +7,7 @@
 #include "hid/Input.hpp"
 #include "logger/Logging.hpp"
 
-void SceneWorldInput::set_callbacks() {
+void CameraControls::set_callbacks() {
     InputCallbacks inputCallbacks;
     inputCallbacks.framebufferResizeCallbacks.push_back(framebufferResizeCallback);
     inputCallbacks.keyCallbacks.push_back(key_callback);
@@ -18,7 +18,7 @@ void SceneWorldInput::set_callbacks() {
     InputController::set_callbacks(std::move(inputCallbacks));
 }
 
-void SceneWorldInput::mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+void CameraControls::mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     // Print the scroll offsets
     ENG_LOG_TRACE("Scroll Offset - X: " << xoffset << " Y: " << yoffset);
 
@@ -43,7 +43,7 @@ void SceneWorldInput::mouse_scroll_callback(GLFWwindow* window, double xoffset, 
     windowUserData->eventQueue.push_back(hidEvent);
 }
 
-void SceneWorldInput::mouse_movement_callback(GLFWwindow* window, double xpos, double ypos) {
+void CameraControls::mouse_movement_callback(GLFWwindow* window, double xpos, double ypos) {
     static double dx, dy = 0.f;
 
     auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
@@ -65,7 +65,7 @@ void SceneWorldInput::mouse_movement_callback(GLFWwindow* window, double xpos, d
     windowUserData->cursorYScreenCoords = ypos;
 }
 
-void SceneWorldInput::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+void CameraControls::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_T && action == GLFW_PRESS) {
         ENG_LOG_TRACE("Toggle settings window visibility");
         auto* sceneState = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
@@ -82,7 +82,7 @@ void SceneWorldInput::key_callback(GLFWwindow* window, int key, int scancode, in
     }
 }
 
-void SceneWorldInput::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+void CameraControls::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
 
     if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
@@ -97,7 +97,7 @@ void SceneWorldInput::mouse_button_callback(GLFWwindow* window, int button, int 
     }
 }
 
-void SceneWorldInput::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+void CameraControls::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
     auto* userData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
     // store screen size (in screen coordinates this is NOT the same the framebuffer width and height)
     glfwGetWindowSize(window, &userData->windowWidthScreenCoords, &userData->windowHeightScreenCoords);

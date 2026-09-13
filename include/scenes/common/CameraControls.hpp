@@ -1,7 +1,9 @@
 #pragma once
 #include "GLFW/glfw3.h"
 
-struct SceneWorldInput {
+// Generic mouse/keyboard camera controls (orbit, zoom, framebuffer resize). Not tied to
+// any particular scene's contents - any scene can register these callbacks.
+struct CameraControls {
     static void set_callbacks();
 
     static void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);

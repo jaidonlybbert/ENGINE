@@ -1,4 +1,4 @@
-#include "scenes/ProceduralGeometry.hpp"
+#include "scenes/common/ProceduralGeometry.hpp"
 
 #include "application/ConcurrentQueue.hpp"
 #include "logger/Logging.hpp"
@@ -259,4 +259,42 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, con
     }
 
     ENG_LOG_DEBUG("Face count " << facecount);
+}
+
+void create_tetrahedron_no_pmp(ENG::SceneState& sceneState, const std::string& nodeName) {
+    std::vector<ENG::VertexPosNorCol> tetraVertices{
+        {{1., 1., 1.}}, {{1., -1., -1.}}, {{-1., 1., -1.}}, {{-1., -1., 1.}}};
+
+    std::vector<uint32_t> tetraIndices{0, 1, 2, 0, 3, 1, 0, 2, 3, 3, 2, 1};
+
+    std::vector<glm::vec4> colors{
+        {1.0, 0.5, 0.5, 1.0},
+        {0.5, 1.0, 0.5, 1.0},
+        {0.5, 0.5, 1.0, 1.0},
+        {0.5, 0.5, 0.5, 1.0},
+    };
+
+    // vertices are duplicated for face-specific color
+    std::vector<ENG::VertexPosNorCol> tetraVerticesDuplicated{
+        tetraVertices.at(0), tetraVertices.at(1), tetraVertices.at(2), tetraVertices.at(0),
+        tetraVertices.at(3), tetraVertices.at(1), tetraVertices.at(0), tetraVertices.at(2),
+        tetraVertices.at(3), tetraVertices.at(3), tetraVertices.at(2), tetraVertices.at(1)};
+
+    for (size_t i = 0; i < 4; ++i) {
+        auto normal = glm::normalize(
+            glm::cross(tetraVerticesDuplicated.at(i * 3 + 1).pos - tetraVerticesDuplicated.at(i * 3).pos,
+                       tetraVerticesDuplicated.at(i * 3 + 2).pos - tetraVerticesDuplicated.at(i * 3).pos));
+        for (size_t j = 0; j < 3; ++j) {
+            tetraVerticesDuplicated.at(i * 3 + j).normal = normal;
+            tetraVerticesDuplicated.at(i * 3 + j).color = colors.at(i);
+        }
+    }
+
+    auto& tetraNode = sceneState.graph.create_node();
+    tetraNode.name = nodeName;
+    tetraNode.parent = sceneState.graph.root;
+    sceneState.graph.root->children.push_back(&tetraNode);
+
+    sceneState.hostMeshDataBindQueue.push(ENG::BindHostMeshDataEvent{
+        ENG::HostMeshData{std::move(tetraVerticesDuplicated), std::move(tetraIndices), "PosNorCol"}, tetraNode.nodeId});
 }

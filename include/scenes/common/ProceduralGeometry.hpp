@@ -18,3 +18,8 @@ void load_pmp_mesh(ENG::Node& parent, const pmp::SurfaceMesh& mesh, const std::s
                    const std::string& node_name, const glm::vec4& color, ENG::SceneState& sceneState);
 void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, const std::vector<glm::vec4>& faceColors,
                                                      ENG::SceneState& sceneState);
+
+// Builds a tetrahedron directly (bypassing PMP) with a distinct flat color per face, and
+// adds it to the scene graph as a child of the root node. Scene-agnostic - any scene can
+// use this without depending on another scene.
+void create_tetrahedron_no_pmp(ENG::SceneState& sceneState, const std::string& nodeName);
