@@ -1,0 +1,8 @@
+# Composed on top of a runner-detected "default" profile (conan profile detect), which
+# supplies os/arch/compiler/compiler.version/compiler.libcxx for whatever AppleClang /
+# Xcode version is actually installed - see .github/workflows/macos-appleclang.yml.
+# This file only pins the project-specific policy on top of that.
+[settings]
+compiler.cppstd=20
+build_type=Release
+[conf]
