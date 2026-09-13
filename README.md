@@ -1,5 +1,10 @@
 [![Ubuntu-GCC](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml)
-[![Code Style Check](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml/badge.svg)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml)
+[![Ubuntu-Clang-ASan](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-clang-asan.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-clang-asan.yml)
+[![Windows-MSVC](https://github.com/jaidonlybbert/ENGINE/actions/workflows/windows-msvc.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/windows-msvc.yml)
+[![macOS-AppleClang](https://github.com/jaidonlybbert/ENGINE/actions/workflows/macos-appleclang.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/macos-appleclang.yml)
+[![Unit Tests](https://github.com/jaidonlybbert/ENGINE/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/unit-tests.yml)
+[![Code Style Check](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 # ENGINE
 Cross-platform real-time 3D rendering application template based on Vulkan
 
@@ -8,6 +13,12 @@ Minimal application to load some gltf data, and render it, with some light abstr
 
 # Motivation
 This code is for my own benefit to use as a baseline for application development
+
+# AI Usage Disclosure
+Much of this repository's code, tests, and CI pipeline configuration is written with substantial assistance from AI coding agents (Claude Code). AI-generated commits and pull requests are attributed as such in the git history via `Co-Authored-By` trailers, and every change is reviewed before merging. If you're evaluating this code as a sample of hand-written work, keep that in mind.
+
+# License
+MIT — see [LICENSE](LICENSE).
 
 # Similar/Related Projects
 * [Vulkan-Samples](https://github.com/KhronosGroup/Vulkan-Samples) 
