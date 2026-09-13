@@ -1,9 +1,10 @@
 #ifndef ENG_SWAPCHAIN
 #define ENG_SWAPCHAIN
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
 #include <vector>
+
+#include "window/WindowI.hpp"
 
 namespace ENG {
 
@@ -20,17 +21,17 @@ class Swapchain {
     VkImageView depthImageView;
 
     explicit Swapchain(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const VkDevice& device,
-                       GLFWwindow& window);
+                       WindowI& window);
 
     static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow& window);
+    static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, WindowI& window);
     void cleanupSwapChain(const VkDevice& device);
     void createFramebuffers(const VkRenderPass& renderPass, const VkDevice& device);
     void createSwapChain(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const VkDevice& device,
-                         GLFWwindow& window);
+                         WindowI& window);
     void recreateSwapChain(const VkPhysicalDevice& physicalDevice, const VkDevice& device, const VkSurfaceKHR& surface,
-                           GLFWwindow* window, const VkRenderPass& renderPass);
+                           WindowI& window, const VkRenderPass& renderPass);
 };
 }  // namespace ENG
 #endif

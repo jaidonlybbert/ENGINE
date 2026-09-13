@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include <array>
+#include <stdexcept>
 #include <vector>
 
 #include "renderer/vk/pipelines/Pipeline.hpp"

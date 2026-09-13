@@ -1,105 +1,71 @@
 #include "scenes/common/CameraControls.hpp"
 
-#include <iostream>
-
-#include "GLFW/glfw3.h"
 #include "events/Event.hpp"
-#include "hid/Input.hpp"
 #include "logger/Logging.hpp"
 
-void CameraControls::set_callbacks() {
-    InputCallbacks inputCallbacks;
-    inputCallbacks.framebufferResizeCallbacks.push_back(framebufferResizeCallback);
-    inputCallbacks.keyCallbacks.push_back(key_callback);
-    inputCallbacks.mouseButtonCallbacks.push_back(mouse_button_callback);
-    inputCallbacks.mouseScrollCallbacks.push_back(mouse_scroll_callback);
-    inputCallbacks.mouseMovementCallbacks.push_back(mouse_movement_callback);
+void CameraControls::set_callbacks(WindowI& window, InputI& input, WindowUserData& windowUserData) {
+    window.setFramebufferResizeCallback([&window, &windowUserData]() {
+        // store screen size (in screen coordinates this is NOT the same as the framebuffer width and height)
+        window.getWindowSize(windowUserData.windowWidthScreenCoords, windowUserData.windowHeightScreenCoords);
+        windowUserData.windowResized = true;
+    });
 
-    InputController::set_callbacks(std::move(inputCallbacks));
-}
+    input.addMouseScrollCallback([&windowUserData](double xoffset, double yoffset) {
+        ENG_LOG_TRACE("Scroll Offset - X: " << xoffset << " Y: " << yoffset);
 
-void CameraControls::mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    // Print the scroll offsets
-    ENG_LOG_TRACE("Scroll Offset - X: " << xoffset << " Y: " << yoffset);
+        static const auto invert_x = true;
+        static const auto invert_y = false;
+        static const auto sensitivity = static_cast<double>(1.f);
 
-    static double dx, dy = 0.f;
-    static const auto invert_x = true;
-    static const auto invert_y = false;
-    static const auto sensitivity = static_cast<double>(1.f);
-
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-    xoffset = invert_x ? -xoffset : xoffset;
-    yoffset = invert_y ? -yoffset : yoffset;
-
-    auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
-
-    const auto& shift_state = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT);
-
-    ClientHidEvent hidEvent{};
-    hidEvent.look_dx = xoffset;
-    hidEvent.look_dy = yoffset;
-    hidEvent.actions.push_back(Action::NODE_ROTATION_PRESERVE_Y_AS_UP);
-    windowUserData->eventQueue.push_back(hidEvent);
-}
-
-void CameraControls::mouse_movement_callback(GLFWwindow* window, double xpos, double ypos) {
-    static double dx, dy = 0.f;
-
-    auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
-    const auto& middle_mouse_state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
-
-    if (middle_mouse_state == GLFW_PRESS) {
-        ENG_LOG_TRACE("Middle mouse down");
-        dx = xpos - windowUserData->cursorXScreenCoords;
-        dy = ypos - windowUserData->cursorYScreenCoords;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+        xoffset = invert_x ? -xoffset : xoffset;
+        yoffset = invert_y ? -yoffset : yoffset;
 
         ClientHidEvent hidEvent{};
-        hidEvent.look_dx = dx;
-        hidEvent.look_dy = dy;
+        hidEvent.look_dx = xoffset;
+        hidEvent.look_dy = yoffset;
         hidEvent.actions.push_back(Action::NODE_ROTATION_PRESERVE_Y_AS_UP);
-        windowUserData->eventQueue.push_back(hidEvent);
-    }
-    // always update current position
-    windowUserData->cursorXScreenCoords = xpos;
-    windowUserData->cursorYScreenCoords = ypos;
-}
+        windowUserData.eventQueue.push_back(hidEvent);
+    });
 
-void CameraControls::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_T && action == GLFW_PRESS) {
-        ENG_LOG_TRACE("Toggle settings window visibility");
-        auto* sceneState = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
-    }
-    if (key == GLFW_KEY_E && action == GLFW_PRESS) {
-        ENG_LOG_TRACE("E key down");
-        auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
-        auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    }
+    input.addMouseMovementCallback([&input, &windowUserData](double xpos, double ypos) {
+        if (input.isMouseButtonPressed(MouseButton::Middle)) {
+            ENG_LOG_TRACE("Middle mouse down");
+            const auto dx = xpos - windowUserData.cursorXScreenCoords;
+            const auto dy = ypos - windowUserData.cursorYScreenCoords;
 
-    if (key == GLFW_KEY_R && action == GLFW_PRESS) {
-        ENG_LOG_TRACE("R key down");
-        auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
-    }
-}
-
-void CameraControls::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
-
-    if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-        if (action == GLFW_PRESS)  // && initial_press)
-        {
-            glfwGetCursorPos(window, &windowUserData->cursorXScreenCoords, &windowUserData->cursorYScreenCoords);
-            ENG_LOG_TRACE("Middle mouse initial press");
-        } else  // action is GLFW_RELEASE
-        {
-            ENG_LOG_TRACE("Middle mouse released");
+            ClientHidEvent hidEvent{};
+            hidEvent.look_dx = dx;
+            hidEvent.look_dy = dy;
+            hidEvent.actions.push_back(Action::NODE_ROTATION_PRESERVE_Y_AS_UP);
+            windowUserData.eventQueue.push_back(hidEvent);
         }
-    }
-}
+        // always update current position
+        windowUserData.cursorXScreenCoords = xpos;
+        windowUserData.cursorYScreenCoords = ypos;
+    });
 
-void CameraControls::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-    auto* userData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
-    // store screen size (in screen coordinates this is NOT the same the framebuffer width and height)
-    glfwGetWindowSize(window, &userData->windowWidthScreenCoords, &userData->windowHeightScreenCoords);
-    userData->windowResized = true;
+    input.addKeyCallback([](Key key, KeyAction action) {
+        if (key == Key::T && action == KeyAction::Press) {
+            ENG_LOG_TRACE("Toggle settings window visibility");
+        }
+        if (key == Key::E && action == KeyAction::Press) {
+            ENG_LOG_TRACE("E key down");
+        }
+        if (key == Key::R && action == KeyAction::Press) {
+            ENG_LOG_TRACE("R key down");
+        }
+    });
+
+    input.addMouseButtonCallback([&input, &windowUserData](MouseButton button, KeyAction action) {
+        if (button == MouseButton::Middle) {
+            if (action == KeyAction::Press) {
+                input.getCursorPosition(windowUserData.cursorXScreenCoords, windowUserData.cursorYScreenCoords);
+                ENG_LOG_TRACE("Middle mouse initial press");
+            } else {
+                ENG_LOG_TRACE("Middle mouse released");
+            }
+        }
+    });
 }

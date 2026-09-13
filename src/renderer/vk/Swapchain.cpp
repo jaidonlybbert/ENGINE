@@ -11,7 +11,7 @@
 namespace ENG {
 
 Swapchain::Swapchain(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface, const VkDevice& device,
-                     GLFWwindow& window) {
+                     WindowI& window) {
     createSwapChain(physicalDevice, surface, device, window);
     createImageViews(device, swapChainImages, swapChainImageFormat, swapChainImageViews);
 }
@@ -37,13 +37,13 @@ VkPresentModeKHR Swapchain::chooseSwapPresentMode(const std::vector<VkPresentMod
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D Swapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow& window) {
+VkExtent2D Swapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, WindowI& window) {
     if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
         return capabilities.currentExtent;
     }
 
     int width, height;
-    glfwGetFramebufferSize(&window, &width, &height);
+    window.getFramebufferSize(width, height);
 
     VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 
@@ -56,7 +56,7 @@ VkExtent2D Swapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilit
 }
 
 void Swapchain::createSwapChain(const VkPhysicalDevice& physicalDevice, const VkSurfaceKHR& surface,
-                                const VkDevice& device, GLFWwindow& window) {
+                                const VkDevice& device, WindowI& window) {
     SwapChainSupportDetails swapChainSupport = ENG::PhysicalDevice::querySwapChainSupport(physicalDevice, surface);
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -145,18 +145,18 @@ void Swapchain::cleanupSwapChain(const VkDevice& device) {
 }
 
 void Swapchain::recreateSwapChain(const VkPhysicalDevice& physicalDevice, const VkDevice& device,
-                                  const VkSurfaceKHR& surface, GLFWwindow* window, const VkRenderPass& renderPass) {
+                                  const VkSurfaceKHR& surface, WindowI& window, const VkRenderPass& renderPass) {
     int width = 0, height = 0;
     while (width == 0 || height == 0) {
-        glfwGetFramebufferSize(window, &width, &height);
-        glfwWaitEvents();
+        window.getFramebufferSize(width, height);
+        window.waitEvents();
     }
 
     vkDeviceWaitIdle(device);
 
     cleanupSwapChain(device);
 
-    createSwapChain(physicalDevice, surface, device, *window);
+    createSwapChain(physicalDevice, surface, device, window);
     createImageViews(device, swapChainImages, swapChainImageFormat, swapChainImageViews);
     createDepthResources(device, physicalDevice, swapChainExtent, depthImage, depthImageMemory, depthImageView);
     createFramebuffers(renderPass, device);

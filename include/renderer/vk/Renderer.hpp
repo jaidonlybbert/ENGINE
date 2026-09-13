@@ -18,6 +18,7 @@
 #include "renderer/vk/Swapchain.hpp"
 #include "renderer/vk/pipelines/PipelineFactoryI.hpp"
 #include "vk_mem_alloc.h"
+#include "window/WindowI.hpp"
 
 namespace ENG {
 
@@ -63,16 +64,17 @@ struct UniformBufferObject {
 
 class VkRenderer {
    public:
-    VkRenderer(bool& framebufferResized, std::vector<std::function<void(void)>> initFunctions,
+    VkRenderer(bool& framebufferResized, WindowI& window, std::vector<std::function<void(void)>> initFunctions,
                std::vector<std::function<void(void)>> cleanupFunctions, PipelineFactoryI& pipelineFactory);
     void initialize();
     ~VkRenderer();
     void cleanupGui();
     void cleanupVulkan();
-    void cleanupWindow();
     friend std::ostream& operator<<(std::ostream& os, VkRenderer& app);
 
-    GLFWwindow* window;
+    // Not owned here - the window's lifetime is managed by whoever constructs it (see
+    // main.cpp), since Vulkan and windowing are independent concerns (see issue #42).
+    WindowI& window;
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue graphicsQueue;

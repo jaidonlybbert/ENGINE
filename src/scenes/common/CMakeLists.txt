@@ -16,5 +16,7 @@ endif()
 # everything they share in common lives here instead.
 target_link_libraries(scenes_common PUBLIC engine::scene)
 target_link_libraries(scenes_common PUBLIC engine::hid)
+target_link_libraries(scenes_common PUBLIC engine::hid_interface)
+target_link_libraries(scenes_common PUBLIC engine::window_interface)
 target_link_libraries(scenes_common PUBLIC engine::logger)
 target_link_libraries(scenes_common PUBLIC pmp::pmp)

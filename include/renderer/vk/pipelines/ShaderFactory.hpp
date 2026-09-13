@@ -1,7 +1,7 @@
 #ifndef ENG_SHADER_FACTORY_DEF
 #define ENG_SHADER_FACTORY_DEF
-#include <filesystem>
 #include <map>
+#include <string>
 #include <vector>
 
 #include "vulkan/vulkan_core.h"
@@ -9,8 +9,6 @@
 class ShaderFactory {
    private:
     const VkDevice& device;
-    std::vector<std::filesystem::path> filepaths;
-    void get_filepaths();
     std::vector<VkShaderModule> modules;
     std::vector<VkPipelineShaderStageCreateInfo> stages;
     std::map<std::string, std::vector<VkShaderModule*>> module_map;
