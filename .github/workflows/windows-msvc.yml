@@ -32,6 +32,13 @@ jobs:
         run: |
           python -m pip install conan
 
+      # CMake's "Visual Studio 17 2022" generator (Conan's default for an msvc profile)
+      # locates its VS install via vswhere; that lookup does not reliably succeed for
+      # steps running under bash on this runner without the Developer Command Prompt
+      # environment this action sets up first.
+      - name: Set up MSVC dev environment
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Install Conan profile
         # A relative path is used instead of ${{github.workspace}} because that variable
         # renders with backslashes on Windows, which bash (the shell these steps run
