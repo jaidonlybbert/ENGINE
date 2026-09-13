@@ -7,3 +7,10 @@ compiler.cppstd=20
 compiler.runtime=dynamic
 build_type=Release
 [conf]
+# CMake's "Visual Studio 17 2022" generator (Conan's default here) fails to locate the
+# VS install on the CI runner even with a Developer Command Prompt environment set up.
+# Ninja sidesteps that lookup entirely (it just needs cl.exe/link.exe on PATH) and, as a
+# single-config generator, also makes the generated CMake presets match the Ubuntu
+# jobs' conan-release/conan-debug naming instead of MSVC's split
+# conan-default(configure)/conan-release(build) presets.
+tools.cmake.cmaketoolchain:generator=Ninja

@@ -32,12 +32,13 @@ jobs:
         run: |
           python -m pip install conan
 
-      # CMake's "Visual Studio 17 2022" generator (Conan's default for an msvc profile)
-      # locates its VS install via vswhere; that lookup does not reliably succeed for
-      # steps running under bash on this runner without the Developer Command Prompt
-      # environment this action sets up first.
+      # Needed because the profile tells Conan to use the Ninja generator (see that
+      # profile for why) instead of the Visual Studio generator it would default to.
       - name: Set up MSVC dev environment
         uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v6
 
       - name: Install Conan profile
         # A relative path is used instead of ${{github.workspace}} because that variable
@@ -58,14 +59,10 @@ jobs:
         run: ls "${VULKAN_SDK}"
 
       - name: CMake Configure
-        run: |
-          # MSVC is a multi-config generator, so Conan emits a single "conan-default"
-          # configure preset (no per-build-type variant, unlike the single-config Ubuntu
-          # jobs) and a "conan-release" build preset that bakes in --config Release.
-          cmake --preset conan-default -DCMAKE_BUILD_TYPE=Release
+        run: cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
 
       - name: CMake Build
         run: cmake --build --preset conan-release
 
       - name: Run Tests
-        run: ctest --test-dir build --build-config Release --output-on-failure --no-tests=error
+        run: ctest --test-dir build --output-on-failure --no-tests=error
