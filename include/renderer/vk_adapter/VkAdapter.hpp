@@ -1,5 +1,7 @@
 #ifndef VK_ADAPTER_HPP
 #define VK_ADAPTER_HPP
+#include <mutex>
+
 #include "application/ConcurrentQueue.hpp"
 #include "logger/Logging.hpp"
 #include "renderer/RenderAdapterI.hpp"
