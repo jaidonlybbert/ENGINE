@@ -14,3 +14,8 @@ build_type=Release
 # jobs' conan-release/conan-debug naming instead of MSVC's split
 # conan-default(configure)/conan-release(build) presets.
 tools.cmake.cmaketoolchain:generator=Ninja
+# Even with Ninja (no VS project generator involved), Conan's own toolchain generation
+# separately verifies a VS install exists to set up the compiler environment, and that
+# verification does not reliably succeed on the CI runner either. Skip it by asserting
+# the VS version directly, per the fix Conan's own error message suggests.
+tools.microsoft.msbuild:vs_version=17
