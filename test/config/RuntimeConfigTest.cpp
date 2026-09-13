@@ -53,6 +53,7 @@ TEST(RuntimeConfigTest, ReturnsDefaultsWithoutConfigFlag) {
 
     EXPECT_EQ(config.windowWidth, defaults.windowWidth);
     EXPECT_EQ(config.windowHeight, defaults.windowHeight);
+    EXPECT_EQ(config.startupScene, defaults.startupScene);
 }
 
 TEST(RuntimeConfigTest, OverlaysWindowSizeFromFile) {
@@ -75,6 +76,18 @@ TEST(RuntimeConfigTest, PartialFileKeepsOtherDefaults) {
 
     EXPECT_EQ(config.windowWidth, 1024u);
     EXPECT_EQ(config.windowHeight, ENG::default_runtime_config().windowHeight);
+    EXPECT_EQ(config.startupScene, ENG::default_runtime_config().startupScene);
+}
+
+TEST(RuntimeConfigTest, OverlaysStartupSceneFromFile) {
+    TempFile file(R"({ "scene": "blue_sky" })");
+    std::vector<std::string> args{"engine", "--config", file.path()};
+    auto argv = make_argv(args);
+
+    const ENG::RuntimeConfig config = ENG::load_runtime_config(static_cast<int>(argv.size()), argv.data());
+
+    EXPECT_EQ(config.startupScene, "blue_sky");
+    EXPECT_EQ(config.windowWidth, ENG::default_runtime_config().windowWidth);
 }
 
 TEST(RuntimeConfigTest, ThrowsWhenConfigFileMissing) {

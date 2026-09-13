@@ -27,6 +27,7 @@
 #include "renderer/vk_adapter/PipelineFactory.hpp"
 #include "renderer/vk_adapter/VkAdapter.hpp"
 #include "scene/DFT.hpp"
+#include "scenes/SceneBlueSky.hpp"
 #include "scenes/SceneWorld.hpp"
 #include "sockets/SocketSessionServer.h"
 
@@ -430,6 +431,20 @@ void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData
     vkDeviceWaitIdle(renderer.device);
 }
 
+// Dispatches to the scene named by RuntimeConfig::startupScene (see issue #8). Falls
+// back to "world" for an unrecognized name rather than failing to start.
+void initializeScene(const std::string& sceneName, SceneState& sceneState, RenderAdapterI& renderAdapter) {
+    if (sceneName == "blue_sky") {
+        initializeBlueSkyScene(sceneState, renderAdapter);
+        return;
+    }
+
+    if (sceneName != "world") {
+        ENG_LOG_ERROR("Unrecognized scene \"" << sceneName << "\", falling back to \"world\"");
+    }
+    initializeWorldScene(sceneState, renderAdapter);
+}
+
 int main(int argc, char** argv) {
     try {
         spdlog::set_level(spdlog::level::trace);
@@ -459,12 +474,13 @@ int main(int argc, char** argv) {
         VkAdapter renderAdapter{renderer};
 
         Application app;
-        app.registerInitFunction("renderer.initializeScene()", [&renderer, &sceneState, &renderAdapter]() {
-            renderer.sceneReadyToRender = false;
-            initializeWorldScene(sceneState, renderAdapter);
-            renderer.sceneReadyToRender = true;
-            sceneState.initialized = true;
-        });
+        app.registerInitFunction("renderer.initializeScene()",
+                                 [&renderer, &sceneState, &renderAdapter, &runtimeConfig]() {
+                                     renderer.sceneReadyToRender = false;
+                                     initializeScene(runtimeConfig.startupScene, sceneState, renderAdapter);
+                                     renderer.sceneReadyToRender = true;
+                                     sceneState.initialized = true;
+                                 });
 
         app.registerCoroutine("listener(tcp::acceptor)",
                               []() { return listener(tcp::acceptor(Application::io_ctx, {tcp::v4(), 8080})); });

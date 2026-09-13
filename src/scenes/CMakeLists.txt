@@ -1,5 +1,6 @@
 add_library(scenes STATIC
 	"${PROJECT_SOURCE_DIR}/src/scenes/ProceduralGeometry.cpp"
+	"${PROJECT_SOURCE_DIR}/src/scenes/SceneBlueSky.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scenes/SceneWorld.cpp"
 	"${PROJECT_SOURCE_DIR}/src/scenes/SceneWorldInput.cpp"
 )
