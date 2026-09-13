@@ -63,7 +63,11 @@ jobs:
 
       - name: Download Vulkan SDK installer
         if: steps.cache-vulkan-installer.outputs.cache-hit != 'true'
-        run: curl -L -o vulkan-sdk-installer.exe "https://sdk.lunarg.com/sdk/download/1.4.335.0/windows/VulkanSDK-1.4.335.0-Installer.exe"
+        # ?Human=true is required - LunarG's server serves an interstitial page instead of
+        # the binary without it (this exact URL form is what
+        # humbletim/install-vulkan-sdk's own downloader uses; only its Windows
+        # *extraction* step is broken, not this part).
+        run: curl --fail-with-body -L -o vulkan-sdk-installer.exe "https://sdk.lunarg.com/sdk/download/1.4.335.0/windows/vulkan_sdk.exe?Human=true"
 
       - name: Install Vulkan SDK
         run: |
