@@ -73,7 +73,7 @@ VkRenderer::~VkRenderer() {
     uniformBuffers.clear();
     modelMatrixBuffers.clear();
 
-    ENG_LOG_DEBUG("Calling renderer cleanup" << std::endl);
+    ENG_LOG_DEBUG("Calling renderer cleanup");
     for (auto& fun : cleanupFunctions) {
         fun();
     }
@@ -136,17 +136,16 @@ void VkRenderer::cleanupGui() {
 
 std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
     // Print application name and version
-    ENG_LOG_DEBUG(PROJECT_NAME_AND_VERSION << std::endl);
+    ENG_LOG_DEBUG(PROJECT_NAME_AND_VERSION);
     // Print physical device properties
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(app.physicalDevice, &deviceProperties);
-    ENG_LOG_DEBUG(std::endl << "Physical Device Properties: " << std::endl);
-    ENG_LOG_DEBUG("Name:\t" << deviceProperties.deviceName << std::endl);
-    ENG_LOG_DEBUG("API Version:\t" << deviceProperties.apiVersion << std::endl);
-    ENG_LOG_DEBUG("Driver Version:\t" << deviceProperties.driverVersion << std::endl);
-    ENG_LOG_DEBUG("Min Uniform Buffer Offset Alignment:\t" << deviceProperties.limits.minUniformBufferOffsetAlignment
-                                                           << std::endl);
-    ENG_LOG_DEBUG("Min MemoryMap Alignment:\t" << deviceProperties.limits.minMemoryMapAlignment << std::endl);
+    ENG_LOG_DEBUG(std::endl << "Physical Device Properties: ");
+    ENG_LOG_DEBUG("Name:\t" << deviceProperties.deviceName);
+    ENG_LOG_DEBUG("API Version:\t" << deviceProperties.apiVersion);
+    ENG_LOG_DEBUG("Driver Version:\t" << deviceProperties.driverVersion);
+    ENG_LOG_DEBUG("Min Uniform Buffer Offset Alignment:\t" << deviceProperties.limits.minUniformBufferOffsetAlignment);
+    ENG_LOG_DEBUG("Min MemoryMap Alignment:\t" << deviceProperties.limits.minMemoryMapAlignment);
     ENG_LOG_DEBUG(std::endl);
 
     // Print available extensions
@@ -154,23 +153,23 @@ std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
-    ENG_LOG_DEBUG("Available Vulkan Extensions:" << std::endl);
+    ENG_LOG_DEBUG("Available Vulkan Extensions:");
     for (const auto& extension : availableExtensions) {
-        ENG_LOG_DEBUG('\t' << extension.extensionName << std::endl);
+        ENG_LOG_DEBUG('\t' << extension.extensionName);
     }
 
     // Print used extensions
     auto enabledExtensions = app.instanceFactory->getRequiredExtensions();
 
-    ENG_LOG_DEBUG("Enabled Vulkan Extensions:" << std::endl);
+    ENG_LOG_DEBUG("Enabled Vulkan Extensions:");
     for (auto extension : enabledExtensions) {
-        ENG_LOG_DEBUG('\t' << extension << std::endl);
+        ENG_LOG_DEBUG('\t' << extension);
     }
     return os;
 }
 
 void VkRenderer::createTexture(const std::filesystem::path& fpath) {
-    ENG_LOG_DEBUG("Loading Texture: " << fpath.string() << std::endl);
+    ENG_LOG_DEBUG("Loading Texture: " << fpath.string());
     createTextureImage(fpath);
     createTextureImageView(fpath);
     createTextureSampler(fpath);
@@ -199,6 +198,7 @@ void VkRenderer::initVulkan() {
     createDescriptorPool();
     commands->createCommandBuffers(device);
     createSyncObjects();
+    recalculateAspectRatio();
 }
 
 VkShaderModule VkRenderer::createShaderModule(const std::vector<char>& code) {
@@ -296,6 +296,13 @@ void VkRenderer::registerModelMatrixBufferUpdateFunction(std::function<std::vect
     modelMatrixBufferUpdateFunction = updateFun;
 }
 
+void VkRenderer::recalculateAspectRatio() {
+    const VkExtent2D& extent = swapchain->swapChainExtent;
+    if (extent.height != 0) {
+        aspectRatio = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+    }
+}
+
 void VkRenderer::drawFrame() {
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     uint32_t imageIndex;
@@ -306,6 +313,7 @@ void VkRenderer::drawFrame() {
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
         recreateRenderFinishedSemaphores();
+        recalculateAspectRatio();
         return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("failed to acquire swap chain image!");
@@ -319,11 +327,6 @@ void VkRenderer::drawFrame() {
     if (sceneReadyToRender) {
         assert(uniformBufferProducer);
         assert(modelMatrixBufferUpdateFunction);
-        const VkExtent2D& extent = swapchain->swapChainExtent;
-        float aspectRatio = 1.0f;
-        if (extent.height != 0) {
-            aspectRatio = static_cast<float>(extent.width) / static_cast<float>(extent.height);
-        }
         const auto& ubo = uniformBufferProducer(aspectRatio);
         notifyUboConsumers(ubo);
         copyUniformBufferToGpu(currentFrame, ubo);
@@ -369,6 +372,7 @@ void VkRenderer::drawFrame() {
         framebufferResized = false;
         swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
         recreateRenderFinishedSemaphores();
+        recalculateAspectRatio();
     } else if (result != VK_SUCCESS) {
         throw std::runtime_error("failed to present swap chain image!");
     }
@@ -448,7 +452,7 @@ void VkRenderer::createModelMatrices(const size_t size_bytes) {
     assert(bufferSize % properties.limits.minStorageBufferOffsetAlignment == 0);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        ENG_LOG_DEBUG("Creating " << i << " model buffer of size " << bufferSize << std::endl);
+        ENG_LOG_DEBUG("Creating " << i << " model buffer of size " << bufferSize);
         modelMatrixBuffers.emplace_back(device, physicalDevice, sizeof(glm::mat4), bufferSize,
                                         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -548,7 +552,7 @@ void VkRenderer::writeDescriptorSets(const std::vector<VkDescriptorSet>& descrip
             };
         } else {
             if (!texturePath.has_value()) {
-                ENG_LOG_ERROR("Expected texture path!" << std::endl);
+                ENG_LOG_ERROR("Expected texture path!");
             }
             descriptorWrites = {
                 createWriteDescriptorSet(descriptorSets.at(i), bufferInfo, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0),
@@ -606,13 +610,13 @@ void VkRenderer::createTextureImage(const std::filesystem::path& fpath) {
     auto textureImageRes = textureImages.emplace(fpath, VkImage{});
 
     if (!textureImageRes.second) {
-        ENG_LOG_ERROR("Failed insertion of textureImage" << std::endl);
+        ENG_LOG_ERROR("Failed insertion of textureImage");
     }
 
     auto textureImageMemRes = textureImageMemory.emplace(fpath, VkDeviceMemory{});
 
     if (!textureImageMemRes.second) {
-        ENG_LOG_ERROR("Failed insertion of textureImageMemory" << std::endl);
+        ENG_LOG_ERROR("Failed insertion of textureImageMemory");
     }
 
     auto& textureImage{textureImageRes.first->second};
@@ -637,7 +641,7 @@ void VkRenderer::createTextureImageView(const std::filesystem::path& fpath) {
         fpath, ENG::createImageView(device, texImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
 
     if (!texImageViewInsertionRes.second) {
-        ENG_LOG_ERROR("Insertion of VkImageView failed!" << std::endl);
+        ENG_LOG_ERROR("Insertion of VkImageView failed!");
     }
 }
 
@@ -666,7 +670,7 @@ void VkRenderer::createTextureSampler(const std::filesystem::path& fpath) {
     auto texSamplerInsertRes = textureSamplers.emplace(fpath, VkSampler{});
 
     if (!texSamplerInsertRes.second) {
-        ENG_LOG_ERROR("Failed to insert texture sampler!" << std::endl);
+        ENG_LOG_ERROR("Failed to insert texture sampler!");
     }
 
     auto& textureSampler = texSamplerInsertRes.first->second;

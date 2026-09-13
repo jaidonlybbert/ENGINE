@@ -18,16 +18,16 @@ bool PhysicalDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-    ENG_LOG_DEBUG("Available Ext" << std::endl);
+    ENG_LOG_DEBUG("Available Ext");
     for (auto& ext : availableExtensions) {
-        ENG_LOG_DEBUG(ext.extensionName << std::endl);
+        ENG_LOG_DEBUG(ext.extensionName);
     }
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-    ENG_LOG_DEBUG("Required Ext" << std::endl);
+    ENG_LOG_DEBUG("Required Ext");
     for (auto& ext : requiredExtensions) {
-        ENG_LOG_DEBUG(ext << std::endl);
+        ENG_LOG_DEBUG(ext);
     }
 
     for (const auto& extension : availableExtensions) {
@@ -102,7 +102,7 @@ bool PhysicalDevice::isDeviceSuitable(VkPhysicalDevice device, const VkSurfaceKH
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-        ENG_LOG_DEBUG("Extensions supported" << std::endl);
+        ENG_LOG_DEBUG("Extensions supported");
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device, surface);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
@@ -129,7 +129,7 @@ void PhysicalDevice::pickPhysicalDevice(const VkInstance& instance, VkPhysicalDe
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-    ENG_LOG_DEBUG("Device count: " << deviceCount << std::endl);
+    ENG_LOG_DEBUG("Device count: " << deviceCount);
 
     for (const auto& device : devices) {
         if (isDeviceSuitable(device, surface)) {

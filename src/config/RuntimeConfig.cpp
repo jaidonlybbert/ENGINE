@@ -64,7 +64,7 @@ RuntimeConfig load_runtime_config(int argc, char** argv) {
     }
 
     overlay_window(config, root);
-    ENG_LOG_INFO("Loaded configuration from " << path << std::endl);
+    ENG_LOG_INFO("Loaded configuration from " << path);
     return config;
 }
 

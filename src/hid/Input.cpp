@@ -52,7 +52,7 @@ void InputController::set_callbacks(InputCallbacks&& newInputCallbacks) {
  * Reverses rotation around y-axis when camera is 'upside down'
  */
 void node_rotation_follows_input_preserve_y_as_up(ENG::Node& activeNode, const double dx, const double dy) {
-    ENG_LOG_TRACE("dx: " << dx << " dy: " << dy << std::endl);
+    ENG_LOG_TRACE("dx: " << dx << " dy: " << dy);
     constexpr auto sensitivity = 1.0f;
 
     const auto invert = (activeNode.rotation * glm::vec3(0.f, 1.f, 0.f)).y >= 0.f ? 1.f : -1.f;
@@ -63,7 +63,7 @@ void node_rotation_follows_input_preserve_y_as_up(ENG::Node& activeNode, const d
 }
 
 void node_rotation_follows_input(ENG::Node& activeNode, const double dx, const double dy) {
-    ENG_LOG_TRACE("dx: " << dx << " dy: " << dy << std::endl);
+    ENG_LOG_TRACE("dx: " << dx << " dy: " << dy);
     constexpr auto sensitivity = 1.0f;
 
     auto dx_quat = glm::angleAxis(glm::radians(static_cast<float>(dx) * sensitivity), glm::vec3(0.f, 1.f, 0.f));

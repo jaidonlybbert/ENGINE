@@ -44,9 +44,7 @@ const VkDescriptorSetLayout& Pipeline::getDescriptorSetLayout() const { return d
 
 const VkPipelineLayout& Pipeline::getPipelineLayout() const { return pipelineLayout; }
 
-void Pipeline::createShaderStages(const ShaderFactory& shader_fac) {
-    ENG_LOG_DEBUG("Create shaders from base class" << std::endl);
-}
+void Pipeline::createShaderStages(const ShaderFactory& shader_fac) { ENG_LOG_DEBUG("Create shaders from base class"); }
 
 void Pipeline::createDynamicStateInfo() {
     dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};

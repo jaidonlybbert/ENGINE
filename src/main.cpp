@@ -105,7 +105,7 @@ void dispatchEventFromServer(nlohmann::json serializedEvent, SceneState& sceneSt
             break;
         }
         default:
-            ENG_LOG_ERROR("Client received event type " << event_type << " which is not a handled type." << std::endl);
+            ENG_LOG_ERROR("Client received event type " << event_type << " which is not a handled type.");
             break;
     }
     return;
@@ -171,7 +171,7 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState, floa
     // The projection aspect ratio is the live framebuffer ratio (width / height) scaled by
     // the camera's manual aspect scale. A scale of 1.0 keeps the framebuffer ratio, so the
     // scene is not stretched when the window is resized; instead a wider/narrower window
-    // reveals more/less of the scene around the camera's focus (issue #9). Other scale
+    // reveals more/less of the scene around the camera's focus. Other scale
     // values intentionally stretch or squash the geometry horizontally.
     auto aspectScale = 1.0;
     auto znear = 0.1;
@@ -205,7 +205,7 @@ UniformBufferObject createUniformBufferObject(const SceneState& sceneState, floa
 
     ubo.proj = glm::perspective(fovy, aspect, znear, zfar);
     ubo.proj[1][1] *= -1;
-    ENG_LOG_TRACE("Projection matrix set" << std::endl);
+    ENG_LOG_TRACE("Projection matrix set");
     return ubo;
 }
 
@@ -266,13 +266,13 @@ void updateModelMatrices(SceneState& sceneState) {
         assert(node->parent != nullptr && node->parent->nodeId < sceneState.modelMatrices.size());
         sceneState.modelMatrices.at(node->nodeId) =
             sceneState.modelMatrices.at(node->parent->nodeId) * sceneState.modelMatrices.at(node->nodeId);
-        ENG_LOG_TRACE("TRAVERSING NAME: " << node->name << std::endl);
+        ENG_LOG_TRACE("TRAVERSING NAME: " << node->name);
     }
 }
 
 void handleNodeRotationPreserveYAsUpAction(const ClientHidEvent& hidEvent, SceneState& sceneState) {
     if (sceneState.activeNodeIdx >= sceneState.graph.nodes.size()) {
-        ENG_LOG_ERROR("Active node idx is invalid!" << std::endl);
+        ENG_LOG_ERROR("Active node idx is invalid!");
         return;
     }
     auto& activeNode = sceneState.graph.nodes.at(sceneState.activeNodeIdx);
@@ -292,7 +292,7 @@ void castRayForMouseHoverOnNode(const ENG::Node& node, const SceneState& sceneSt
                                 const glm::vec3& rayDir) {
     static std::vector<bool> nodeHoverMap(sceneState.graph.nodes.size(), false);
     if (node.nodeId >= nodeHoverMap.size()) {
-        ENG_LOG_DEBUG("nodeHoverMap too small" << std::endl);
+        ENG_LOG_DEBUG("nodeHoverMap too small");
         return;
     }
 
@@ -303,7 +303,7 @@ void castRayForMouseHoverOnNode(const ENG::Node& node, const SceneState& sceneSt
     const auto& dotProduct = glm::dot(rayOriginToSphereCenter, rayDir);
 
     if (dotProduct < 0) {
-        ENG_LOG_DEBUG(node.name << " is behind the camera!" << std::endl);
+        ENG_LOG_DEBUG(node.name << " is behind the camera!");
         return;
     }
 
@@ -313,10 +313,10 @@ void castRayForMouseHoverOnNode(const ENG::Node& node, const SceneState& sceneSt
 
     if (distance < 1.f && !nodeHoverMap.at(node.nodeId)) {
         nodeHoverMap.at(node.nodeId) = true;
-        ENG_LOG_DEBUG("Cursor is on " << node.name << std::endl);
+        ENG_LOG_DEBUG("Cursor is on " << node.name);
     } else if (distance > 1.f && nodeHoverMap.at(node.nodeId)) {
         nodeHoverMap.at(node.nodeId) = false;
-        ENG_LOG_DEBUG("Cursor is not on " << node.name << std::endl);
+        ENG_LOG_DEBUG("Cursor is not on " << node.name);
     }
 }
 
@@ -385,14 +385,14 @@ void mesh_bind_event_handler(VkRenderer& renderer, SceneState& sceneState, VkAda
 
     node.shaderId = bindEvent.meshData.shaderId;
     node.draw_data_idx = drawIdx;
-    ENG_LOG_TRACE("Node: " << node.name << " DrawDataIndex: " << drawIdx << std::endl);
+    ENG_LOG_TRACE("Node: " << node.name << " DrawDataIndex: " << drawIdx);
 
     adapter.graphicsEventQueue.push(CommandCompletionEvent{[&adapter, &node, drawIdx] {
         adapter.set_property(drawIdx, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
         adapter.set_property(drawIdx, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
         adapter.createDescriptorSets(drawIdx, node);
         adapter.set_property(drawIdx, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED);
-        ENG_LOG_TRACE("Created draw data for " << node.name << std::endl);
+        ENG_LOG_TRACE("Created draw data for " << node.name);
     }});
 }
 
@@ -432,8 +432,8 @@ void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData
 
 int main(int argc, char** argv) {
     try {
-        ENG::log::init();
-        ENG_LOG_TRACE("Starting app" << std::endl);
+        spdlog::set_level(spdlog::level::trace);
+        ENG_LOG_TRACE("Starting app");
 
         const ENG::RuntimeConfig runtimeConfig = ENG::load_runtime_config(argc, argv);
 
@@ -476,7 +476,7 @@ int main(int argc, char** argv) {
             }
             run_physics();
         });
-        ENG_LOG_DEBUG("Server listening on port 8080..." << std::endl);
+        ENG_LOG_DEBUG("Server listening on port 8080...");
 
         renderer.registerCommandRecorder([&renderAdapter, &renderer, &sceneState](VkCommandBuffer commandBuffer) {
             renderAdapter.recordCommandsForSceneGraph2(renderer, commandBuffer, sceneState);
@@ -504,7 +504,7 @@ int main(int argc, char** argv) {
         app.shutdown();
 
     } catch (const std::exception& e) {
-        ENG_LOG_ERROR("Exception caught by main(): " << e.what() << std::endl);
+        ENG_LOG_ERROR("Exception caught by main(): " << e.what());
         return EXIT_FAILURE;
     }
 

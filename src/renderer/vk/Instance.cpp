@@ -35,13 +35,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL InstanceFactory::debugCallback(VkDebugUtilsMessag
                                                               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                               void* pUserData) {
     if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-        ENG_LOG_ERROR("Validation layer ERROR: " << pCallbackData->pMessage << std::endl);
+        ENG_LOG_ERROR("Validation layer ERROR: " << pCallbackData->pMessage);
     } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        ENG_LOG_ERROR("Validation layer WARNING: " << pCallbackData->pMessage << std::endl);
+        ENG_LOG_ERROR("Validation layer WARNING: " << pCallbackData->pMessage);
     } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-        ENG_LOG_INFO("Validation layer INFO: " << pCallbackData->pMessage << std::endl);
+        ENG_LOG_INFO("Validation layer INFO: " << pCallbackData->pMessage);
     } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-        ENG_LOG_TRACE("Validation layer VERBOSE: " << pCallbackData->pMessage << std::endl);
+        ENG_LOG_TRACE("Validation layer VERBOSE: " << pCallbackData->pMessage);
     }
 
     return VK_FALSE;
@@ -111,12 +111,12 @@ void InstanceFactory::createInstance() {
     createInfo.flags = createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-    ENG_LOG_TRACE("Creating instance" << std::endl);
+    ENG_LOG_TRACE("Creating instance");
     // Create instance
     if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
         throw std::runtime_error("failed to create instance!");
     }
-    ENG_LOG_TRACE("Instance created" << std::endl);
+    ENG_LOG_TRACE("Instance created");
 }
 
 std::vector<const char*> InstanceFactory::getRequiredExtensions() {
@@ -160,23 +160,23 @@ bool InstanceFactory::checkValidationLayerSupport() {
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-    ENG_LOG_DEBUG("Available layers: " << std::endl);
+    ENG_LOG_DEBUG("Available layers: ");
     for (const auto& layerProperties : availableLayers) {
-        ENG_LOG_DEBUG(layerProperties.layerName << std::endl);
+        ENG_LOG_DEBUG(layerProperties.layerName);
     }
 
     for (const char* layerName : validationLayers) {
         bool layerFound = false;
         for (const auto& layerProperties : availableLayers) {
             if (strcmp(layerName, layerProperties.layerName) == 0) {
-                ENG_LOG_DEBUG("Layer found: " << layerName << std::endl);
+                ENG_LOG_DEBUG("Layer found: " << layerName);
                 layerFound = true;
                 break;
             }
         }
 
         if (!layerFound) {
-            ENG_LOG_DEBUG("Layer not found: " << layerName << std::endl);
+            ENG_LOG_DEBUG("Layer not found: " << layerName);
             return false;
         }
     }

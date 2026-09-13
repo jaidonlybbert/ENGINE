@@ -70,7 +70,7 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
     get_filepaths();
 
     for (size_t i = 0; i < filepaths.size(); ++i) {
-        ENG_LOG_DEBUG("Creating module for " << filepaths.at(i) << std::endl);
+        ENG_LOG_DEBUG("Creating module for " << filepaths.at(i));
         modules.push_back(createShaderModule(device, readFile(filepaths.at(i))));
     }
 
@@ -99,7 +99,7 @@ ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
                  {"PosNorCol", {&stages.at(6), &stages.at(7)}},
                  {"Goldberg", {&stages.at(8), &stages.at(9)}}};
 
-    ENG_LOG_DEBUG("Loaded all shader modules" << std::endl);
+    ENG_LOG_DEBUG("Loaded all shader modules");
 }
 
 ShaderFactory::~ShaderFactory() {

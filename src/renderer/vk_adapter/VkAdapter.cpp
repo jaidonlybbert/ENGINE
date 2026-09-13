@@ -16,7 +16,7 @@ void VkAdapter::draw(ConcurrentQueue<BindHostMeshDataEvent>& bindHostMeshDataQue
 
 void recordDrawDataCommand(VkCommandBuffer& commandBuffer, DrawData drawData, const bool indexedDraw) {
     if (!drawData.bufferAllocationInfo.has_value()) {
-        ENG_LOG_ERROR("Attempted to record draw data command for drawdata without buffer allocation info" << std::endl);
+        ENG_LOG_ERROR("Attempted to record draw data command for drawdata without buffer allocation info");
     }
     auto& allocationInfo = drawData.bufferAllocationInfo.value();
 
@@ -39,12 +39,12 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
                                              SceneState& sceneState) {
     for (const auto& node : sceneState.graph.nodes) {
         if (!node.visible) {
-            ENG_LOG_TRACE("Skipping draw for " << node.name << " due to visibility set to false" << std::endl);
+            ENG_LOG_TRACE("Skipping draw for " << node.name << " due to visibility set to false");
             continue;
         }
 
         if (!node.draw_data_idx.has_value()) {
-            ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no DrawData" << std::endl);
+            ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no DrawData");
             continue;
         }
 
@@ -52,35 +52,35 @@ void VkAdapter::recordCommandsForSceneGraph2(VkRenderer& renderer, VkCommandBuff
 
         if (!has_property(drawDataIdx, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED) ||
             !has_property(drawDataIdx, DrawDataProperties::INDEX_BUFFERS_INITIALIZED)) {
-            ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has unbound draw data" << std::endl);
+            ENG_LOG_DEBUG("Skipping draw for " << node.name << " which has unbound draw data");
             continue;
         }
 
         if (!has_property(drawDataIdx, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED)) {
-            ENG_LOG_DEBUG("Skipping draw call for " << node.name << " uninitialized descriptor sets" << std::endl);
+            ENG_LOG_DEBUG("Skipping draw call for " << node.name << " uninitialized descriptor sets");
             continue;
         }
 
         const auto drawDataCpy = getDrawDataFromIdx(drawDataIdx);
 
         if (!drawDataCpy.descriptorSets.has_value()) {
-            ENG_LOG_DEBUG("Skipping draw call for " << node.name << " without descriptor sets" << std::endl);
+            ENG_LOG_DEBUG("Skipping draw call for " << node.name << " without descriptor sets");
             continue;
         }
 
         const auto& descriptorSets = drawDataCpy.descriptorSets.value();
         if (descriptorSets.size() != MAX_FRAMES_IN_FLIGHT) {
-            ENG_LOG_DEBUG("Skipping draw call for " << node.name << " missing descriptor sets" << std::endl);
+            ENG_LOG_DEBUG("Skipping draw call for " << node.name << " missing descriptor sets");
             continue;
         }
 
         if (!node.shaderId.has_value()) {
-            ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no shaderId" << std::endl);
+            ENG_LOG_TRACE("Skipping draw for " << node.name << " due to no shaderId");
             continue;
         }
         const auto& shaderId = node.shaderId.value();
 
-        ENG_LOG_TRACE("Drawing " << node.name << std::endl);
+        ENG_LOG_TRACE("Drawing " << node.name);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           renderer.pipelineFactory.getVkPipeline(shaderId));
 

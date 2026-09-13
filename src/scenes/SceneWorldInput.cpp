@@ -20,7 +20,7 @@ void SceneWorldInput::set_callbacks() {
 
 void SceneWorldInput::mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     // Print the scroll offsets
-    ENG_LOG_TRACE("Scroll Offset - X: " << xoffset << " Y: " << yoffset << std::endl);
+    ENG_LOG_TRACE("Scroll Offset - X: " << xoffset << " Y: " << yoffset);
 
     static double dx, dy = 0.f;
     static const auto invert_x = true;
@@ -50,7 +50,7 @@ void SceneWorldInput::mouse_movement_callback(GLFWwindow* window, double xpos, d
     const auto& middle_mouse_state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE);
 
     if (middle_mouse_state == GLFW_PRESS) {
-        ENG_LOG_TRACE("Middle mouse down" << std::endl);
+        ENG_LOG_TRACE("Middle mouse down");
         dx = xpos - windowUserData->cursorXScreenCoords;
         dy = ypos - windowUserData->cursorYScreenCoords;
 
@@ -67,17 +67,17 @@ void SceneWorldInput::mouse_movement_callback(GLFWwindow* window, double xpos, d
 
 void SceneWorldInput::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_T && action == GLFW_PRESS) {
-        ENG_LOG_TRACE("Toggle settings window visibility" << std::endl);
+        ENG_LOG_TRACE("Toggle settings window visibility");
         auto* sceneState = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
     }
     if (key == GLFW_KEY_E && action == GLFW_PRESS) {
-        ENG_LOG_TRACE("E key down" << std::endl);
+        ENG_LOG_TRACE("E key down");
         auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
         auto dx = glm::angleAxis(glm::radians(3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
     if (key == GLFW_KEY_R && action == GLFW_PRESS) {
-        ENG_LOG_TRACE("R key down" << std::endl);
+        ENG_LOG_TRACE("R key down");
         auto* windowUserData = static_cast<WindowUserData*>(glfwGetWindowUserPointer(window));
     }
 }
@@ -89,10 +89,10 @@ void SceneWorldInput::mouse_button_callback(GLFWwindow* window, int button, int 
         if (action == GLFW_PRESS)  // && initial_press)
         {
             glfwGetCursorPos(window, &windowUserData->cursorXScreenCoords, &windowUserData->cursorYScreenCoords);
-            ENG_LOG_TRACE("Middle mouse initial press" << std::endl);
+            ENG_LOG_TRACE("Middle mouse initial press");
         } else  // action is GLFW_RELEASE
         {
-            ENG_LOG_TRACE("Middle mouse released" << std::endl);
+            ENG_LOG_TRACE("Middle mouse released");
         }
     }
 }

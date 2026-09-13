@@ -229,7 +229,7 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, con
         auto vertRange = mesh.vertices(f);
         auto it = vertRange.begin();
         const auto& end = vertRange.end();
-        ENG_LOG_TRACE("Verts in face: " << std::distance(it, end) << std::endl);
+        ENG_LOG_TRACE("Verts in face: " << std::distance(it, end));
         assert(std::distance(it, end) > 2);
         auto v0 = newMesh.add_vertex(mesh.position(*(it++)));
         auto firstVert = v0;
@@ -242,7 +242,7 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, con
             v1 = newMesh.add_vertex(mesh.position(*(it)));
             tri = newMesh.add_triangle(centerVert, v0, v1);
             facecount++;
-            ENG_LOG_TRACE("INNER LOOP HIT" << std::endl);
+            ENG_LOG_TRACE("INNER LOOP HIT");
         }
 
         // add last triangle using last and first vertex
@@ -258,5 +258,5 @@ void triangulate_as_triangle_fan_preserving_face_ids(pmp::SurfaceMesh& mesh, con
         meshcount++;
     }
 
-    ENG_LOG_DEBUG("Face count " << facecount << std::endl);
+    ENG_LOG_DEBUG("Face count " << facecount);
 }

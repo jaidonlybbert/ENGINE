@@ -24,12 +24,12 @@ void loadModel(std::string name, const std::filesystem::path& objPath, const std
 
     auto texPath = texturePath;
 
-    ENG_LOG_TRACE("Found " << materials.size() << " materials." << std::endl);
+    ENG_LOG_TRACE("Found " << materials.size() << " materials.");
     for (const auto& mat : materials) {
-        ENG_LOG_TRACE("\tName: " << mat.name << std::endl);
-        ENG_LOG_TRACE("\tDiffuse texture: " << mat.diffuse_texname << std::endl);
+        ENG_LOG_TRACE("\tName: " << mat.name);
+        ENG_LOG_TRACE("\tDiffuse texture: " << mat.diffuse_texname);
         texPath = (get_mtl_dir() / std::filesystem::path(mat.diffuse_texname)).lexically_normal();
-        ENG_LOG_TRACE("\tConcat path: " << texPath << std::endl);
+        ENG_LOG_TRACE("\tConcat path: " << texPath);
     }
 
     std::unordered_map<std::filesystem::path, std::vector<VertexPosColTex>> vertices;
@@ -46,7 +46,7 @@ void loadModel(std::string name, const std::filesystem::path& objPath, const std
             const auto& shape_mat_id = shape.mesh.material_ids.at(0);
             const auto& shape_material = materials.at(shape_mat_id);
             texPath = (get_mtl_dir() / std::filesystem::path(shape_material.diffuse_texname)).lexically_normal();
-            ENG_LOG_TRACE("Overwrite texture path with material found for mesh: " << texPath << std::endl);
+            ENG_LOG_TRACE("Overwrite texture path with material found for mesh: " << texPath);
         }
 
         if (!vertices.contains(texPath)) {
