@@ -15,7 +15,10 @@ build_type=Release
 # conan-default(configure)/conan-release(build) presets.
 tools.cmake.cmaketoolchain:generator=Ninja
 # Even with Ninja (no VS project generator involved), Conan's own toolchain generation
-# separately verifies a VS install exists to set up the compiler environment, and that
-# verification does not reliably succeed on the CI runner either. Skip it by asserting
-# the VS version directly, per the fix Conan's own error message suggests.
-tools.microsoft.msbuild:vs_version=17
+# separately locates a VS install (to write a conanvcvars.bat) via `vswhere`, which shells
+# out and reads the ProgramFiles(x86) env var itself - that lookup does not reliably
+# succeed for steps running under bash on this runner (asserting just the version number,
+# tools.microsoft.msbuild:vs_version, was not enough - it still needs to find the path).
+# Give it the actual install path directly, bypassing detection entirely. This is the
+# fixed location of VS2022 Enterprise on GitHub's windows-latest runner image.
+tools.microsoft.msbuild:installation_path=C:\Program Files\Microsoft Visual Studio\2022\Enterprise
