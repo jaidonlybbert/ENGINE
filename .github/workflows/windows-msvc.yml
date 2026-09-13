@@ -49,22 +49,29 @@ jobs:
       - name: Install deps (Conan)
         run: conan install . -pr:a Windows-MSVC-x86_64 --output-folder . --build=missing
 
-      - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.2
+      # humbletim/install-vulkan-sdk (used by the other platform jobs) extracts the raw
+      # Windows installer with 7z instead of running it, which only yields Bin/ here -
+      # no Lib/Include, so CMake's FindVulkan can't find vulkan-1.lib. Run the real
+      # installer silently instead; this is the same install method LunarG's own CI
+      # samples use and what a real Windows dev machine ends up with.
+      - name: Cache Vulkan SDK installer
+        id: cache-vulkan-installer
+        uses: actions/cache@v4
         with:
-          version: 1.4.335.0
-          cache: true
+          path: vulkan-sdk-installer.exe
+          key: vulkan-sdk-windows-1.4.335.0
+
+      - name: Download Vulkan SDK installer
+        if: steps.cache-vulkan-installer.outputs.cache-hit != 'true'
+        run: curl -L -o vulkan-sdk-installer.exe "https://sdk.lunarg.com/sdk/download/1.4.335.0/windows/VulkanSDK-1.4.335.0-Installer.exe"
+
+      - name: Install Vulkan SDK
+        run: |
+          ./vulkan-sdk-installer.exe --accept-licenses --default-answer --confirm-command install
+          echo "VULKAN_SDK=C:\VulkanSDK\1.4.335.0" >> "$GITHUB_ENV"
 
       - name: verify vulkan
-        run: |
-          ls "${VULKAN_SDK}"
-          # TEMPORARY: find(1) doesn't like Windows-style backslashes, so lean on find's
-          # own recursion instead - CMake's FindVulkan can't locate vulkan-1.lib here even
-          # though $VULKAN_SDK/Bin exists, so print the actual tree once to see where this
-          # action's Windows extraction (7z on the raw installer, not a real install)
-          # actually put Lib/Include, then set Vulkan_LIBRARY/Vulkan_INCLUDE_DIR to match
-          # (CMakeLists.txt already honors those two env vars if set).
-          find "${VULKAN_SDK}" -iname "vulkan-1.lib" -o -iname "vulkan.h" 2>/dev/null
+        run: ls "${VULKAN_SDK}"
 
       - name: CMake Configure
         run: cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
