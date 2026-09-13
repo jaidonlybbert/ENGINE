@@ -1,5 +1,10 @@
 [![Ubuntu-GCC](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-gcc.yml)
-[![Code Style Check](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml/badge.svg)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml)
+[![Ubuntu-Clang-ASan](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-clang-asan.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/ubuntu-clang-asan.yml)
+[![Windows-MSVC](https://github.com/jaidonlybbert/ENGINE/actions/workflows/windows-msvc.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/windows-msvc.yml)
+[![macOS-AppleClang](https://github.com/jaidonlybbert/ENGINE/actions/workflows/macos-appleclang.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/macos-appleclang.yml)
+[![Unit Tests](https://github.com/jaidonlybbert/ENGINE/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/unit-tests.yml)
+[![Code Style Check](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 # ENGINE
 Cross-platform real-time 3D rendering application template based on Vulkan
 
@@ -8,6 +13,12 @@ Minimal application to load some gltf data, and render it, with some light abstr
 
 # Motivation
 This code is for my own benefit to use as a baseline for application development
+
+# AI Usage Disclosure
+This has been a side project I work on sporadically since 2022. In 2026, I began using AI agents (Claude Code) to progress the project. I make no claims about the quality or security of this code (nor did I ever). Use at your own risk, per the license.
+
+# License
+MIT — see [LICENSE](LICENSE).
 
 # Similar/Related Projects
 * [Vulkan-Samples](https://github.com/KhronosGroup/Vulkan-Samples) 
