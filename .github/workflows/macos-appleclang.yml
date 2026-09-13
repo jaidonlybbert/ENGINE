@@ -1,0 +1,83 @@
+name: macOS-AppleClang
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install conan
+        run: |
+          python -m pip install conan
+
+      # AppleClang's version tracks the Xcode release on the runner image, which changes
+      # over time - detect it instead of hardcoding a compiler.version that would go stale.
+      - name: Detect native Conan profile
+        run: conan profile detect --force
+
+      - name: Install Conan profile overrides
+        run: conan config install ${{github.workspace}}/profiles/macOS-AppleClang-arm64 --type=file --target-folder=profiles
+
+      - name: Install deps (Conan)
+        run: conan install . -pr:a default -pr:a macOS-AppleClang-arm64 --output-folder ${{github.workspace}} --build=missing
+
+      # humbletim/install-vulkan-sdk (works for the Ubuntu jobs) hardcodes the installer
+      # app bundle name it expects to find after unzipping (InstallVulkan.app /
+      # InstallVulkan-<version>.app) and fails with "unrecognized zip/layout" against this
+      # SDK version's actual bundle, which LunarG ships as vulkansdk-macOS-<version>.app -
+      # the same kind of installer-layout drift that broke this action's Windows path (see
+      # the companion Windows PR #39). Run the real installer directly instead, discovering
+      # its bundle/binary name at run time rather than hardcoding it, since that's exactly
+      # what changed out from under the third-party action.
+      - name: Cache Vulkan SDK installer
+        id: cache-vulkan-installer
+        uses: actions/cache@v4
+        with:
+          path: vulkan-sdk-installer.zip
+          key: vulkan-sdk-macos-1.4.335.0
+
+      - name: Download Vulkan SDK installer
+        if: steps.cache-vulkan-installer.outputs.cache-hit != 'true'
+        run: curl --fail-with-body -L -o vulkan-sdk-installer.zip "https://sdk.lunarg.com/sdk/download/1.4.335.0/mac/vulkan_sdk.zip?Human=true"
+
+      - name: Install Vulkan SDK
+        run: |
+          unzip -q vulkan-sdk-installer.zip
+          installer_app=$(find . -maxdepth 1 -name '*.app')
+          installer_bin="${installer_app}/Contents/MacOS/$(basename "$installer_app" .app)"
+          sudo "$installer_bin" --root "$HOME/VulkanSDK/1.4.335.0" --accept-licenses --default-answer --confirm-command install
+          sdk_dir=$(find "$HOME/VulkanSDK/1.4.335.0" -maxdepth 2 -type d -name macOS)
+          echo "VULKAN_SDK=$sdk_dir" >> "$GITHUB_ENV"
+
+      - name: verify vulkan
+        run: ls "${VULKAN_SDK}"
+
+      - name: CMake Configure & Build
+        run: |
+          cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
+          cmake --build --preset conan-release
+
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure --no-tests=error
