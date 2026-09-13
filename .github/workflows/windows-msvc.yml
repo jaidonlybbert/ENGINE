@@ -33,10 +33,13 @@ jobs:
           python -m pip install conan
 
       - name: Install Conan profile
-        run: conan config install ${{github.workspace}}/profiles/Windows-MSVC-x86_64 --type=file --target-folder=profiles
+        # A relative path is used instead of ${{github.workspace}} because that variable
+        # renders with backslashes on Windows, which bash (the shell these steps run
+        # under) treats as escape characters and mangles when interpolated into a command.
+        run: conan config install ./profiles/Windows-MSVC-x86_64 --type=file --target-folder=profiles
 
       - name: Install deps (Conan)
-        run: conan install . -pr:a Windows-MSVC-x86_64 --output-folder ${{github.workspace}} --build=missing
+        run: conan install . -pr:a Windows-MSVC-x86_64 --output-folder . --build=missing
 
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@v1.2
