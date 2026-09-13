@@ -1,0 +1,87 @@
+name: Windows-MSVC
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install conan
+        run: |
+          python -m pip install conan
+
+      # Needed because the profile tells Conan to use the Ninja generator (see that
+      # profile for why) instead of the Visual Studio generator it would default to.
+      - name: Set up MSVC dev environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v6
+
+      - name: Install Conan profile
+        # A relative path is used instead of ${{github.workspace}} because that variable
+        # renders with backslashes on Windows, which bash (the shell these steps run
+        # under) treats as escape characters and mangles when interpolated into a command.
+        run: conan config install ./profiles/Windows-MSVC-x86_64 --type=file --target-folder=profiles
+
+      - name: Install deps (Conan)
+        run: conan install . -pr:a Windows-MSVC-x86_64 --output-folder . --build=missing
+
+      # humbletim/install-vulkan-sdk (used by the other platform jobs) extracts the raw
+      # Windows installer with 7z instead of running it, which only yields Bin/ here -
+      # no Lib/Include, so CMake's FindVulkan can't find vulkan-1.lib. Run the real
+      # installer silently instead; this is the same install method LunarG's own CI
+      # samples use and what a real Windows dev machine ends up with.
+      - name: Cache Vulkan SDK installer
+        id: cache-vulkan-installer
+        uses: actions/cache@v4
+        with:
+          path: vulkan-sdk-installer.exe
+          key: vulkan-sdk-windows-1.4.335.0
+
+      - name: Download Vulkan SDK installer
+        if: steps.cache-vulkan-installer.outputs.cache-hit != 'true'
+        # ?Human=true is required - LunarG's server serves an interstitial page instead of
+        # the binary without it (this exact URL form is what
+        # humbletim/install-vulkan-sdk's own downloader uses; only its Windows
+        # *extraction* step is broken, not this part).
+        run: curl --fail-with-body -L -o vulkan-sdk-installer.exe "https://sdk.lunarg.com/sdk/download/1.4.335.0/windows/vulkan_sdk.exe?Human=true"
+
+      - name: Install Vulkan SDK
+        run: |
+          ./vulkan-sdk-installer.exe --accept-licenses --default-answer --confirm-command install
+          echo "VULKAN_SDK=C:\VulkanSDK\1.4.335.0" >> "$GITHUB_ENV"
+
+      - name: verify vulkan
+        run: ls "${VULKAN_SDK}"
+
+      - name: CMake Configure
+        run: cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
+
+      - name: CMake Build
+        run: cmake --build --preset conan-release
+
+      - name: Run Tests
+        run: ctest --test-dir build --output-on-failure --no-tests=error

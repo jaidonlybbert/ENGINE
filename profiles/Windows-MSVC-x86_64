@@ -1,0 +1,29 @@
+[settings]
+os=Windows
+arch=x86_64
+compiler=msvc
+compiler.version=193
+compiler.cppstd=20
+compiler.runtime=dynamic
+build_type=Release
+[conf]
+# CMake's "Visual Studio 17 2022" generator (Conan's default here) fails to locate the
+# VS install on the CI runner even with a Developer Command Prompt environment set up.
+# Ninja sidesteps that lookup entirely (it just needs cl.exe/link.exe on PATH) and, as a
+# single-config generator, also makes the generated CMake presets match the Ubuntu
+# jobs' conan-release/conan-debug naming instead of MSVC's split
+# conan-default(configure)/conan-release(build) presets.
+tools.cmake.cmaketoolchain:generator=Ninja
+# Even with Ninja (no VS project generator involved), Conan's own toolchain generation
+# separately locates a VS install (to write a conanvcvars.bat) via `vswhere`, and this
+# doesn't find one - because GitHub's windows-latest image has moved on from VS2022 to a
+# newer release entirely: the ilammy/msvc-dev-cmd step's own env dump on this runner shows
+# VSINSTALLDIR="C:\Program Files\Microsoft Visual Studio\18\Enterprise" and
+# VisualStudioVersion=18.0, not the 2022/17.x this profile's compiler.version=193 (still
+# accurate for ABI/package-compatibility purposes - MSVC's toolset ABI has stayed
+# compatible since VS2015) implies. conan's installed release doesn't know how to map
+# compiler.version to VS "18" yet, so give it the real path directly instead of a version
+# number to look up. Confirmed against this job's own environment, not GitHub's docs (see
+# PR discussion) - if GitHub's runner image moves again this will need updating the same
+# way.
+tools.microsoft.msbuild:installation_path=C:\Program Files\Microsoft Visual Studio\18\Enterprise

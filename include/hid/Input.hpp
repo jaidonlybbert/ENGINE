@@ -1,6 +1,7 @@
 #pragma once
 
 #include <deque>
+#include <mutex>
 
 #include "GLFW/glfw3.h"
 #include "events/Event.hpp"

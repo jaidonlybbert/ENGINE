@@ -1,6 +1,7 @@
 #ifndef ENG_SCENE
 #define ENG_SCENE
 #include <chrono>
+#include <mutex>
 #include <optional>
 #include <random>
 

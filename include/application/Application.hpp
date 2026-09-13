@@ -3,6 +3,7 @@
 #include <asio/io_context.hpp>
 #include <asio/signal_set.hpp>
 #include <functional>
+#include <mutex>
 #include <thread>
 #include <vector>
 
