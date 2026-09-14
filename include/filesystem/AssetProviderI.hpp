@@ -7,21 +7,29 @@ namespace ENG {
 
 // Abstracts asset access so callers don't assume a folder-based install layout - Android
 // has no such filesystem, assets ship inside the APK and are read through AAssetManager
-// instead (see issue #42). LocalAssetProvider (filesystem/LocalAssetProvider.hpp) is the
-// only implementation today, wrapping the current install-directory layout.
+// instead (see issue #42). LocalAssetProvider (filesystem/LocalAssetProvider.hpp) and
+// AndroidAssetProvider (filesystem/android/AndroidAssetProvider.hpp) are the two
+// implementations (see issue #50).
 //
-// Shader bytes are the one asset type the engine reads directly, so they're the one
-// fully ported to a byte-buffer accessor here. Models/textures still go through
-// tinyobjloader/tinygltf/stb_image, which do their own file I/O against a path and
-// aren't routed through this interface yet - a real Android backend would also need
-// those libraries' own custom file-loading hooks (tinygltf's FsCallbacks,
-// tinyobjloader's material reader callback, stbi_load_from_memory), which is separate,
-// larger follow-up work.
+// The get*() methods below name *which* asset something is - used as stable identifiers
+// (e.g. VkRenderer's texture caches are keyed by the path getRoomTex() returns), not
+// necessarily a real filesystem location. readBytes() is the actual mechanism for turning
+// one of those identifiers (or any other logical path shaped the same way, e.g. a
+// material filename tinyobjloader discovers while parsing an .obj it's already reading
+// through this interface) into bytes - LocalAssetProvider resolves it against the
+// installed asset folders like it always has; AndroidAssetProvider resolves it as an
+// AAssetManager asset name instead. readShaderBytes() predates this and is kept as its
+// own method (call sites want "give me this shader" without knowing the "shaders/"
+// convention), but both implementations just forward it to readBytes() now.
 class AssetProviderI {
    public:
     virtual ~AssetProviderI() = default;
 
     virtual std::vector<char> readShaderBytes(const std::string& shaderFileName) const = 0;
+
+    // Throws if the asset can't be read. logicalPath is typically one of the get*()
+    // results below, or a path built from one (e.g. getMtlDir() / "<material>.mtl").
+    virtual std::vector<char> readBytes(const std::filesystem::path& logicalPath) const = 0;
 
     virtual const std::filesystem::path& getGltfDir() const = 0;
     virtual const std::filesystem::path& getMtlDir() const = 0;

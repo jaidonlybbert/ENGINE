@@ -1,5 +1,6 @@
 #include "scene/Obj.hpp"
 
+#include <sstream>
 #include <vector>
 
 #include "filesystem/AssetProviderI.hpp"
@@ -7,6 +8,38 @@
 #include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
 #include "tiny_obj_loader.h"
+
+namespace {
+
+// Reads .mtl material data through AssetProviderI instead of tinyobjloader's own built-in
+// MaterialFileReader, which opens mtl_basedir/matId directly off a real filesystem - no
+// such thing on Android (see issue #50). Unlike MaterialStreamReader (tinyobjloader's
+// other built-in reader), this actually uses matId - each material file tinyobjloader
+// asks for is fetched on demand, rather than requiring the caller to already know which
+// single .mtl to preload.
+class AssetProviderMaterialReader : public tinyobj::MaterialReader {
+   public:
+    explicit AssetProviderMaterialReader(std::filesystem::path mtlBaseDir) : mtlBaseDir(std::move(mtlBaseDir)) {}
+
+    bool operator()(const std::string& matId, std::vector<tinyobj::material_t>* materials,
+                    std::map<std::string, int>* matMap, std::string* warn, std::string* err) override {
+        try {
+            const auto bytes = ENG::getAssetProvider().readBytes(mtlBaseDir / matId);
+            std::string content(bytes.begin(), bytes.end());
+            std::istringstream stream(content);
+            tinyobj::LoadMtl(matMap, materials, &stream, warn, err);
+            return true;
+        } catch (const std::exception& e) {
+            if (warn) *warn += "Material file [" + matId + "] in " + mtlBaseDir.string() + ": " + e.what() + "\n";
+            return false;
+        }
+    }
+
+   private:
+    std::filesystem::path mtlBaseDir;
+};
+
+}  // namespace
 
 namespace ENG {
 
@@ -18,8 +51,13 @@ void loadModel(std::string name, const std::filesystem::path& objPath, const std
     std::string warn, err;
 
     auto& assetProvider = getAssetProvider();
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objPath.string().c_str(),
-                          assetProvider.getMtlDir().string().c_str())) {
+
+    const auto objBytes = assetProvider.readBytes(objPath);
+    std::string objContent(objBytes.begin(), objBytes.end());
+    std::istringstream objStream(objContent);
+    AssetProviderMaterialReader materialReader(assetProvider.getMtlDir());
+
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, &objStream, &materialReader)) {
         throw std::runtime_error(warn + err);
     }
 
