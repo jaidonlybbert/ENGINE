@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <functional>
+#include <vector>
 
 #include "events/Event.hpp"
 
@@ -15,6 +16,20 @@ enum class Key { LeftShift, T, E, R };
 enum class MouseButton { Middle };
 enum class KeyAction { Press, Release };
 
+// What just happened to the touch point set - the points a Down/Move/Up/Cancel callback
+// reports are the *current* active set after that change (e.g. an Up event's points no
+// longer include the finger that was lifted).
+enum class TouchPhase { Down, Move, Up, Cancel };
+
+// A single active finger. id is stable for the duration of that finger's contact with the
+// screen (Android's MotionEvent pointer id) - use it to track "the same finger" across
+// consecutive callbacks even as other fingers come and go, e.g. for pinch gestures.
+struct TouchPoint {
+    int id;
+    double x;
+    double y;
+};
+
 struct WindowUserData {
     double cursorXScreenCoords{0.};
     double cursorYScreenCoords{0.};
@@ -22,12 +37,15 @@ struct WindowUserData {
     int windowHeightScreenCoords{0};
     std::deque<ClientHidEvent> eventQueue;
     bool windowResized{false};
+    // The touch set as of the last touch callback - lets a touch-move handler compute a
+    // delta against each finger's previous position, the same way cursorXScreenCoords/
+    // cursorYScreenCoords do for the mouse.
+    std::vector<TouchPoint> previousTouchPoints;
 };
 
-// Abstracts keyboard/mouse input so callers (CameraControls, scenes) don't call into a
-// specific windowing toolkit directly. GLFW (hid/glfw/GlfwInput.hpp) is the only
-// implementation today - a future Android backend would report touch input through the
-// same interface instead (see issue #42).
+// Abstracts keyboard/mouse/touch input so callers (CameraControls, scenes) don't call
+// into a specific windowing toolkit directly. GLFW (hid/glfw/GlfwInput.hpp) and Android
+// (hid/android/AndroidInput.hpp) are the two implementations today (see issues #42/#49).
 class InputI {
    public:
     virtual ~InputI() = default;
@@ -41,6 +59,13 @@ class InputI {
     virtual void addMouseMovementCallback(std::function<void(double xpos, double ypos)> callback) = 0;
     virtual void addMouseButtonCallback(std::function<void(MouseButton button, KeyAction action)> callback) = 0;
     virtual void addKeyCallback(std::function<void(Key key, KeyAction action)> callback) = 0;
+
+    // Touch input (Android; GLFW has no touch, so GlfwInput registers no callbacks and
+    // this never fires there). Fires whenever the active touch set changes - a finger
+    // going down, moving, or lifting - with every currently-active point, not just the
+    // one that changed, since gestures like pinch need to see all points at once.
+    virtual void addTouchCallback(
+        std::function<void(TouchPhase phase, const std::vector<TouchPoint>& points)> callback) = 0;
 };
 
 /*

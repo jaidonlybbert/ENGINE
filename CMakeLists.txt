@@ -50,12 +50,13 @@ endif()
 # The Android build (see issue #10/#46) is kept deliberately separate from the desktop
 # Engine target's ~100 lines of add_subdirectory/find_package/target_link_libraries below,
 # rather than threading ANDROID checks through all of it: most of it is GLFW-specific
-# (window, hid/glfw) or scene/asset-rendering logic that isn't Android-ready yet (gltf/obj/
-# texture loading still assumes a real filesystem - issue #50). This block links only the
+# (window, hid/glfw) or asset-rendering logic that isn't Android-ready yet (texture
+# loading still assumes a real filesystem - issue #50). This block links only the
 # libraries that are already portable or have an Android-specific implementation
 # (engine::vk::renderer, engine::window::android - issue #47; engine::application's
-# lifecycle hooks - issue #48) - widening it further is expected, natural follow-up as
-# #49-#51 land, not something to force here.
+# lifecycle hooks - issue #48; engine::hid::android and touch-aware
+# engine::scenes::common - issue #49) - widening it further is expected, natural
+# follow-up as #50/#51 land, not something to force here.
 if (ANDROID)
 	add_library(native_app_glue STATIC "${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c")
 	target_include_directories(native_app_glue PUBLIC "${ANDROID_NDK}/sources/android/native_app_glue")
@@ -66,6 +67,8 @@ if (ANDROID)
 	find_package(nlohmann_json 3.12 CONFIG REQUIRED)
 	find_package(spdlog REQUIRED)
 	find_package(asio REQUIRED)
+	find_package(tinyobjloader REQUIRED)
+	find_package(pmp REQUIRED)
 
 	add_subdirectory("${PROJECT_SOURCE_DIR}/include")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/third_party")
@@ -75,6 +78,10 @@ if (ANDROID)
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/application")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer/vk")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/window/android")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/scene")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/hid")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/hid/android")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes/common")
 
 	add_library(Engine SHARED "${PROJECT_SOURCE_DIR}/src/main_android.cpp")
 	target_link_libraries(Engine PRIVATE
@@ -84,7 +91,11 @@ if (ANDROID)
 		engine::vk::renderer
 		engine::window_interface
 		engine::window::android
-		engine::application)
+		engine::application
+		engine::hid_interface
+		engine::hid
+		engine::hid::android
+		engine::scenes::common)
 	# Required so the OS can find the entry point native_app_glue implements.
 	target_link_options(Engine PRIVATE "-u" "ANativeActivity_onCreate")
 else()

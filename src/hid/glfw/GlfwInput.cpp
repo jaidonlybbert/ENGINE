@@ -85,6 +85,8 @@ void GlfwInput::addKeyCallback(std::function<void(Key, KeyAction)> callback) {
     keyCallbacks.push_back(std::move(callback));
 }
 
+void GlfwInput::addTouchCallback(std::function<void(TouchPhase, const std::vector<TouchPoint>&)> callback) {}
+
 void GlfwInput::scrollCallbackTrampoline(GLFWwindow* window, double xoffset, double yoffset) {
     if (!activeInstance) return;
     for (auto& callback : activeInstance->mouseScrollCallbacks) {

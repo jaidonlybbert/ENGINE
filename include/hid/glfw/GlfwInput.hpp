@@ -26,6 +26,9 @@ class GlfwInput : public InputI {
     void addMouseMovementCallback(std::function<void(double, double)> callback) override;
     void addMouseButtonCallback(std::function<void(MouseButton, KeyAction)> callback) override;
     void addKeyCallback(std::function<void(Key, KeyAction)> callback) override;
+    // GLFW has no touch input - this is a deliberate no-op (the callback is never
+    // invoked, so there's nothing useful to store it for).
+    void addTouchCallback(std::function<void(TouchPhase, const std::vector<TouchPoint>&)> callback) override;
 
    private:
     GLFWwindow* window;
