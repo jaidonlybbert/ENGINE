@@ -608,8 +608,16 @@ void VkRenderer::createDescriptorSets(std::vector<VkDescriptorSet>& descriptorSe
 }
 
 void VkRenderer::createTextureImage(const std::filesystem::path& fpath) {
+    // Goes through AssetProviderI rather than stbi_load()'s own file access, since
+    // there's no real filesystem to hand a path to on Android (see issue #50) - fpath
+    // still identifies *which* texture (used as the cache key below), just not where to
+    // find its bytes.
+    const auto fileBytes = ENG::getAssetProvider().readBytes(fpath);
+
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(fpath.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    stbi_uc* pixels =
+        stbi_load_from_memory(reinterpret_cast<const stbi_uc*>(fileBytes.data()), static_cast<int>(fileBytes.size()),
+                              &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     if (!pixels) {

@@ -4,6 +4,65 @@
 #include "logger/Logging.hpp"
 #include "scene/Mesh.hpp"
 
+namespace {
+
+// Routes tinygltf's own file access (the main .gltf/.glb, plus any external .bin/image
+// URIs it references) through AssetProviderI instead of raw file I/O, since there's no
+// real filesystem to open a path on on Android (see issue #50). tinygltf requires every
+// callback below to be set if any are (see TinyGLTF::SetFsCallbacks()).
+tinygltf::FsCallbacks makeAssetProviderFsCallbacks() {
+    tinygltf::FsCallbacks callbacks;
+
+    callbacks.FileExists = [](const std::string&, void*) {
+        // AssetProviderI::readBytes() throws rather than reporting existence up front -
+        // let ReadWholeFile below be the real existence check instead of duplicating a
+        // read here just to answer this.
+        return true;
+    };
+
+    callbacks.ExpandFilePath = [](const std::string& filepath, void*) {
+        // No tilde/env-var expansion needed against an AssetProviderI-resolved path -
+        // matches tinygltf's own built-in behavior (see its ExpandFilePath()).
+        return filepath;
+    };
+
+    callbacks.ReadWholeFile = [](std::vector<unsigned char>* out, std::string* err, const std::string& filepath,
+                                 void*) {
+        try {
+            const auto bytes = ENG::getAssetProvider().readBytes(filepath);
+            out->assign(bytes.begin(), bytes.end());
+            return true;
+        } catch (const std::exception& e) {
+            if (err) *err += std::string("Failed to read ") + filepath + ": " + e.what() + "\n";
+            return false;
+        }
+    };
+
+    callbacks.WriteWholeFile = [](std::string* err, const std::string&, const std::vector<unsigned char>&, void*) {
+        if (err) *err += "Writing glTF assets is not supported.\n";
+        return false;
+    };
+
+    callbacks.GetFileSizeInBytes = [](size_t* filesize_out, std::string* err, const std::string& filepath, void*) {
+        // No separate "just the size" query on AssetProviderI - reads the whole asset to
+        // report its size, same as ReadWholeFile will do again right after. Assets here
+        // are small enough (shaders/models/textures, not video) that reading twice isn't
+        // worth a second AssetProviderI method just to avoid.
+        try {
+            *filesize_out = ENG::getAssetProvider().readBytes(filepath).size();
+            return true;
+        } catch (const std::exception& e) {
+            if (err) *err += std::string("Failed to stat ") + filepath + ": " + e.what() + "\n";
+            return false;
+        }
+    };
+
+    callbacks.user_data = nullptr;
+    return callbacks;
+}
+
+}  // namespace
+
 namespace ENG {
 
 static size_t get_size_bytes_from_tinygltf_accessor(const tinygltf::Accessor& acc) {
@@ -39,6 +98,7 @@ bool load_gltf_model(const std::filesystem::path gltf_path, tinygltf::Model& mod
     std::string err;
     std::string warn;
 
+    loader.SetFsCallbacks(makeAssetProviderFsCallbacks());
     bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, gltf_path.string());
 
     if (!warn.empty()) {

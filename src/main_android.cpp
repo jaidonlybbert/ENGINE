@@ -17,17 +17,28 @@
 //
 // Also wires up AndroidInput and CameraControls::set_callbacks() (issue #49) - touch-drag
 // orbit and pinch both go through the same ClientHidEvent queue mouse-drag/scroll already
-// do, so there's no scene/renderer here to visibly confirm against yet (same #50 blocker),
-// but the touch-event plumbing, gesture math, and CameraControls wiring are all real and
-// exercised end to end down to the event queue.
+// do, so there's no scene/renderer here to visibly confirm against yet (same #50 blocker
+// below), but the touch-event plumbing, gesture math, and CameraControls wiring are all
+// real and exercised end to end down to the event queue.
+//
+// Also registers an AndroidAssetProvider and attempts to load the Suzanne glTF through it
+// (issue #50) - this exercises the real AssetProviderI::readBytes()/tinygltf FsCallbacks
+// path, but there is currently no build step that packages any assets into an APK at all
+// (that's its own gap, out of scope for every issue in this breakdown - see the PR
+// description), so on an actual device this is expected to log a "not found" failure
+// rather than success until that packaging exists. What's being verified here is that the
+// code path runs without crashing and reports a real AAssetManager error, not that the
+// model actually loads.
 #include <android/log.h>
 #include <android_native_app_glue.h>
 
 #include <stdexcept>
 
 #include "application/Application.hpp"
+#include "filesystem/android/AndroidAssetProvider.hpp"
 #include "hid/android/AndroidInput.hpp"
 #include "renderer/vk/Instance.hpp"
+#include "scene/Gltf.hpp"
 #include "scenes/common/CameraControls.hpp"
 #include "window/android/AndroidWindow.hpp"
 
@@ -66,6 +77,21 @@ void verifyVulkanSurfaceCreation(AndroidWindow& window) {
     }
 
     vkDestroyInstance(instanceFactory.instance, nullptr);
+}
+
+void verifyAssetLoading() {
+    tinygltf::Model model;
+    try {
+        if (ENG::load_gltf_model(ENG::getAssetProvider().getGltfDir(), model)) {
+            LOGI("AndroidAssetProvider loaded the glTF model successfully.");
+        } else {
+            // load_gltf_model() logs its own warn/err via ENG_LOG_* on failure - this
+            // just confirms it returned rather than crashing.
+            LOGE("AndroidAssetProvider: glTF load reported failure (see above).");
+        }
+    } catch (const std::exception& e) {
+        LOGE("AndroidAssetProvider: glTF load threw: %s", e.what());
+    }
 }
 
 // Everything the real (post-bootstrap) app->onAppCmd/app->onInputEvent dispatchers need,
@@ -122,6 +148,10 @@ void android_main(android_app* app) {
     if (app->destroyRequested) {
         return;
     }
+
+    ENG::AndroidAssetProvider assetProvider(app->activity->assetManager);
+    ENG::setAssetProvider(assetProvider);
+    verifyAssetLoading();
 
     AndroidWindow window(app);
     verifyVulkanSurfaceCreation(window);

@@ -50,13 +50,12 @@ endif()
 # The Android build (see issue #10/#46) is kept deliberately separate from the desktop
 # Engine target's ~100 lines of add_subdirectory/find_package/target_link_libraries below,
 # rather than threading ANDROID checks through all of it: most of it is GLFW-specific
-# (window, hid/glfw) or asset-rendering logic that isn't Android-ready yet (texture
-# loading still assumes a real filesystem - issue #50). This block links only the
-# libraries that are already portable or have an Android-specific implementation
-# (engine::vk::renderer, engine::window::android - issue #47; engine::application's
-# lifecycle hooks - issue #48; engine::hid::android and touch-aware
-# engine::scenes::common - issue #49) - widening it further is expected, natural
-# follow-up as #50/#51 land, not something to force here.
+# (window, hid/glfw). This block links only the libraries that are already portable or
+# have an Android-specific implementation (engine::vk::renderer, engine::window::android -
+# issue #47; engine::application's lifecycle hooks - issue #48; engine::hid::android and
+# touch-aware engine::scenes::common - issue #49; engine::filesystem::android - issue #50)
+# - widening it further (engine::vk::adapter/engine::gui, both still GLFW/imgui-coupled -
+# issue #51) is expected, natural follow-up, not something to force here.
 if (ANDROID)
 	add_library(native_app_glue STATIC "${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c")
 	target_include_directories(native_app_glue PUBLIC "${ANDROID_NDK}/sources/android/native_app_glue")
@@ -75,6 +74,7 @@ if (ANDROID)
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/logger")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/config")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem/android")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/application")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer/vk")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/window/android")
@@ -96,7 +96,9 @@ if (ANDROID)
 		engine::hid_interface
 		engine::hid
 		engine::hid::android
-		engine::scenes::common)
+		engine::scenes::common
+		engine::filesystem_interface
+		engine::filesystem::android)
 	# Required so the OS can find the entry point native_app_glue implements.
 	target_link_options(Engine PRIVATE "-u" "ANativeActivity_onCreate")
 else()

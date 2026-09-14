@@ -16,12 +16,17 @@ const std::filesystem::path& get_install_dir() {
 
 namespace ENG {
 
-std::vector<char> LocalAssetProvider::readShaderBytes(const std::string& shaderFileName) const {
-    const auto path = get_install_dir() / "shaders" / shaderFileName;
+std::vector<char> LocalAssetProvider::readBytes(const std::filesystem::path& logicalPath) const {
+    // get_install_dir() / logicalPath: if logicalPath is already absolute (as every
+    // get*() result below is, e.g. getRoomTex()), std::filesystem::path's own append
+    // semantics discard the left-hand side and this just resolves to logicalPath
+    // unchanged - so this works whether the caller passes a bare relative name (e.g.
+    // readShaderBytes()'s "shaders" / name) or an already-absolute identifier.
+    const auto path = get_install_dir() / logicalPath;
     std::ifstream file(path.native(), std::ios::ate | std::ios::binary);
 
     if (!file.is_open()) {
-        throw std::runtime_error("failed to open shader file: " + path.string());
+        throw std::runtime_error("failed to open asset file: " + path.string());
     }
 
     const size_t fileSize = static_cast<size_t>(file.tellg());
@@ -30,6 +35,10 @@ std::vector<char> LocalAssetProvider::readShaderBytes(const std::string& shaderF
     file.read(buffer.data(), fileSize);
 
     return buffer;
+}
+
+std::vector<char> LocalAssetProvider::readShaderBytes(const std::string& shaderFileName) const {
+    return readBytes("shaders" / std::filesystem::path(shaderFileName));
 }
 
 const std::filesystem::path& LocalAssetProvider::getSpacefloorObj() const {
