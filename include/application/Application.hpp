@@ -22,6 +22,25 @@ class Application {
     void start();
     void shutdown();
 
+    // Lifecycle hooks for platforms where the OS can tear down and later restore the
+    // rendering surface out from under a running app (Android: APP_CMD_TERM_WINDOW/
+    // APP_CMD_INIT_WINDOW/APP_CMD_PAUSE/APP_CMD_RESUME - see issue #48 and
+    // src/main_android.cpp). Desktop backends (GLFW) never call the notify* methods -
+    // the window/surface never gets torn down by the OS underneath them the way it does
+    // on Android - so callbacks registered here simply stay dormant there.
+    void registerSurfaceDestroyedCallback(std::function<void(void)> fun);
+    void registerSurfaceCreatedCallback(std::function<void(void)> fun);
+    void registerPauseCallback(std::function<void(void)> fun);
+    void registerResumeCallback(std::function<void(void)> fun);
+
+    // Invoked by the platform-specific main loop when the OS actually fires the
+    // corresponding event. Not called automatically by start()/shutdown() - something
+    // platform-specific (e.g. android_main's command dispatch) is expected to call these.
+    void notifySurfaceDestroyed();
+    void notifySurfaceCreated();
+    void notifyPause();
+    void notifyResume();
+
    private:
     inline static std::mutex shutdownMutex;
     asio::signal_set signals{io_ctx, SIGINT, SIGTERM};
@@ -33,6 +52,12 @@ class Application {
     std::vector<std::exception_ptr> dedicatedThreadErrors;
     std::vector<std::function<void(void)>> shutdownListeners;
     std::vector<std::thread> dedicatedThreads;
+
+    std::vector<std::function<void(void)>> surfaceDestroyedListeners;
+    std::vector<std::function<void(void)>> surfaceCreatedListeners;
+    std::vector<std::function<void(void)>> pauseListeners;
+    std::vector<std::function<void(void)>> resumeListeners;
+    void notifyListeners(std::vector<std::function<void(void)>>& listeners, const std::string& category);
 
     void queueInitFunctions();
     void spawnCoroutines();

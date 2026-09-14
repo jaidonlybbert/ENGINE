@@ -53,8 +53,9 @@ endif()
 # (window, hid/glfw) or scene/asset-rendering logic that isn't Android-ready yet (gltf/obj/
 # texture loading still assumes a real filesystem - issue #50). This block links only the
 # libraries that are already portable or have an Android-specific implementation
-# (engine::vk::renderer, engine::window::android - issue #47) - widening it further is
-# expected, natural follow-up as #48-#51 land, not something to force here.
+# (engine::vk::renderer, engine::window::android - issue #47; engine::application's
+# lifecycle hooks - issue #48) - widening it further is expected, natural follow-up as
+# #49-#51 land, not something to force here.
 if (ANDROID)
 	add_library(native_app_glue STATIC "${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c")
 	target_include_directories(native_app_glue PUBLIC "${ANDROID_NDK}/sources/android/native_app_glue")
@@ -64,12 +65,14 @@ if (ANDROID)
 	find_package(VulkanMemoryAllocator REQUIRED)
 	find_package(nlohmann_json 3.12 CONFIG REQUIRED)
 	find_package(spdlog REQUIRED)
+	find_package(asio REQUIRED)
 
 	add_subdirectory("${PROJECT_SOURCE_DIR}/include")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/third_party")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/logger")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/config")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/application")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer/vk")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/window/android")
 
@@ -80,7 +83,8 @@ if (ANDROID)
 		log
 		engine::vk::renderer
 		engine::window_interface
-		engine::window::android)
+		engine::window::android
+		engine::application)
 	# Required so the OS can find the entry point native_app_glue implements.
 	target_link_options(Engine PRIVATE "-u" "ANativeActivity_onCreate")
 else()

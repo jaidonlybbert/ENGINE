@@ -223,6 +223,23 @@ void VkRenderer::createSurface() {
     }
 }
 
+void VkRenderer::handleSurfaceDestroyed() {
+    vkDeviceWaitIdle(device);
+    swapchain->cleanupSwapChain(device);
+    vkDestroySurfaceKHR(instanceFactory->instance, surface, nullptr);
+    surface = VK_NULL_HANDLE;
+}
+
+void VkRenderer::handleSurfaceCreated() {
+    createSurface();
+    // Rebuilds the swapchain/image views/depth resources/framebuffers against the surface
+    // just (re)created above - the same machinery a desktop resize already uses, since by
+    // this point the surface itself is valid again and recreateSwapChain() only cares
+    // about the current surface/window, not how it got there.
+    swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
+    recalculateAspectRatio();
+}
+
 void VkRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
