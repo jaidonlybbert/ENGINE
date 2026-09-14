@@ -34,6 +34,15 @@ jobs:
         with:
           ndk-version: r27c
 
+      # Needed as the *build* profile below - the machine actually running Conan/CMake/
+      # cmake-the-tool, as distinct from the Android *host* profile (what the compiled
+      # code targets). Passing Android-Clang-arm64 as both via -pr:a (fine for every other
+      # job in this repo, where build == host) makes Conan try to cross-compile build-time
+      # tool_requires like cmake *for* Android too, which conancenter's cmake recipe
+      # doesn't support - it only ever runs on the build machine.
+      - name: Detect native Conan profile
+        run: conan profile detect --force
+
       - name: Install Conan profile
         run: conan config install ${{github.workspace}}/profiles/Android-Clang-arm64 --type=file --target-folder=profiles
 
@@ -47,7 +56,7 @@ jobs:
             conan-android-clang-
 
       - name: Install deps (Conan)
-        run: conan install . -pr:a Android-Clang-arm64 -c tools.android:ndk_path=${{ steps.setup-ndk.outputs.ndk-path }} --output-folder . --build=missing
+        run: conan install . -pr:h Android-Clang-arm64 -pr:b default -c tools.android:ndk_path=${{ steps.setup-ndk.outputs.ndk-path }} --output-folder . --build=missing
 
       - name: CMake Configure
         run: cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
