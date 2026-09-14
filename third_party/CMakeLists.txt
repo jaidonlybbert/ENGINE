@@ -13,7 +13,13 @@ set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tinygltf")
 
 # ---- IMGUI ---- #
-find_package(glfw3 CONFIG REQUIRED)
+# GLFW has no Android backend (see issue #10/#46) - imgui_impl_glfw is excluded there for
+# the same reason. imgui_impl_android (issue #51) would be added as its own
+# Android-only source here once that lands; until then the Android build gets core imgui
+# + the Vulkan backend with no platform backend wired in yet.
+if (NOT ANDROID)
+	find_package(glfw3 CONFIG REQUIRED)
+endif()
 find_package(Vulkan REQUIRED)
 add_library(imgui STATIC
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui.cpp"
@@ -21,16 +27,20 @@ add_library(imgui STATIC
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_draw.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_tables.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_widgets.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_glfw.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_vulkan.cpp"
 )
+if (NOT ANDROID)
+	target_sources(imgui PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_glfw.cpp")
+endif()
 target_include_directories(imgui
 	PUBLIC
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui"
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends"
 )
 target_link_libraries(imgui PUBLIC Vulkan::Vulkan)
-target_link_libraries(imgui PUBLIC glfw)
+if (NOT ANDROID)
+	target_link_libraries(imgui PUBLIC glfw)
+endif()
 
 # ---- dynalo ---- #
 # add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/dynalo")

@@ -1,6 +1,12 @@
 #include "renderer/vk/Instance.hpp"
 
+#if defined(__ANDROID__)
+#include <android/native_window.h>
+#define VK_USE_PLATFORM_ANDROID_KHR
+#include <vulkan/vulkan_android.h>
+#else
 #include <GLFW/glfw3.h>
+#endif
 #include <string.h>
 #include <vulkan/vulkan_core.h>
 
@@ -121,15 +127,21 @@ void InstanceFactory::createInstance() {
 }
 
 // Vulkan surface/instance extensions are inherently platform-specific (a different
-// extension per windowing system), so this deliberately calls GLFW directly rather than
-// going through WindowI - WindowI is meant to stay renderer-agnostic (see issue #42's
-// follow-up on decoupling engine::window::glfw from Vulkan). Swapping window backends
-// means updating this function too, the same way it would need a branch added for
-// VK_KHR_android_surface on a non-desktop platform.
+// extension per windowing system), so this deliberately calls into the windowing toolkit
+// directly rather than going through WindowI - WindowI is meant to stay renderer-agnostic
+// (see issue #42's follow-up on decoupling engine::window::glfw from Vulkan). Swapping
+// window backends means updating this function too.
 std::vector<const char*> InstanceFactory::getRequiredExtensions() {
+#if defined(__ANDROID__)
+    // Unlike GLFW, Android's surface extension isn't looked up dynamically - there's only
+    // ever the one windowing system, so it's just the two extensions every Vulkan-on-
+    // Android app needs.
+    std::vector<const char*> extensions = {VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_ANDROID_SURFACE_EXTENSION_NAME};
+#else
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+#endif
 
     if (enableValidationLayers) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -172,5 +184,16 @@ bool InstanceFactory::checkValidationLayerSupport() {
     }
 
     return true;
+}
+
+VkResult createWindowSurface(VkInstance instance, WindowI& window, VkSurfaceKHR* surface) {
+#if defined(__ANDROID__)
+    VkAndroidSurfaceCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    createInfo.window = reinterpret_cast<ANativeWindow*>(window.nativeHandle());
+    return vkCreateAndroidSurfaceKHR(instance, &createInfo, nullptr, surface);
+#else
+    return glfwCreateWindowSurface(instance, reinterpret_cast<GLFWwindow*>(window.nativeHandle()), nullptr, surface);
+#endif
 }
 }  // namespace ENG

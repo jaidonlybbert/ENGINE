@@ -18,9 +18,6 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "vulkan/vulkan_core.h"
-// Must come after vulkan_core.h so GLFW declares its Vulkan-specific functions
-// (glfwCreateWindowSurface) against the real Vulkan types instead of skipping them.
-#include <GLFW/glfw3.h>
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include <stb_image.h>
@@ -126,10 +123,16 @@ void VkRenderer::cleanupVulkan() {
 }
 
 void VkRenderer::cleanupGui() {
+#if defined(__ANDROID__)
+    // imgui_impl_android wiring is issue #51's scope - initGui() below is a no-op on
+    // Android for the same reason, so there's nothing to clean up here yet.
+    return;
+#else
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
     vkDestroyDescriptorPool(device, imguiPool, nullptr);
+#endif
 }
 
 std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
@@ -215,12 +218,7 @@ VkShaderModule VkRenderer::createShaderModule(const std::vector<char>& code) {
 }
 
 void VkRenderer::createSurface() {
-    // Deliberately GLFW-specific rather than going through WindowI - see WindowI.hpp's
-    // class comment (issue #42's follow-up on keeping the windowing interface
-    // renderer-agnostic). A future non-GLFW window backend needs this updated too, the
-    // same way imgui_impl_glfw below does.
-    if (glfwCreateWindowSurface(instanceFactory->instance, reinterpret_cast<GLFWwindow*>(window.nativeHandle()),
-                                nullptr, &surface) != VK_SUCCESS) {
+    if (ENG::createWindowSurface(instanceFactory->instance, window, &surface) != VK_SUCCESS) {
         throw std::runtime_error("failed to create window surface!");
     }
 }
@@ -685,6 +683,12 @@ void VkRenderer::createTextureSampler(const std::filesystem::path& fpath) {
 }
 
 void VkRenderer::initGui() {
+#if defined(__ANDROID__)
+    // imgui_impl_android wiring is issue #51's scope - not implemented yet, so this is a
+    // no-op for now rather than compiling in imgui_impl_glfw (which has no Android
+    // backend at all - see the third_party imgui target's own ANDROID guard).
+    return;
+#else
     // 1: create descriptor pool for IMGUI
     //  the size of the pool is very oversize, but it's copied from imgui demo itself.
     VkDescriptorPoolSize pool_sizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
@@ -744,6 +748,7 @@ void VkRenderer::initGui() {
     init_info.Allocator = nullptr;
     init_info.CheckVkResultFn = check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
+#endif
 }
 
 void checkedVkMapMemory(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceMemory bufferMemory,

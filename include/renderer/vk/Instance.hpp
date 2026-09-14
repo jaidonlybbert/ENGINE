@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "EngineConfig.hpp"
+#include "window/WindowI.hpp"
 
 #ifdef NDEBUG
 constexpr bool enableValidationLayers = false;
@@ -37,5 +38,12 @@ class InstanceFactory {
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
 };
+
+// Vulkan surface creation is inherently platform-specific (a different extension/API per
+// windowing system - see getRequiredExtensions() above), so this is the same kind of
+// deliberately-not-WindowI seam. Kept as one shared function (rather than duplicating the
+// #ifdef in every caller) since both VkRenderer::createSurface() and any standalone
+// Vulkan-on-Android verification code need identical logic.
+VkResult createWindowSurface(VkInstance instance, WindowI& window, VkSurfaceKHR* surface);
 }  // namespace ENG
 #endif
