@@ -1,0 +1,58 @@
+name: Android-NDK
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash -el {0}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install conan
+        run: python -m pip install conan
+
+      - name: Install Android NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+
+      - name: Install Conan profile
+        run: conan config install ${{github.workspace}}/profiles/Android-Clang-arm64 --type=file --target-folder=profiles
+
+      # See issue #44 - without this every run rebuilds every dependency from source.
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-android-clang-${{ hashFiles('conanfile.py', 'profiles/Android-Clang-arm64') }}
+          restore-keys: |
+            conan-android-clang-
+
+      - name: Install deps (Conan)
+        run: conan install . -pr:a Android-Clang-arm64 -c tools.android:ndk_path=${{ steps.setup-ndk.outputs.ndk-path }} --output-folder . --build=missing
+
+      - name: CMake Configure
+        run: cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
+
+      - name: CMake Build
+        # This profile doesn't set a generator, so CMake defaults to Unix Makefiles,
+        # which (unlike Ninja) builds single-threaded unless told otherwise.
+        run: cmake --build --preset conan-release --parallel
