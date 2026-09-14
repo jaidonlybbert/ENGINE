@@ -2,28 +2,8 @@
 
 #include <assert.h>
 
-#include <filesystem>
-#include <fstream>
-
-#include "filesystem/FilesystemInterface.hpp"
+#include "filesystem/AssetProviderI.hpp"
 #include "logger/Logging.hpp"
-
-static std::vector<char> readFile(const std::filesystem::path& filepath) {
-    std::ifstream file(filepath.native(), std::ios::ate | std::ios::binary);
-
-    if (!file.is_open()) {
-        throw std::runtime_error("failed to open file!");
-    }
-
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-
-    file.close();
-
-    return buffer;
-}
 
 VkShaderModule createShaderModule(const VkDevice& device, const std::vector<char>& code) {
     VkShaderModuleCreateInfo createInfo{};
@@ -51,27 +31,17 @@ VkPipelineShaderStageCreateInfo createDefaultStage(const VkShaderModule* module,
     return info;
 }
 
-void ShaderFactory::get_filepaths() {
-    filepaths = {
-        ENG::get_install_dir() / "shaders" / "posColTexVert.vert.spv",
-        ENG::get_install_dir() / "shaders" / "posColTexFrag.frag.spv",
-        ENG::get_install_dir() / "shaders" / "posNorTexVert.vert.spv",
-        ENG::get_install_dir() / "shaders" / "posNorTexFrag.frag.spv",
-        ENG::get_install_dir() / "shaders" / "posBBVert.vert.spv",
-        ENG::get_install_dir() / "shaders" / "posBBFrag.frag.spv",
-        ENG::get_install_dir() / "shaders" / "posNorColVert.vert.spv",
-        ENG::get_install_dir() / "shaders" / "posNorColFrag.frag.spv",
-        ENG::get_install_dir() / "shaders" / "goldbergVert.vert.spv",
-        ENG::get_install_dir() / "shaders" / "goldbergFrag.frag.spv",
-    };
-}
-
 ShaderFactory::ShaderFactory(const VkDevice& device) : device(device) {
-    get_filepaths();
+    static const std::vector<std::string> shaderFileNames = {
+        "posColTexVert.vert.spv", "posColTexFrag.frag.spv", "posNorTexVert.vert.spv", "posNorTexFrag.frag.spv",
+        "posBBVert.vert.spv",     "posBBFrag.frag.spv",     "posNorColVert.vert.spv", "posNorColFrag.frag.spv",
+        "goldbergVert.vert.spv",  "goldbergFrag.frag.spv",
+    };
 
-    for (size_t i = 0; i < filepaths.size(); ++i) {
-        ENG_LOG_DEBUG("Creating module for " << filepaths.at(i));
-        modules.push_back(createShaderModule(device, readFile(filepaths.at(i))));
+    auto& assetProvider = ENG::getAssetProvider();
+    for (const auto& shaderFileName : shaderFileNames) {
+        ENG_LOG_DEBUG("Creating module for " << shaderFileName);
+        modules.push_back(createShaderModule(device, assetProvider.readShaderBytes(shaderFileName)));
     }
 
     assert(modules.size() == 10);

@@ -10,7 +10,7 @@
 #include <stack>
 
 #include "application/ConcurrentQueue.hpp"
-#include "filesystem/FilesystemInterface.hpp"
+#include "filesystem/AssetProviderI.hpp"
 #include "logger/Logging.hpp"
 #include "renderer/RenderAdapterI.hpp"
 #include "scene/Gltf.hpp"
@@ -176,9 +176,10 @@ void create_world_polyhedra(ENG::SceneState& sceneState) {
 
 void unloadWorldScene(ENG::SceneState& sceneState) {}
 
-void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAdapter) {
+void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAdapter, WindowI& window, InputI& input,
+                          WindowUserData& windowUserData) {
     // Set callback handlers for inputs
-    CameraControls::set_callbacks();
+    CameraControls::set_callbacks(window, input, windowUserData);
 
     // TODO: implement pools to avoid reference invalidation on reallocation problem
     sceneState.graph.nodes.reserve(1000);
@@ -196,13 +197,15 @@ void initializeWorldScene(ENG::SceneState& sceneState, RenderAdapterI& renderAda
     sceneState.graph.root = &attachmentPoint;
     sceneState.graph.root->name = "Root";
 
-    load_gltf(ENG::get_gltf_dir(), sceneState, attachmentPoint);
+    auto& assetProvider = ENG::getAssetProvider();
+    load_gltf(assetProvider.getGltfDir(), sceneState, attachmentPoint);
 
     const auto& meshName = std::string("Room");
-    ENG::loadModel(meshName, ENG::get_room_obj(), ENG::get_room_tex(), sceneState, attachmentPoint);
+    ENG::loadModel(meshName, assetProvider.getRoomObj(), assetProvider.getRoomTex(), sceneState, attachmentPoint);
 
     // load space floor
-    ENG::loadModel("Spacefloor3", ENG::get_spacefloor_obj2(), ENG::get_spacefloor_tex(), sceneState, attachmentPoint);
+    ENG::loadModel("Spacefloor3", assetProvider.getSpacefloorObj2(), assetProvider.getSpacefloorTex(), sceneState,
+                   attachmentPoint);
 
     // Create bounding box around Suzanne
     // const auto suzanneNodeIdx = find_node_by_name(sceneState.graph, "Suzanne")->nodeId;

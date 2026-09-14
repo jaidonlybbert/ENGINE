@@ -18,12 +18,14 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "vulkan/vulkan_core.h"
+// Must come after vulkan_core.h so GLFW declares its Vulkan-specific functions
+// (glfwCreateWindowSurface) against the real Vulkan types instead of skipping them.
+#include <GLFW/glfw3.h>
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include <stb_image.h>
 #include <vk_mem_alloc.h>
 
-#include "GLFW/glfw3.h"
 #ifdef _WIN32
 #include "tracy/Tracy.hpp"
 #endif
@@ -33,7 +35,7 @@
 
 // project includes
 #include "EngineConfig.hpp"
-#include "filesystem/FilesystemInterface.hpp"
+#include "filesystem/AssetProviderI.hpp"
 #include "logger/Logging.hpp"
 
 // renderer includes
@@ -50,9 +52,10 @@
 
 using namespace ENG;
 
-VkRenderer::VkRenderer(bool& framebufferResized, std::vector<std::function<void(void)>> initFunctions,
+VkRenderer::VkRenderer(bool& framebufferResized, WindowI& window, std::vector<std::function<void(void)>> initFunctions,
                        std::vector<std::function<void(void)>> cleanFunctions, PipelineFactoryI& pipelineFactory)
-    : framebufferResized(framebufferResized),
+    : window(window),
+      framebufferResized(framebufferResized),
       initializationFunctions(std::move(initFunctions)),
       cleanupFunctions(std::move(cleanFunctions)),
       pipelineFactory(pipelineFactory) {
@@ -122,11 +125,6 @@ void VkRenderer::cleanupVulkan() {
     vkDestroyInstance(instanceFactory->instance, nullptr);
 }
 
-void VkRenderer::cleanupWindow() {
-    glfwDestroyWindow(window);
-    glfwTerminate();
-}
-
 void VkRenderer::cleanupGui() {
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -182,7 +180,7 @@ void VkRenderer::initVulkan() {
     createSurface();
     ENG::PhysicalDevice::pickPhysicalDevice(instanceFactory->instance, physicalDevice, surface);
     ENG::Device::createLogicalDevice(surface, physicalDevice, validationLayers, graphicsQueue, presentQueue, device);
-    swapchain = std::make_unique<Swapchain>(physicalDevice, surface, device, *window);
+    swapchain = std::make_unique<Swapchain>(physicalDevice, surface, device, window);
     pipelineFactory.initialize(device, swapchain->swapChainImageFormat, findDepthFormat(physicalDevice));
     renderPass = pipelineFactory.getRenderPass();
     commands = std::make_unique<Command>(physicalDevice, device, surface);  // creates command pool
@@ -190,7 +188,8 @@ void VkRenderer::initVulkan() {
                          swapchain->depthImageMemory, swapchain->depthImageView);
     swapchain->createFramebuffers(renderPass, device);
 
-    for (const auto& fpath : {get_room_tex(), get_spacefloor_tex()}) {
+    auto& assetProvider = ENG::getAssetProvider();
+    for (const auto& fpath : {assetProvider.getRoomTex(), assetProvider.getSpacefloorTex()}) {
         createTexture(fpath);
     }
 
@@ -216,7 +215,12 @@ VkShaderModule VkRenderer::createShaderModule(const std::vector<char>& code) {
 }
 
 void VkRenderer::createSurface() {
-    if (glfwCreateWindowSurface(instanceFactory->instance, window, nullptr, &surface) != VK_SUCCESS) {
+    // Deliberately GLFW-specific rather than going through WindowI - see WindowI.hpp's
+    // class comment (issue #42's follow-up on keeping the windowing interface
+    // renderer-agnostic). A future non-GLFW window backend needs this updated too, the
+    // same way imgui_impl_glfw below does.
+    if (glfwCreateWindowSurface(instanceFactory->instance, reinterpret_cast<GLFWwindow*>(window.nativeHandle()),
+                                nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("failed to create window surface!");
     }
 }
@@ -719,7 +723,11 @@ void VkRenderer::initGui() {
     QueueFamilyIndices indices = PhysicalDevice::findQueueFamilies(physicalDevice, surface);
 
     // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForVulkan(window, true);
+    // imgui_impl_glfw is GLFW-specific with no cross-platform equivalent yet (imgui's GUI
+    // subsystem is out of scope for issue #42's windowing/input/filesystem interfaces -
+    // see WindowI::nativeHandle()'s doc comment), so it needs the concrete GLFWwindow*
+    // rather than going through WindowI.
+    ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(window.nativeHandle()), true);
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance = instanceFactory->instance;
     init_info.PhysicalDevice = physicalDevice;

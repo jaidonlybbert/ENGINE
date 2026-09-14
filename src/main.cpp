@@ -15,10 +15,12 @@
 #include "application/Application.hpp"
 #include "config/RuntimeConfig.hpp"
 #include "events/Event.hpp"
+#include "filesystem/LocalAssetProvider.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "gui/Gui.hpp"
 #include "guis/SceneGui.hpp"
-#include "hid/Input.hpp"
+#include "hid/InputI.hpp"
+#include "hid/glfw/GlfwInput.hpp"
 #include "logger/Logging.hpp"
 #include "lua.hpp"
 #include "nlohmann/json.hpp"
@@ -30,6 +32,7 @@
 #include "scenes/blue_sky/SceneBlueSky.hpp"
 #include "scenes/world/SceneWorld.hpp"
 #include "sockets/SocketSessionServer.h"
+#include "window/glfw/GlfwWindow.hpp"
 
 void stop(asio::io_context& io_context) {
     if (io_context.stopped()) {
@@ -132,21 +135,6 @@ void consumeClientEvent() {
     serverSideEventReceiveQueue.pop_front();
 
     dispatchEventFromClient(serializedEvent);
-}
-
-void initWindow(VkRenderer& app, WindowUserData& windowUserData, const ENG::RuntimeConfig& config) {
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    app.window = glfwCreateWindow(static_cast<int>(config.windowWidth), static_cast<int>(config.windowHeight), "Vulkan",
-                                  nullptr, nullptr);
-    glfwSetWindowUserPointer(app.window, &windowUserData);
-    glfwSetFramebufferSizeCallback(app.window, InputController::framebufferResizeCallback);
-    glfwGetCursorPos(app.window, &windowUserData.cursorXScreenCoords, &windowUserData.cursorYScreenCoords);
-    glfwGetWindowSize(app.window, &windowUserData.windowWidthScreenCoords, &windowUserData.windowHeightScreenCoords);
-    glfwSetScrollCallback(app.window, InputController::mouse_scroll_callback);
-    glfwSetKeyCallback(app.window, InputController::key_callback);
-    glfwSetMouseButtonCallback(app.window, InputController::mouse_button_callback);
-    glfwSetCursorPosCallback(app.window, InputController::mouse_movement_callback);
 }
 
 void profilerMarkStart(const std::string& name) {
@@ -412,12 +400,12 @@ void handleGraphicsEvents(VkRenderer& renderer, VkAdapter& adapter, SceneState& 
     }
 }
 
-void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData& windowUserData,
+void gameLoop(WindowI& window, VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData& windowUserData,
               SceneState& sceneState) {
-    while (!glfwWindowShouldClose(renderer.window)) {
+    while (!window.shouldClose()) {
         profilerMarkStart("run_frame");
 
-        glfwPollEvents();
+        window.pollEvents();
         handleHIDEvents(windowUserData.eventQueue, sceneState);
 
         handleGraphicsEvents(renderer, adapter, sceneState);
@@ -433,16 +421,17 @@ void gameLoop(VkAdapter& adapter, VkRenderer& renderer, Gui& gui, WindowUserData
 
 // Dispatches to the scene named by RuntimeConfig::startupScene (see issue #8). Falls
 // back to "world" for an unrecognized name rather than failing to start.
-void initializeScene(const std::string& sceneName, SceneState& sceneState, RenderAdapterI& renderAdapter) {
+void initializeScene(const std::string& sceneName, SceneState& sceneState, RenderAdapterI& renderAdapter,
+                     WindowI& window, InputI& input, WindowUserData& windowUserData) {
     if (sceneName == "blue_sky") {
-        initializeBlueSkyScene(sceneState, renderAdapter);
+        initializeBlueSkyScene(sceneState, renderAdapter, window, input, windowUserData);
         return;
     }
 
     if (sceneName != "world") {
         ENG_LOG_ERROR("Unrecognized scene \"" << sceneName << "\", falling back to \"world\"");
     }
-    initializeWorldScene(sceneState, renderAdapter);
+    initializeWorldScene(sceneState, renderAdapter, window, input, windowUserData);
 }
 
 int main(int argc, char** argv) {
@@ -452,15 +441,25 @@ int main(int argc, char** argv) {
 
         const ENG::RuntimeConfig runtimeConfig = ENG::load_runtime_config(argc, argv);
 
+        ENG::LocalAssetProvider assetProvider;
+        ENG::setAssetProvider(assetProvider);
+
+        GlfwWindow window(static_cast<int>(runtimeConfig.windowWidth), static_cast<int>(runtimeConfig.windowHeight),
+                          "Vulkan");
+        GlfwInput input(window);
+
         WindowUserData windowUserData;
+        input.getCursorPosition(windowUserData.cursorXScreenCoords, windowUserData.cursorYScreenCoords);
+        window.getWindowSize(windowUserData.windowWidthScreenCoords, windowUserData.windowHeightScreenCoords);
+
         auto pipelineFactory = PipelineFactory();
 
         VkRenderer renderer{
             windowUserData.windowResized,
-            {[&renderer, &windowUserData, &runtimeConfig]() { initWindow(renderer, windowUserData, runtimeConfig); },
-             [&renderer]() { renderer.initVulkan(); }, [&renderer]() { renderer.initGui(); }, []() { initLua(); }},
+            window,
+            {[&renderer]() { renderer.initVulkan(); }, [&renderer]() { renderer.initGui(); }, []() { initLua(); }},
             {[]() { lua_close(luaState); }, [&renderer]() { renderer.cleanupGui(); },
-             [&renderer]() { renderer.cleanupVulkan(); }, [&renderer]() { renderer.cleanupWindow(); }},
+             [&renderer]() { renderer.cleanupVulkan(); }},
             pipelineFactory};
 
         Gui gui;
@@ -474,13 +473,13 @@ int main(int argc, char** argv) {
         VkAdapter renderAdapter{renderer};
 
         Application app;
-        app.registerInitFunction("renderer.initializeScene()",
-                                 [&renderer, &sceneState, &renderAdapter, &runtimeConfig]() {
-                                     renderer.sceneReadyToRender = false;
-                                     initializeScene(runtimeConfig.startupScene, sceneState, renderAdapter);
-                                     renderer.sceneReadyToRender = true;
-                                     sceneState.initialized = true;
-                                 });
+        app.registerInitFunction("renderer.initializeScene()", [&renderer, &sceneState, &renderAdapter, &runtimeConfig,
+                                                                &window, &input, &windowUserData]() {
+            renderer.sceneReadyToRender = false;
+            initializeScene(runtimeConfig.startupScene, sceneState, renderAdapter, window, input, windowUserData);
+            renderer.sceneReadyToRender = true;
+            sceneState.initialized = true;
+        });
 
         app.registerCoroutine("listener(tcp::acceptor)",
                               []() { return listener(tcp::acceptor(Application::io_ctx, {tcp::v4(), 8080})); });
@@ -510,8 +509,8 @@ int main(int argc, char** argv) {
                 });
         */
 
-        app.mainThreadFunction = [&renderAdapter, &renderer, &gui, &windowUserData, &sceneState]() {
-            gameLoop(renderAdapter, renderer, gui, windowUserData, sceneState);
+        app.mainThreadFunction = [&window, &renderAdapter, &renderer, &gui, &windowUserData, &sceneState]() {
+            gameLoop(window, renderAdapter, renderer, gui, windowUserData, sceneState);
         };
 
         app.start();

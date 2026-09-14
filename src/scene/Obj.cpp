@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "filesystem/FilesystemInterface.hpp"
+#include "filesystem/AssetProviderI.hpp"
 #include "logger/Logging.hpp"
 #include "scene/Mesh.hpp"
 #include "scene/Scene.hpp"
@@ -17,8 +17,9 @@ void loadModel(std::string name, const std::filesystem::path& objPath, const std
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
+    auto& assetProvider = getAssetProvider();
     if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objPath.string().c_str(),
-                          get_mtl_dir().string().c_str())) {
+                          assetProvider.getMtlDir().string().c_str())) {
         throw std::runtime_error(warn + err);
     }
 
@@ -28,7 +29,7 @@ void loadModel(std::string name, const std::filesystem::path& objPath, const std
     for (const auto& mat : materials) {
         ENG_LOG_TRACE("\tName: " << mat.name);
         ENG_LOG_TRACE("\tDiffuse texture: " << mat.diffuse_texname);
-        texPath = (get_mtl_dir() / std::filesystem::path(mat.diffuse_texname)).lexically_normal();
+        texPath = (assetProvider.getMtlDir() / std::filesystem::path(mat.diffuse_texname)).lexically_normal();
         ENG_LOG_TRACE("\tConcat path: " << texPath);
     }
 
@@ -45,7 +46,8 @@ void loadModel(std::string name, const std::filesystem::path& objPath, const std
         if (shape.mesh.material_ids.empty()) {
             const auto& shape_mat_id = shape.mesh.material_ids.at(0);
             const auto& shape_material = materials.at(shape_mat_id);
-            texPath = (get_mtl_dir() / std::filesystem::path(shape_material.diffuse_texname)).lexically_normal();
+            texPath =
+                (assetProvider.getMtlDir() / std::filesystem::path(shape_material.diffuse_texname)).lexically_normal();
             ENG_LOG_TRACE("Overwrite texture path with material found for mesh: " << texPath);
         }
 

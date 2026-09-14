@@ -1,51 +1,6 @@
-#include "hid/Input.hpp"
-
-#include <functional>
-#include <iostream>
-
-#include "GLFW/glfw3.h"
+#include "hid/InputI.hpp"
 #include "logger/Logging.hpp"
 #include "scene/Scene.hpp"
-
-void InputController::mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-    std::lock_guard<std::mutex> callbackLock(callbacksComplete);
-    for (auto& callback : inputCallbacks.mouseScrollCallbacks) {
-        callback(window, xoffset, yoffset);
-    }
-}
-
-void InputController::mouse_movement_callback(GLFWwindow* window, double xpos, double ypos) {
-    std::lock_guard<std::mutex> callbackLock(callbacksComplete);
-    for (auto& callback : inputCallbacks.mouseMovementCallbacks) {
-        callback(window, xpos, ypos);
-    }
-}
-
-void InputController::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    std::lock_guard<std::mutex> callbackLock(callbacksComplete);
-    for (auto& callback : inputCallbacks.keyCallbacks) {
-        callback(window, key, scancode, action, mods);
-    }
-}
-
-void InputController::mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
-    std::lock_guard<std::mutex> callbackLock(callbacksComplete);
-    for (auto& callback : inputCallbacks.mouseButtonCallbacks) {
-        callback(window, button, action, mods);
-    }
-}
-
-void InputController::framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-    std::lock_guard<std::mutex> callbackLock(callbacksComplete);
-    for (auto& callback : inputCallbacks.framebufferResizeCallbacks) {
-        callback(window, width, height);
-    }
-}
-
-void InputController::set_callbacks(InputCallbacks&& newInputCallbacks) {
-    std::lock_guard<std::mutex> callbackLock(callbacksComplete);
-    inputCallbacks = newInputCallbacks;
-}
 
 /*
  * Blender style camera - rotation around y axis is global, rotation around x axis is local to active object.

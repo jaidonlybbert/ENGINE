@@ -9,7 +9,6 @@ add_library(engine_vk_renderer STATIC
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Swapchain.cpp"
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/Utils.cpp"
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/Pipeline.cpp"
-	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/PipelineUtils.cpp"
 	"${PROJECT_SOURCE_DIR}/src/renderer/vk/pipelines/ShaderFactory.cpp"
 )
 add_library(engine::vk::renderer ALIAS engine_vk_renderer)
@@ -26,6 +25,10 @@ target_link_libraries(engine_vk_renderer PUBLIC Vulkan::Vulkan)
 target_link_libraries(engine_vk_renderer PUBLIC engine::filesystem)
 target_link_libraries(engine_vk_renderer PUBLIC tinygltf)
 target_link_libraries(engine_vk_renderer PUBLIC engine::logger)
+target_link_libraries(engine_vk_renderer PUBLIC engine::window_interface)
+# Still needed directly for imgui_impl_glfw (imgui's GUI backend is out of scope for the
+# windowing interface in issue #42 - see WindowI::nativeHandle()) - everything else in
+# this library goes through WindowI instead of GLFW now.
 target_link_libraries(engine_vk_renderer PUBLIC glfw)
 target_link_libraries(engine_vk_renderer PUBLIC glm::glm)
 target_link_libraries(engine_vk_renderer PUBLIC imgui)

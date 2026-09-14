@@ -1,6 +1,5 @@
 #ifndef ENG_INSTANCE
 #define ENG_INSTANCE
-#include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
 
 #include <vector>

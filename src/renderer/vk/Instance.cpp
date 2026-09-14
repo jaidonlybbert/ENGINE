@@ -1,5 +1,6 @@
 #include "renderer/vk/Instance.hpp"
 
+#include <GLFW/glfw3.h>
 #include <string.h>
 #include <vulkan/vulkan_core.h>
 
@@ -119,11 +120,15 @@ void InstanceFactory::createInstance() {
     ENG_LOG_TRACE("Instance created");
 }
 
+// Vulkan surface/instance extensions are inherently platform-specific (a different
+// extension per windowing system), so this deliberately calls GLFW directly rather than
+// going through WindowI - WindowI is meant to stay renderer-agnostic (see issue #42's
+// follow-up on decoupling engine::window::glfw from Vulkan). Swapping window backends
+// means updating this function too, the same way it would need a branch added for
+// VK_KHR_android_surface on a non-desktop platform.
 std::vector<const char*> InstanceFactory::getRequiredExtensions() {
     uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
     std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     if (enableValidationLayers) {
@@ -135,21 +140,6 @@ std::vector<const char*> InstanceFactory::getRequiredExtensions() {
     extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif
 
-#if defined(VK_USE_PLATFORM_ANDROID_KHR)
-    active_instance_extensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_WIN32_KHR)
-    active_instance_extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_METAL_EXT)
-    active_instance_extensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-    active_instance_extensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_XLIB_KHR)
-    active_instance_extensions.push_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-    active_instance_extensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_DISPLAY_KHR)
-    active_instance_extensions.push_back(VK_KHR_DISPLAY_EXTENSION_NAME);
-#endif
     return extensions;
 }
 

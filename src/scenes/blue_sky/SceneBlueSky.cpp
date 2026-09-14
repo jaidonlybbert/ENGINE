@@ -79,10 +79,11 @@ void create_blue_skybox(ENG::SceneState& sceneState, const std::string& nodeName
         ENG::HostMeshData{std::move(vertices), std::move(unusedIndices), "PosNorCol"}, skyboxNode.nodeId});
 }
 
-void initializeBlueSkyScene(ENG::SceneState& sceneState, RenderAdapterI& renderAdapter) {
+void initializeBlueSkyScene(ENG::SceneState& sceneState, RenderAdapterI& renderAdapter, WindowI& window, InputI& input,
+                            WindowUserData& windowUserData) {
     // Set callback handlers for inputs (shared with WorldScene - camera orbit / zoom
     // controls are generic, not tied to a particular scene's contents).
-    CameraControls::set_callbacks();
+    CameraControls::set_callbacks(window, input, windowUserData);
 
     sceneState.graph.nodes.reserve(SCENE_BLUE_SKY_MAX_NODES);
     sceneState.graph.cameras.reserve(4);

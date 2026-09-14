@@ -1,6 +1,6 @@
 #include "scene/Gltf.hpp"
 
-#include "filesystem/FilesystemInterface.hpp"
+#include "filesystem/AssetProviderI.hpp"
 #include "logger/Logging.hpp"
 #include "scene/Mesh.hpp"
 
@@ -184,7 +184,8 @@ void load_gltf_mesh_attributes(SceneState& sceneState, const tinygltf::Model& mo
         get_vertex_and_index_buffer(primitive, model, vertices, indices);
 
         sceneState.hostMeshDataBindQueue.push(BindHostMeshDataEvent{
-            HostMeshData{std::move(vertices), std::move(indices), "PosColTex", get_room_tex()}, nodeId});
+            HostMeshData{std::move(vertices), std::move(indices), "PosColTex", getAssetProvider().getRoomTex()},
+            nodeId});
     } else if (primitive.attributes.contains("POSITION") && primitive.attributes.contains("NORMAL") &&
                primitive.attributes.contains("TEXCOORD_0")) {
         std::vector<uint32_t> indices;
@@ -193,7 +194,8 @@ void load_gltf_mesh_attributes(SceneState& sceneState, const tinygltf::Model& mo
         get_vertex_and_index_buffer(primitive, model, vertices, indices);
 
         sceneState.hostMeshDataBindQueue.push(BindHostMeshDataEvent{
-            HostMeshData{std::move(vertices), std::move(indices), "PosNorTex", get_room_tex()}, nodeId});
+            HostMeshData{std::move(vertices), std::move(indices), "PosNorTex", getAssetProvider().getRoomTex()},
+            nodeId});
     }
 }
 
