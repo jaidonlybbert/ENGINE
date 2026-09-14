@@ -53,9 +53,11 @@ endif()
 # (window, hid/glfw). This block links only the libraries that are already portable or
 # have an Android-specific implementation (engine::vk::renderer, engine::window::android -
 # issue #47; engine::application's lifecycle hooks - issue #48; engine::hid::android and
-# touch-aware engine::scenes::common - issue #49; engine::filesystem::android - issue #50)
-# - widening it further (engine::vk::adapter/engine::gui, both still GLFW/imgui-coupled -
-# issue #51) is expected, natural follow-up, not something to force here.
+# touch-aware engine::scenes::common - issue #49; engine::filesystem::android - issue #50;
+# engine::gui via imgui_impl_android - issue #51) - widening it further (engine::vk::adapter,
+# still GLFW-coupled, and the scene-specific engine::scene::gui/scenes::world/blue_sky,
+# unaudited for Android-portability and not part of this breakdown) is expected, natural
+# follow-up, not something to force here.
 if (ANDROID)
 	add_library(native_app_glue STATIC "${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c")
 	target_include_directories(native_app_glue PUBLIC "${ANDROID_NDK}/sources/android/native_app_glue")
@@ -76,6 +78,7 @@ if (ANDROID)
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem/android")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/application")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/gui")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer/vk")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/window/android")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/scene")
@@ -98,7 +101,8 @@ if (ANDROID)
 		engine::hid::android
 		engine::scenes::common
 		engine::filesystem_interface
-		engine::filesystem::android)
+		engine::filesystem::android
+		engine::gui)
 	# Required so the OS can find the entry point native_app_glue implements.
 	target_link_options(Engine PRIVATE "-u" "ANativeActivity_onCreate")
 else()

@@ -8,16 +8,18 @@
 // pause/resume the app (APP_CMD_PAUSE/APP_CMD_RESUME), logging each one. This
 // deliberately doesn't construct a real, persistent VkRenderer to exercise
 // VkRenderer::handleSurfaceDestroyed()/handleSurfaceCreated() against - initVulkan() also
-// picks a physical device, builds a swapchain, and preloads textures through
-// AssetProviderI, none of which is Android-ready yet (issue #50, same blocker #47 hit).
-// Those two methods are real and compile for Android (see Renderer.cpp), ready for
-// whichever future issue can actually construct a persistent Android VkRenderer to call
-// them from. What's exercised here is the Application register/notify plumbing itself,
-// and that AndroidWindow correctly hands every OS command off to it.
+// picks a physical device and builds a swapchain, and there's no build step that packages
+// a scene's assets into an APK at all yet (see below), so a full render loop isn't
+// Android-ready as a whole even though its individual pieces (this file's other
+// verify*() functions) are. Those two methods are real and compile for Android (see
+// Renderer.cpp), ready for whichever future issue can actually construct a persistent
+// Android VkRenderer to call them from. What's exercised here is the Application
+// register/notify plumbing itself, and that AndroidWindow correctly hands every OS command
+// off to it.
 //
 // Also wires up AndroidInput and CameraControls::set_callbacks() (issue #49) - touch-drag
 // orbit and pinch both go through the same ClientHidEvent queue mouse-drag/scroll already
-// do, so there's no scene/renderer here to visibly confirm against yet (same #50 blocker
+// do, so there's no scene/renderer here to visibly confirm against yet (same blocker
 // below), but the touch-event plumbing, gesture math, and CameraControls wiring are all
 // real and exercised end to end down to the event queue.
 //
@@ -29,6 +31,15 @@
 // rather than success until that packaging exists. What's being verified here is that the
 // code path runs without crashing and reports a real AAssetManager error, not that the
 // model actually loads.
+//
+// Also exercises imgui_impl_android (issue #51) - creates a throwaway ImGui context,
+// initializes/tears down the Android platform backend against the real ANativeWindow, and
+// computes the device's font/widget scale from AConfiguration_getDensity(). Like
+// verifyVulkanSurfaceCreation() above, there's no persistent VkRenderer/Gui here yet to
+// keep a real context alive for (VkRenderer::initGui()/Gui::drawGui() are real and Android-
+// ready, same as the Vulkan surface/lifecycle plumbing above), so this is a self-contained
+// init/shutdown smoke test rather than a live one wired into the event loop below.
+#include <android/configuration.h>
 #include <android/log.h>
 #include <android_native_app_glue.h>
 
@@ -37,6 +48,8 @@
 #include "application/Application.hpp"
 #include "filesystem/android/AndroidAssetProvider.hpp"
 #include "hid/android/AndroidInput.hpp"
+#include "imgui.h"
+#include "imgui_impl_android.h"
 #include "renderer/vk/Instance.hpp"
 #include "scene/Gltf.hpp"
 #include "scenes/common/CameraControls.hpp"
@@ -92,6 +105,43 @@ void verifyAssetLoading() {
     } catch (const std::exception& e) {
         LOGE("AndroidAssetProvider: glTF load threw: %s", e.what());
     }
+}
+
+// Android's screen density range is much wider than desktop's default ~96 DPI assumption
+// that ImGui's font/widget sizing is tuned for (see issue #51) - VkRenderer::initGui()'s
+// fontScale parameter expects a multiplier relative to the ACONFIGURATION_DENSITY_MEDIUM
+// (160 DPI) baseline, computed here the same way a future real Android VkRenderer caller
+// would.
+float computeFontScale(android_app* app) {
+    const int32_t density = AConfiguration_getDensity(app->config);
+    if (density <= 0) {
+        LOGE("AConfiguration_getDensity returned %d, defaulting fontScale to 1.0", density);
+        return 1.0f;
+    }
+    return static_cast<float>(density) / static_cast<float>(ACONFIGURATION_DENSITY_MEDIUM);
+}
+
+void verifyImguiAndroidBackend(AndroidWindow& window, android_app* app) {
+    const float fontScale = computeFontScale(app);
+    LOGI("Computed ImGui fontScale = %f from device density.", fontScale);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::GetIO().FontGlobalScale = fontScale;
+
+    if (!ImGui_ImplAndroid_Init(reinterpret_cast<ANativeWindow*>(window.nativeHandle()))) {
+        LOGE("ImGui_ImplAndroid_Init failed.");
+        ImGui::DestroyContext();
+        return;
+    }
+    LOGI("ImGui_ImplAndroid_Init succeeded.");
+
+    ImGui_ImplAndroid_NewFrame();
+    ImGui::NewFrame();
+    ImGui::EndFrame();
+
+    ImGui_ImplAndroid_Shutdown();
+    ImGui::DestroyContext();
 }
 
 // Everything the real (post-bootstrap) app->onAppCmd/app->onInputEvent dispatchers need,
@@ -155,6 +205,7 @@ void android_main(android_app* app) {
 
     AndroidWindow window(app);
     verifyVulkanSurfaceCreation(window);
+    verifyImguiAndroidBackend(window, app);
 
     Application application;
     application.registerSurfaceDestroyedCallback([]() { LOGI("Surface destroyed"); });
