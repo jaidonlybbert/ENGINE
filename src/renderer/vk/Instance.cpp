@@ -1,5 +1,6 @@
 #include "renderer/vk/Instance.hpp"
 
+#include <GLFW/glfw3.h>
 #include <string.h>
 #include <vulkan/vulkan_core.h>
 
@@ -119,8 +120,16 @@ void InstanceFactory::createInstance() {
     ENG_LOG_TRACE("Instance created");
 }
 
+// Vulkan surface/instance extensions are inherently platform-specific (a different
+// extension per windowing system), so this deliberately calls GLFW directly rather than
+// going through WindowI - WindowI is meant to stay renderer-agnostic (see issue #42's
+// follow-up on decoupling engine::window::glfw from Vulkan). Swapping window backends
+// means updating this function too, the same way it would need a branch added for
+// VK_KHR_android_surface on a non-desktop platform.
 std::vector<const char*> InstanceFactory::getRequiredExtensions() {
-    std::vector<const char*> extensions = window.getRequiredInstanceExtensions();
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
     if (enableValidationLayers) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);

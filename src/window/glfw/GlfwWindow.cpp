@@ -31,16 +31,6 @@ void GlfwWindow::getFramebufferSize(int& width, int& height) const { glfwGetFram
 
 void GlfwWindow::getWindowSize(int& width, int& height) const { glfwGetWindowSize(window, &width, &height); }
 
-std::vector<const char*> GlfwWindow::getRequiredInstanceExtensions() const {
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    return std::vector<const char*>(glfwExtensions, glfwExtensions + glfwExtensionCount);
-}
-
-VkResult GlfwWindow::createSurface(VkInstance instance, VkSurfaceKHR* surface) const {
-    return glfwCreateWindowSurface(instance, window, nullptr, surface);
-}
-
 void GlfwWindow::setFramebufferResizeCallback(std::function<void()> callback) {
     framebufferResizeCallback = std::move(callback);
 }

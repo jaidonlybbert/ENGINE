@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "EngineConfig.hpp"
-#include "window/WindowI.hpp"
 
 #ifdef NDEBUG
 constexpr bool enableValidationLayers = false;
@@ -19,8 +18,6 @@ namespace ENG {
 
 class InstanceFactory {
    public:
-    explicit InstanceFactory(WindowI& window) : window(window) {}
-
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -39,9 +36,6 @@ class InstanceFactory {
     void createInstance();
     std::vector<const char*> getRequiredExtensions();
     bool checkValidationLayerSupport();
-
-   private:
-    WindowI& window;
 };
 }  // namespace ENG
 #endif

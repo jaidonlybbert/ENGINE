@@ -28,9 +28,6 @@ class GlfwWindow : public WindowI {
     void getFramebufferSize(int& width, int& height) const override;
     void getWindowSize(int& width, int& height) const override;
 
-    std::vector<const char*> getRequiredInstanceExtensions() const override;
-    VkResult createSurface(VkInstance instance, VkSurfaceKHR* surface) const override;
-
     void setFramebufferResizeCallback(std::function<void()> callback) override;
 
     void* nativeHandle() const override;

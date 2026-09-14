@@ -11,5 +11,4 @@ endif()
 
 target_link_libraries(engine_window_glfw PUBLIC
 	glfw
-	Vulkan::Vulkan
 	engine::window_interface)
