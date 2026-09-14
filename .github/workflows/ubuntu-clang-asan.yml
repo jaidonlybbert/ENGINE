@@ -54,6 +54,20 @@ jobs:
         shell: bash
         run: echo "PKG_CONFIG_PATH=" >> $GITHUB_ENV
 
+      # Without this, every run rebuilds every dependency (Jolt, VMA, GLFW, GTest, etc.)
+      # from source with --build=missing below - measured at 2m47s of this job's 6m15s
+      # total on an uncached run (see issue #44). Keyed on the profile + conanfile.py so a
+      # dependency/compiler-settings change invalidates it and rebuilds correctly instead
+      # of silently reusing stale packages; restore-keys falls back to the last cache on a
+      # partial miss so unaffected packages still skip rebuilding.
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-ubuntu-clang-${{ hashFiles('conanfile.py', 'profiles/Ubuntu-Clang-x86_64') }}
+          restore-keys: |
+            conan-ubuntu-clang-
+
       - name: Install deps (Conan)
         env:
           CC: clang
@@ -84,8 +98,10 @@ jobs:
             -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
 
-          # 3. Build using default generator (Unix Makefiles / Ninja)
-          cmake --build build --config Debug
+          # 3. Build using default generator (Unix Makefiles / Ninja) - explicitly
+          #    parallel since Unix Makefiles (unlike Ninja) builds single-threaded by
+          #    default.
+          cmake --build build --config Debug --parallel
 
       - name: Run Tests / Application
         run: |
