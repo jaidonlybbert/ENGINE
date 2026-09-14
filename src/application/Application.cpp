@@ -57,6 +57,36 @@ void Application::registerDedicatedThread(const std::string name, std::function<
     });
 }
 
+void Application::registerSurfaceDestroyedCallback(std::function<void(void)> fun) {
+    surfaceDestroyedListeners.push_back(std::move(fun));
+}
+
+void Application::registerSurfaceCreatedCallback(std::function<void(void)> fun) {
+    surfaceCreatedListeners.push_back(std::move(fun));
+}
+
+void Application::registerPauseCallback(std::function<void(void)> fun) { pauseListeners.push_back(std::move(fun)); }
+
+void Application::registerResumeCallback(std::function<void(void)> fun) { resumeListeners.push_back(std::move(fun)); }
+
+void Application::notifyListeners(std::vector<std::function<void(void)>>& listeners, const std::string& category) {
+    for (auto& listener : listeners) {
+        try {
+            listener();
+        } catch (std::exception& e) {
+            ENG_LOG_ERROR("Exception in " << category << " listener: " << e.what());
+        }
+    }
+}
+
+void Application::notifySurfaceDestroyed() { notifyListeners(surfaceDestroyedListeners, "surface-destroyed"); }
+
+void Application::notifySurfaceCreated() { notifyListeners(surfaceCreatedListeners, "surface-created"); }
+
+void Application::notifyPause() { notifyListeners(pauseListeners, "pause"); }
+
+void Application::notifyResume() { notifyListeners(resumeListeners, "resume"); }
+
 void Application::queueInitFunctions() {
     for (auto& fun : initFunctions) {
         asio::post(io_ctx, fun);
@@ -108,13 +138,7 @@ void Application::shutdown() {
         isShutdown = true;
     }
 
-    for (auto& lst : shutdownListeners) {
-        try {
-            lst();
-        } catch (std::exception& e) {
-            ENG_LOG_ERROR("Exception in shutdown listener: " << e.what());
-        }
-    }
+    notifyListeners(shutdownListeners, "shutdown");
 
     if (!io_ctx.stopped()) {
         try {

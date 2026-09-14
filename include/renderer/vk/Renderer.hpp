@@ -121,6 +121,19 @@ class VkRenderer {
     void initVulkan();
     VkShaderModule createShaderModule(const std::vector<char>& code);
     void createSurface();
+
+    // Wire these to Application::registerSurfaceDestroyedCallback()/
+    // registerSurfaceCreatedCallback() (see issue #48) on platforms where the OS can tear
+    // down and later restore the native window out from under a running app (Android).
+    // Desktop backends never lose the surface this way, so these are simply never called
+    // there. Unlike a desktop resize (recreateSwapChain() alone, still used by drawFrame()
+    // below), Android surface loss invalidates the VkSurfaceKHR itself, not just the
+    // swapchain built on top of it - handleSurfaceDestroyed() must run first (tearing the
+    // swapchain and surface down while the instance/device stay alive) and
+    // handleSurfaceCreated() must be called once a new native window exists (recreating
+    // both against it).
+    void handleSurfaceDestroyed();
+    void handleSurfaceCreated();
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void registerCommandRecorder(std::function<void(VkCommandBuffer)> commandRecorder);
     void drawFrame();

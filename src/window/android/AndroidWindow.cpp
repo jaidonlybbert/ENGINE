@@ -6,14 +6,9 @@
 #include <cassert>
 
 AndroidWindow::AndroidWindow(android_app* app) : app(app) {
-    assert(activeInstance == nullptr && "only one AndroidWindow may exist at a time");
     assert(app->window != nullptr &&
            "AndroidWindow requires an already-valid ANativeWindow - wait for APP_CMD_INIT_WINDOW first");
-    activeInstance = this;
-    app->onAppCmd = onAppCmdTrampoline;
 }
-
-AndroidWindow::~AndroidWindow() { activeInstance = nullptr; }
 
 void AndroidWindow::pollEvents() {
     int events;
@@ -48,8 +43,8 @@ void AndroidWindow::setFramebufferResizeCallback(std::function<void()> callback)
 
 void* AndroidWindow::nativeHandle() const { return app->window; }
 
-void AndroidWindow::onAppCmdTrampoline(android_app* app, int32_t cmd) {
-    if (cmd == APP_CMD_WINDOW_RESIZED && activeInstance && activeInstance->framebufferResizeCallback) {
-        activeInstance->framebufferResizeCallback();
+void AndroidWindow::onAppCmd(int32_t cmd) {
+    if (cmd == APP_CMD_WINDOW_RESIZED && framebufferResizeCallback) {
+        framebufferResizeCallback();
     }
 }
