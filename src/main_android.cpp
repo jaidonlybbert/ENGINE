@@ -14,13 +14,21 @@
 // whichever future issue can actually construct a persistent Android VkRenderer to call
 // them from. What's exercised here is the Application register/notify plumbing itself,
 // and that AndroidWindow correctly hands every OS command off to it.
+//
+// Also wires up AndroidInput and CameraControls::set_callbacks() (issue #49) - touch-drag
+// orbit and pinch both go through the same ClientHidEvent queue mouse-drag/scroll already
+// do, so there's no scene/renderer here to visibly confirm against yet (same #50 blocker),
+// but the touch-event plumbing, gesture math, and CameraControls wiring are all real and
+// exercised end to end down to the event queue.
 #include <android/log.h>
 #include <android_native_app_glue.h>
 
 #include <stdexcept>
 
 #include "application/Application.hpp"
+#include "hid/android/AndroidInput.hpp"
 #include "renderer/vk/Instance.hpp"
+#include "scenes/common/CameraControls.hpp"
 #include "window/android/AndroidWindow.hpp"
 
 #define LOG_TAG "Engine"
@@ -60,11 +68,13 @@ void verifyVulkanSurfaceCreation(AndroidWindow& window) {
     vkDestroyInstance(instanceFactory.instance, nullptr);
 }
 
-// Everything the real (post-bootstrap) app->onAppCmd dispatcher needs, stashed in
-// android_app::userData since app->onAppCmd is a plain C function pointer - no captures.
+// Everything the real (post-bootstrap) app->onAppCmd/app->onInputEvent dispatchers need,
+// stashed in android_app::userData since both are plain C function pointers - no
+// captures.
 struct DispatchState {
     AndroidWindow* window;
     Application* application;
+    AndroidInput* input;
 };
 
 void onAppCmd(android_app* app, int32_t cmd) {
@@ -87,6 +97,11 @@ void onAppCmd(android_app* app, int32_t cmd) {
         default:
             break;
     }
+}
+
+int32_t onInputEvent(android_app* app, AInputEvent* event) {
+    auto* state = static_cast<DispatchState*>(app->userData);
+    return state->input->onInputEvent(event);
 }
 
 }  // namespace
@@ -117,11 +132,24 @@ void android_main(android_app* app) {
     application.registerPauseCallback([]() { LOGI("App paused"); });
     application.registerResumeCallback([]() { LOGI("App resumed"); });
 
-    DispatchState dispatchState{&window, &application};
+    AndroidInput input;
+    WindowUserData windowUserData;
+    window.getWindowSize(windowUserData.windowWidthScreenCoords, windowUserData.windowHeightScreenCoords);
+    CameraControls::set_callbacks(window, input, windowUserData);
+
+    DispatchState dispatchState{&window, &application, &input};
     app->userData = &dispatchState;
     app->onAppCmd = onAppCmd;
+    app->onInputEvent = onInputEvent;
 
     while (!window.shouldClose()) {
         window.pollEvents();
+        // Draining eventQueue would normally feed a scene's active camera node (see
+        // handleHIDEvents() in main.cpp) - no scene exists on Android yet (issue #50), so
+        // this just confirms touch gestures are actually reaching the queue.
+        if (!windowUserData.eventQueue.empty()) {
+            LOGI("CameraControls queued a look event from touch input.");
+            windowUserData.eventQueue.clear();
+        }
     }
 }
