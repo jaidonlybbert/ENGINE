@@ -47,6 +47,27 @@ if (NOT "$ENV{Vulkan_INCLUDE_DIR}" STREQUAL "")
 	cmake_print_variables(Vulkan_INCLUDE_DIR)
 endif()
 
+# The Android build (see issue #10/#46) is kept deliberately separate and minimal for
+# now, rather than threading ANDROID checks through the desktop Engine target's ~100
+# lines of add_subdirectory/find_package/target_link_libraries below: almost everything
+# there is GLFW-specific (window, hid/glfw, vk::renderer's imgui bridge) or untested on
+# Android (Jolt, PMP, VMA via Conan), and unpicking that piece by piece here would just
+# duplicate the follow-up issues (#47-#51) that already exist to replace each GLFW-coupled
+# piece with an Android equivalent. This block only proves the Conan/NDK/CMake toolchain
+# and dependency graph work end to end (android_native_app_glue + a log line) - widening
+# it to link more of the engine's already-portable libraries (engine::scene,
+# engine::physics, engine::filesystem, etc.) is expected, natural follow-up as those
+# issues land, not something to force here.
+if (ANDROID)
+	add_library(native_app_glue STATIC "${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c")
+	target_include_directories(native_app_glue PUBLIC "${ANDROID_NDK}/sources/android/native_app_glue")
+
+	add_library(Engine SHARED "${PROJECT_SOURCE_DIR}/src/main_android.cpp")
+	target_link_libraries(Engine PRIVATE native_app_glue android log)
+	# Required so the OS can find the entry point native_app_glue implements.
+	target_link_options(Engine PRIVATE "-u" "ANativeActivity_onCreate")
+else()
+
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 
 set(SOURCE_FILES
@@ -157,3 +178,5 @@ cmake_print_variables(DYLD_LIBRARY_PATH)
 cmake_print_variables(PROJECT_BINARY_DIR)
 cmake_print_variables(PROJECT_SOURCE_DIR)
 cmake_print_variables(VULKAN_SDK)
+
+endif()
