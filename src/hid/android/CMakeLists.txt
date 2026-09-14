@@ -6,4 +6,5 @@ target_include_directories(engine_hid_android PUBLIC "${PROJECT_SOURCE_DIR}/incl
 
 target_link_libraries(engine_hid_android PUBLIC
 	android
-	engine::hid_interface)
+	engine::hid_interface
+	engine::events)
