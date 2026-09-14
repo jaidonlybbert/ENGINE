@@ -40,6 +40,24 @@ jobs:
       - name: Install Conan profile overrides
         run: conan config install ${{github.workspace}}/profiles/macOS-AppleClang-arm64 --type=file --target-folder=profiles
 
+      # Without this, every run rebuilds every dependency (Jolt, VMA, GLFW, GTest, etc.)
+      # from source with --build=missing below - measured at 2m26s of this job's 4m48s
+      # total on an uncached run (see issue #44). Keyed on the profile + conanfile.py so a
+      # dependency/compiler-settings change invalidates it and rebuilds correctly instead
+      # of silently reusing stale packages; restore-keys falls back to the last cache on a
+      # partial miss so unaffected packages still skip rebuilding. Doesn't need to account
+      # for the separately auto-detected "default" profile drifting (e.g. a runner image
+      # Xcode bump) - Conan hashes that into each package's ID itself, so a drifted
+      # default profile just misses cache for the affected packages rather than reusing
+      # something wrong.
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-macos-appleclang-${{ hashFiles('conanfile.py', 'profiles/macOS-AppleClang-arm64') }}
+          restore-keys: |
+            conan-macos-appleclang-
+
       - name: Install deps (Conan)
         run: conan install . -pr:a default -pr:a macOS-AppleClang-arm64 --output-folder ${{github.workspace}} --build=missing
 
@@ -77,7 +95,9 @@ jobs:
       - name: CMake Configure & Build
         run: |
           cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
-          cmake --build --preset conan-release
+          # This profile doesn't set a generator, so CMake defaults to Unix Makefiles,
+          # which (unlike Ninja) builds single-threaded unless told otherwise.
+          cmake --build --preset conan-release --parallel
 
       - name: Run Tests
         run: ctest --test-dir build --output-on-failure --no-tests=error

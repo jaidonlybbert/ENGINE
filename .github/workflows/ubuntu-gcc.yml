@@ -60,6 +60,22 @@ jobs:
         shell: bash
         run: echo "PKG_CONFIG_PATH=" >> $GITHUB_ENV
 
+      # Without this, every run rebuilds every dependency (Jolt, VMA, GLFW, GTest, etc.)
+      # from source with --build=missing below - measured at 3m7s of this job's 5m43s
+      # total on an uncached run (see issue #44). Shares a key with unit-tests.yml, which
+      # uses this same profile, so whichever job's cache saves first benefits the other.
+      # Keyed on the profile + conanfile.py so a dependency/compiler-settings change
+      # invalidates it and rebuilds correctly instead of silently reusing stale packages;
+      # restore-keys falls back to the last cache on a partial miss so unaffected packages
+      # still skip rebuilding.
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-ubuntu-gcc-${{ hashFiles('conanfile.py', 'profiles/Ubuntu-GCC-x86_64') }}
+          restore-keys: |
+            conan-ubuntu-gcc-
+
       - name: Install deps (Conan)
         run: conan install . -pr:a Ubuntu-GCC-x86_64 --output-folder ${{github.workspace}} --build=missing
 
@@ -74,4 +90,6 @@ jobs:
       - name: CMake Configure
         run: |
             cmake --preset conan-release -DCMAKE_BUILD_TYPE=Release
-            cmake --build --preset conan-release
+            # This profile doesn't set a generator, so CMake defaults to Unix Makefiles,
+            # which (unlike Ninja) builds single-threaded unless told otherwise.
+            cmake --build --preset conan-release --parallel
