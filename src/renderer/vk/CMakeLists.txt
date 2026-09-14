@@ -26,10 +26,14 @@ target_link_libraries(engine_vk_renderer PUBLIC engine::filesystem)
 target_link_libraries(engine_vk_renderer PUBLIC tinygltf)
 target_link_libraries(engine_vk_renderer PUBLIC engine::logger)
 target_link_libraries(engine_vk_renderer PUBLIC engine::window_interface)
-# Still needed directly for imgui_impl_glfw (imgui's GUI backend is out of scope for the
-# windowing interface in issue #42 - see WindowI::nativeHandle()) - everything else in
-# this library goes through WindowI instead of GLFW now.
-target_link_libraries(engine_vk_renderer PUBLIC glfw)
+if (NOT ANDROID)
+	# Still needed directly for imgui_impl_glfw (imgui's GUI backend is out of scope for
+	# the windowing interface in issue #42 - see WindowI::nativeHandle()) - everything
+	# else in this library goes through WindowI instead of GLFW now. Not linked at all on
+	# Android, which has no GLFW backend - initGui()/cleanupGui() are no-ops there for now
+	# (issue #51).
+	target_link_libraries(engine_vk_renderer PUBLIC glfw)
+endif()
 target_link_libraries(engine_vk_renderer PUBLIC glm::glm)
 target_link_libraries(engine_vk_renderer PUBLIC imgui)
 target_link_libraries(engine_vk_renderer PUBLIC GPUOpen::VulkanMemoryAllocator)
