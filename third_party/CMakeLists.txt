@@ -13,10 +13,10 @@ set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/tinygltf")
 
 # ---- IMGUI ---- #
-# GLFW has no Android backend (see issue #10/#46) - imgui_impl_glfw is excluded there for
-# the same reason. imgui_impl_android (issue #51) would be added as its own
-# Android-only source here once that lands; until then the Android build gets core imgui
-# + the Vulkan backend with no platform backend wired in yet.
+# GLFW has no Android backend (see issue #10/#46) - imgui_impl_glfw is excluded there and
+# imgui_impl_android (issue #51) takes its place, backed by libandroid's AInputEvent/
+# ANativeWindow API (see AndroidWindow/AndroidInput's own CMakeLists for the same `android`
+# link).
 if (NOT ANDROID)
 	find_package(glfw3 CONFIG REQUIRED)
 endif()
@@ -29,7 +29,9 @@ add_library(imgui STATIC
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_widgets.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_vulkan.cpp"
 )
-if (NOT ANDROID)
+if (ANDROID)
+	target_sources(imgui PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_android.cpp")
+else()
 	target_sources(imgui PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_glfw.cpp")
 endif()
 target_include_directories(imgui
@@ -38,7 +40,9 @@ target_include_directories(imgui
 	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends"
 )
 target_link_libraries(imgui PUBLIC Vulkan::Vulkan)
-if (NOT ANDROID)
+if (ANDROID)
+	target_link_libraries(imgui PUBLIC android)
+else()
 	target_link_libraries(imgui PUBLIC glfw)
 endif()
 

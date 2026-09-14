@@ -178,5 +178,10 @@ class VkRenderer {
     void createTextureImageView(const std::filesystem::path& fpath);
     void createTextureSampler(const std::filesystem::path& fpath);
     void createTexture(const std::filesystem::path& fpath);
-    void initGui();
+    // fontScale multiplies ImGui's default font/widget sizing - desktop callers can leave
+    // it at 1.0, but Android's screen density range is much wider than desktop's, so an
+    // Android caller is expected to derive this from AConfiguration_getDensity() (see
+    // issue #51) and pass it in. VkRenderer takes WindowI rather than an Android-specific
+    // type, so it has no other way to know the device's density itself.
+    void initGui(float fontScale = 1.0f);
 };

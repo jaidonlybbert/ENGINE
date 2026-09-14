@@ -27,6 +27,7 @@
 #include "tracy/Tracy.hpp"
 #endif
 #include "imgui.h"
+#include "imgui_impl_android.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
@@ -123,16 +124,14 @@ void VkRenderer::cleanupVulkan() {
 }
 
 void VkRenderer::cleanupGui() {
-#if defined(__ANDROID__)
-    // imgui_impl_android wiring is issue #51's scope - initGui() below is a no-op on
-    // Android for the same reason, so there's nothing to clean up here yet.
-    return;
-#else
     ImGui_ImplVulkan_Shutdown();
+#if defined(__ANDROID__)
+    ImGui_ImplAndroid_Shutdown();
+#else
     ImGui_ImplGlfw_Shutdown();
+#endif
     ImGui::DestroyContext();
     vkDestroyDescriptorPool(device, imguiPool, nullptr);
-#endif
 }
 
 std::ostream& operator<<(std::ostream& os, VkRenderer& app) {
@@ -707,13 +706,7 @@ void VkRenderer::createTextureSampler(const std::filesystem::path& fpath) {
     }
 }
 
-void VkRenderer::initGui() {
-#if defined(__ANDROID__)
-    // imgui_impl_android wiring is issue #51's scope - not implemented yet, so this is a
-    // no-op for now rather than compiling in imgui_impl_glfw (which has no Android
-    // backend at all - see the third_party imgui target's own ANDROID guard).
-    return;
-#else
+void VkRenderer::initGui(float fontScale) {
     // 1: create descriptor pool for IMGUI
     //  the size of the pool is very oversize, but it's copied from imgui demo itself.
     VkDescriptorPoolSize pool_sizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
@@ -749,14 +742,24 @@ void VkRenderer::initGui() {
     ImGui::StyleColorsDark();
     // ImGui::StyleColorsLight();
 
+    // Android's screen density range is much wider than desktop's, so a caller there is
+    // expected to pass a non-default fontScale (see this method's doc comment) - a no-op
+    // at the default 1.0 used by every desktop caller.
+    io.FontGlobalScale = fontScale;
+    ImGui::GetStyle().ScaleAllSizes(fontScale);
+
     QueueFamilyIndices indices = PhysicalDevice::findQueueFamilies(physicalDevice, surface);
 
     // Setup Platform/Renderer backends
-    // imgui_impl_glfw is GLFW-specific with no cross-platform equivalent yet (imgui's GUI
-    // subsystem is out of scope for issue #42's windowing/input/filesystem interfaces -
-    // see WindowI::nativeHandle()'s doc comment), so it needs the concrete GLFWwindow*
-    // rather than going through WindowI.
+    // imgui_impl_glfw/imgui_impl_android are platform-specific with no cross-platform
+    // equivalent (imgui's GUI subsystem is out of scope for issue #42's
+    // windowing/input/filesystem interfaces - see WindowI::nativeHandle()'s doc comment),
+    // so each needs the concrete native handle rather than going through WindowI.
+#if defined(__ANDROID__)
+    ImGui_ImplAndroid_Init(reinterpret_cast<ANativeWindow*>(window.nativeHandle()));
+#else
     ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(window.nativeHandle()), true);
+#endif
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance = instanceFactory->instance;
     init_info.PhysicalDevice = physicalDevice;
@@ -773,7 +776,6 @@ void VkRenderer::initGui() {
     init_info.Allocator = nullptr;
     init_info.CheckVkResultFn = check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
-#endif
 }
 
 void checkedVkMapMemory(VkPhysicalDevice physicalDevice, VkDevice device, VkDeviceMemory bufferMemory,
