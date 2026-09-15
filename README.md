@@ -177,3 +177,6 @@ python buildfile.py --preset=mac-default --buildtype=Debug
 ```bash
 ./build/Debug/Engine
 ```
+
+### Android
+See [android/README.md](android/README.md) - Android is built and packaged separately from the desktop platforms above, via a small Gradle project that wraps the same Conan + CMake + NDK pipeline CI uses.

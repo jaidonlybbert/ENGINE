@@ -6,3 +6,15 @@ imgui.ini
 __pycache__
 *.swp
 *_icd.json
+
+# Android (see android/build_native.sh - issue #58): local Gradle/SDK state and the
+# native lib + assets that script stages, none of which belong in version control (the
+# assets are already tracked at the repo root - textures/, models/, gltf/, shaders/ - this
+# is just a staged copy).
+android/.native-build
+android/.gradle
+android/local.properties
+android/build
+android/app/build
+android/app/src/main/assets
+android/app/src/main/jniLibs
