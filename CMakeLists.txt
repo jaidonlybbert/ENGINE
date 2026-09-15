@@ -54,10 +54,13 @@ endif()
 # have an Android-specific implementation (engine::vk::renderer, engine::window::android -
 # issue #47; engine::application's lifecycle hooks - issue #48; engine::hid::android and
 # touch-aware engine::scenes::common - issue #49; engine::filesystem::android - issue #50;
-# engine::gui via imgui_impl_android - issue #51) - widening it further (engine::vk::adapter,
-# still GLFW-coupled, and the scene-specific engine::scene::gui/scenes::world/blue_sky,
-# unaudited for Android-portability and not part of this breakdown) is expected, natural
-# follow-up, not something to force here.
+# engine::gui via imgui_impl_android - issue #51; engine::vk::adapter, engine::scenes::blue_sky
+# and engine::scene::gui - none of which turned out to be GLFW-coupled at all, just never
+# audited/linked before - and a real persistent VkRenderer/render loop in main_android.cpp
+# to actually use them - issue #59). engine::scenes::world is the one holdout: it loads
+# gltf/obj/texture assets through the full renderer texture-upload path, which
+# engine::scenes::blue_sky's entirely procedural content sidesteps - left for a future
+# widening once that path has its own dedicated verification.
 if (ANDROID)
 	add_library(native_app_glue STATIC "${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c")
 	target_include_directories(native_app_glue PUBLIC "${ANDROID_NDK}/sources/android/native_app_glue")
@@ -79,13 +82,16 @@ if (ANDROID)
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/filesystem/android")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/application")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/gui")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/guis")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer/vk")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/renderer/vk_adapter")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/window/android")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/scene")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/events")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/hid")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/hid/android")
 	add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes/common")
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/scenes/blue_sky")
 
 	add_library(Engine SHARED "${PROJECT_SOURCE_DIR}/src/main_android.cpp")
 	target_link_libraries(Engine PRIVATE
@@ -93,6 +99,7 @@ if (ANDROID)
 		android
 		log
 		engine::vk::renderer
+		engine::vk::adapter
 		engine::window_interface
 		engine::window::android
 		engine::application
@@ -100,6 +107,8 @@ if (ANDROID)
 		engine::hid
 		engine::hid::android
 		engine::scenes::common
+		engine::scenes::blue_sky
+		engine::scene::gui
 		engine::filesystem_interface
 		engine::filesystem::android
 		engine::gui)
