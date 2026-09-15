@@ -1,44 +1,30 @@
-// Android entry point (android_native_app_glue calls this instead of main()). Exercises
-// AndroidWindow and the Android branch of InstanceFactory::getRequiredExtensions() /
-// ENG::createWindowSurface() end to end (see issue #47): creates a real VkInstance and
-// VkSurfaceKHR from the window and logs whether it worked.
+// Android entry point (android_native_app_glue calls this instead of main()). Constructs a
+// real, persistent VkRenderer and runs SceneBlueSky (see issue #59) - the first time any of
+// #47-#51's Android-specific code has actually been exercised end to end by a live render
+// loop, rather than each being proven in isolation via a throwaway verify*() harness that
+// immediately tore down whatever it created.
 //
-// Also wires Application's lifecycle hooks (issue #48) to the OS events that would
-// destroy/recreate the surface (APP_CMD_TERM_WINDOW/APP_CMD_INIT_WINDOW) and
-// pause/resume the app (APP_CMD_PAUSE/APP_CMD_RESUME), logging each one. This
-// deliberately doesn't construct a real, persistent VkRenderer to exercise
-// VkRenderer::handleSurfaceDestroyed()/handleSurfaceCreated() against - initVulkan() also
-// picks a physical device and builds a swapchain, and there's no build step that packages
-// a scene's assets into an APK at all yet (see below), so a full render loop isn't
-// Android-ready as a whole even though its individual pieces (this file's other
-// verify*() functions) are. Those two methods are real and compile for Android (see
-// Renderer.cpp), ready for whichever future issue can actually construct a persistent
-// Android VkRenderer to call them from. What's exercised here is the Application
-// register/notify plumbing itself, and that AndroidWindow correctly hands every OS command
-// off to it.
+// SceneBlueSky, not SceneWorld, is the scene used here: it is entirely procedural (a
+// skybox + a tetrahedron generated in code - see SceneBlueSky.cpp), so it never touches
+// AssetProviderI's gltf/obj/texture-loading paths. Those paths are real and Android-ready
+// (issue #50), but VkRenderer::initVulkan() unconditionally preloads two specific desktop
+// textures (getRoomTex()/getSpacefloorTex()) regardless of which scene is active - SceneWorld
+// itself would additionally exercise loadModel()/load_gltf() end to end, which has never
+// been proven through the full Vulkan texture-upload path on Android. Keeping that
+// combination isolated (rather than debugging two new things - a persistent renderer AND
+// full asset-backed content - at once) is why SceneWorld is left for a future issue.
 //
-// Also wires up AndroidInput and CameraControls::set_callbacks() (issue #49) - touch-drag
-// orbit and pinch both go through the same ClientHidEvent queue mouse-drag/scroll already
-// do, so there's no scene/renderer here to visibly confirm against yet (same blocker
-// below), but the touch-event plumbing, gesture math, and CameraControls wiring are all
-// real and exercised end to end down to the event queue.
+// Also still verifies the AssetProviderI::readBytes()/tinygltf FsCallbacks path directly
+// (see verifyAssetLoading() below, issue #50) - SceneBlueSky never exercises it, so this is
+// kept as independent confirmation that it still works, alongside (not instead of) the real
+// render loop.
 //
-// Also registers an AndroidAssetProvider and attempts to load the Suzanne glTF through it
-// (issue #50) - this exercises the real AssetProviderI::readBytes()/tinygltf FsCallbacks
-// path, but there is currently no build step that packages any assets into an APK at all
-// (that's its own gap, out of scope for every issue in this breakdown - see the PR
-// description), so on an actual device this is expected to log a "not found" failure
-// rather than success until that packaging exists. What's being verified here is that the
-// code path runs without crashing and reports a real AAssetManager error, not that the
-// model actually loads.
-//
-// Also exercises imgui_impl_android (issue #51) - creates a throwaway ImGui context,
-// initializes/tears down the Android platform backend against the real ANativeWindow, and
-// computes the device's font/widget scale from AConfiguration_getDensity(). Like
-// verifyVulkanSurfaceCreation() above, there's no persistent VkRenderer/Gui here yet to
-// keep a real context alive for (VkRenderer::initGui()/Gui::drawGui() are real and Android-
-// ready, same as the Vulkan surface/lifecycle plumbing above), so this is a self-contained
-// init/shutdown smoke test rather than a live one wired into the event loop below.
+// Application's lifecycle hooks (issue #48) now do real work: registerSurfaceDestroyedCallback/
+// registerSurfaceCreatedCallback call VkRenderer::handleSurfaceDestroyed()/
+// handleSurfaceCreated() on the live renderer (APP_CMD_TERM_WINDOW/APP_CMD_INIT_WINDOW),
+// instead of just logging. Touch input (issue #49) drives CameraControls exactly as it does
+// on desktop - SceneBlueSky's own initializeBlueSkyScene() wires CameraControls::set_callbacks()
+// internally, the same call desktop's initializeScene() makes.
 #include <android/configuration.h>
 #include <android/log.h>
 #include <android_native_app_glue.h>
@@ -47,11 +33,17 @@
 
 #include "application/Application.hpp"
 #include "filesystem/android/AndroidAssetProvider.hpp"
+#include "gui/Gui.hpp"
+#include "guis/SceneGui.hpp"
 #include "hid/android/AndroidInput.hpp"
 #include "imgui.h"
 #include "imgui_impl_android.h"
 #include "renderer/vk/Instance.hpp"
+#include "renderer/vk_adapter/PipelineFactory.hpp"
+#include "renderer/vk_adapter/VkAdapter.hpp"
+#include "scene/DFT.hpp"
 #include "scene/Gltf.hpp"
+#include "scenes/blue_sky/SceneBlueSky.hpp"
 #include "scenes/common/CameraControls.hpp"
 #include "window/android/AndroidWindow.hpp"
 
@@ -72,26 +64,6 @@ void onBootstrapAppCmd(android_app* app, int32_t cmd) {
     }
 }
 
-void verifyVulkanSurfaceCreation(AndroidWindow& window) {
-    ENG::InstanceFactory instanceFactory;
-    try {
-        instanceFactory.createInstance();
-    } catch (const std::exception& e) {
-        LOGE("Failed to create Vulkan instance: %s", e.what());
-        return;
-    }
-
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    if (ENG::createWindowSurface(instanceFactory.instance, window, &surface) == VK_SUCCESS) {
-        LOGI("AndroidWindow created a Vulkan surface successfully.");
-        vkDestroySurfaceKHR(instanceFactory.instance, surface, nullptr);
-    } else {
-        LOGE("AndroidWindow failed to create a Vulkan surface.");
-    }
-
-    vkDestroyInstance(instanceFactory.instance, nullptr);
-}
-
 void verifyAssetLoading() {
     tinygltf::Model model;
     try {
@@ -110,8 +82,7 @@ void verifyAssetLoading() {
 // Android's screen density range is much wider than desktop's default ~96 DPI assumption
 // that ImGui's font/widget sizing is tuned for (see issue #51) - VkRenderer::initGui()'s
 // fontScale parameter expects a multiplier relative to the ACONFIGURATION_DENSITY_MEDIUM
-// (160 DPI) baseline, computed here the same way a future real Android VkRenderer caller
-// would.
+// (160 DPI) baseline.
 float computeFontScale(android_app* app) {
     const int32_t density = AConfiguration_getDensity(app->config);
     if (density <= 0) {
@@ -121,32 +92,130 @@ float computeFontScale(android_app* app) {
     return static_cast<float>(density) / static_cast<float>(ACONFIGURATION_DENSITY_MEDIUM);
 }
 
-void verifyImguiAndroidBackend(AndroidWindow& window, android_app* app) {
-    const float fontScale = computeFontScale(app);
-    LOGI("Computed ImGui fontScale = %f from device density.", fontScale);
+// The following mirror main.cpp's file-local equivalents of the same name (gameLoop's
+// helpers) - they aren't exposed via any shared header (main.cpp's are static/anonymous
+// too), so this duplicates the minimal subset SceneBlueSky's render loop actually needs.
+// Left out entirely: Lua, sockets/networking, physics (none of desktop main.cpp's
+// engine::sockets/engine::physics/lua wiring is linked into the Android build, and
+// SceneBlueSky needs none of it), and the mouse-hover raycast helpers (dead code even in
+// main.cpp - registerUniformBufferConsumer's call site is commented out there too).
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGui::GetIO().FontGlobalScale = fontScale;
+UniformBufferObject createUniformBufferObject(const ENG::SceneState& sceneState, float aspectRatio) {
+    UniformBufferObject ubo{};
 
-    if (!ImGui_ImplAndroid_Init(reinterpret_cast<ANativeWindow*>(window.nativeHandle()))) {
-        LOGE("ImGui_ImplAndroid_Init failed.");
-        ImGui::DestroyContext();
+    glm::vec3 cam_pos = glm::vec4(0, 0, 1, 0);
+    glm::vec3 up = glm::vec4(0, 1, 0, 0);
+    auto fovy = 1.0;
+    auto aspectScale = 1.0;
+    auto znear = 0.1;
+    auto zfar = 100.0;
+    if (sceneState.activeCameraNodeIdx.has_value() &&
+        sceneState.activeCameraNodeIdx.value() < sceneState.graph.nodes.size()) {
+        const auto& cameraNode = sceneState.graph.nodes.at(sceneState.activeCameraNodeIdx.value());
+        const auto* cameraPtr = dynamic_cast<ENG::Camera*>(cameraNode.camera);
+        cam_pos = glm::vec3(sceneState.modelMatrices.at(cameraNode.nodeId)[3]);
+        up = sceneState.modelMatrices.at(cameraNode.nodeId) * glm::vec4(0., 1., 0., 0.);
+        fovy = cameraPtr->fovy;
+        aspectScale = cameraPtr->aspectRatioScale;
+        znear = cameraPtr->znear;
+        zfar = cameraPtr->zfar;
+    }
+
+    const auto aspect = static_cast<double>(aspectRatio) * aspectScale;
+
+    ubo.view = glm::lookAt(cam_pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(up));
+    ubo.proj = glm::perspective(fovy, aspect, znear, zfar);
+    ubo.proj[1][1] *= -1;
+    return ubo;
+}
+
+void updateModelMatrix(glm::mat4& modelMatrix, const ENG::Node& node) {
+    modelMatrix = glm::translate(glm::mat4(1.f), node.translation) * glm::mat4_cast(node.rotation) *
+                  glm::scale(glm::mat4(1.f), node.scale);
+}
+
+void updateModelMatrices(ENG::SceneState& sceneState) {
+    for (const auto& node : sceneState.graph.nodes) {
+        updateModelMatrix(sceneState.modelMatrices.at(node.nodeId), node);
+    }
+
+    for (auto* node : DFTraversal(sceneState.graph.root)) {
+        if (node == sceneState.graph.root) {
+            continue;
+        }
+        sceneState.modelMatrices.at(node->nodeId) =
+            sceneState.modelMatrices.at(node->parent->nodeId) * sceneState.modelMatrices.at(node->nodeId);
+    }
+}
+
+void handleNodeRotationPreserveYAsUpAction(const ClientHidEvent& hidEvent, ENG::SceneState& sceneState) {
+    if (sceneState.activeNodeIdx >= sceneState.graph.nodes.size()) {
+        LOGE("Active node idx is invalid!");
         return;
     }
-    LOGI("ImGui_ImplAndroid_Init succeeded.");
+    auto& activeNode = sceneState.graph.nodes.at(sceneState.activeNodeIdx);
+    node_rotation_follows_input_preserve_y_as_up(activeNode, hidEvent.look_dx, hidEvent.look_dy);
+}
 
-    // Deliberately doesn't call ImGui_ImplAndroid_NewFrame()/ImGui::NewFrame() here -
-    // confirmed on a real device (see PR discussion) that ImGui::NewFrame() null-derefs
-    // atlas->Builder unless a renderer backend (ImGui_ImplVulkan_Init(), which builds the
-    // font atlas and sets ImGuiBackendFlags_RendererHasTextures) has already run first.
-    // VkRenderer::initGui() does call that before Gui::drawGui() ever reaches NewFrame(),
-    // so the real code path is unaffected - there's just no renderer here to stand up for
-    // this isolated platform-backend smoke test (same #59 blocker as everything else in
-    // this file).
+void handleHidEvent(const ClientHidEvent& hidEvent, ENG::SceneState& sceneState) {
+    for (const auto& action : hidEvent.actions) {
+        if (action == Action::NODE_ROTATION_PRESERVE_Y_AS_UP) {
+            handleNodeRotationPreserveYAsUpAction(hidEvent, sceneState);
+        }
+    }
+}
 
-    ImGui_ImplAndroid_Shutdown();
-    ImGui::DestroyContext();
+void handleHIDEvents(std::deque<ClientHidEvent>& eventQueue, ENG::SceneState& sceneState) {
+    while (!eventQueue.empty()) {
+        const auto& clientEvent = eventQueue.front();
+        handleHidEvent(clientEvent, sceneState);
+        eventQueue.pop_front();
+    }
+}
+
+void mesh_bind_event_handler(VkRenderer& renderer, ENG::SceneState& sceneState, VkAdapter& adapter,
+                             ENG::BindHostMeshDataEvent&& bindEvent) {
+    auto& hostMesh = bindEvent.meshData;
+    auto& node = ENG::get_node_by_id(sceneState.graph, bindEvent.nodeId);
+
+    if (hostMesh.texturePath.has_value()) {
+        if (!renderer.textureImages.contains(hostMesh.texturePath.value())) {
+            renderer.createTexture(hostMesh.texturePath.value());
+        }
+    }
+
+    const auto drawIdx = adapter.emplaceDrawData({
+        DrawDataProperties::CLEAR,
+        {bindEvent.nodeId},
+        hostMesh.texturePath,
+        {std::nullopt},
+        adapter.create_draw_data(std::move(hostMesh.vertexBuffer), std::move(hostMesh.indexBuffer)),
+    });
+
+    node.shaderId = bindEvent.meshData.shaderId;
+    node.draw_data_idx = drawIdx;
+
+    adapter.graphicsEventQueue.push(CommandCompletionEvent{[&adapter, &node, drawIdx] {
+        adapter.set_property(drawIdx, DrawDataProperties::INDEX_BUFFERS_INITIALIZED);
+        adapter.set_property(drawIdx, DrawDataProperties::VERTEX_BUFFERS_INITIALIZED);
+        adapter.createDescriptorSets(drawIdx, node);
+        adapter.set_property(drawIdx, DrawDataProperties::DESCRIPTOR_SETS_INITIALIZED);
+    }});
+}
+
+void handleGraphicsEvents(VkRenderer& renderer, VkAdapter& adapter, ENG::SceneState& sceneState) {
+    while (!adapter.graphicsEventQueue.empty()) {
+        GraphicsEvent graphicsEvent{adapter.graphicsEventQueue.pop()};
+
+        if (std::holds_alternative<ENG::BindHostMeshDataEvent>(graphicsEvent)) {
+            mesh_bind_event_handler(renderer, sceneState, adapter,
+                                    std::move(std::get<ENG::BindHostMeshDataEvent>(graphicsEvent)));
+        } else if (std::holds_alternative<CommandRecorderEvent>(graphicsEvent)) {
+            adapter.command_recorder_event_handler(std::move(std::get<CommandRecorderEvent>(graphicsEvent)));
+        } else if (std::holds_alternative<CommandCompletionEvent>(graphicsEvent)) {
+            std::get<CommandCompletionEvent>(graphicsEvent).commandCompletionHandler();
+        }
+    }
 }
 
 // Everything the real (post-bootstrap) app->onAppCmd/app->onInputEvent dispatchers need,
@@ -182,6 +251,10 @@ void onAppCmd(android_app* app, int32_t cmd) {
 
 int32_t onInputEvent(android_app* app, AInputEvent* event) {
     auto* state = static_cast<DispatchState*>(app->userData);
+    // Both get every event, same as desktop's lack of ImGui-capture gating (no
+    // io.WantCaptureMouse check exists there either - see Gui.cpp/main.cpp) - not adding
+    // input-arbitration behavior that doesn't already exist on desktop.
+    ImGui_ImplAndroid_HandleInputEvent(event);
     return state->input->onInputEvent(event);
 }
 
@@ -209,19 +282,57 @@ void android_main(android_app* app) {
     verifyAssetLoading();
 
     AndroidWindow window(app);
-    verifyVulkanSurfaceCreation(window);
-    verifyImguiAndroidBackend(window, app);
+    const float fontScale = computeFontScale(app);
+
+    bool framebufferResized = false;
+    PipelineFactory pipelineFactory;
+    VkRenderer renderer{
+        framebufferResized,
+        window,
+        {[&renderer]() { renderer.initVulkan(); }, [&renderer, fontScale]() { renderer.initGui(fontScale); }},
+        {[&renderer]() { renderer.cleanupGui(); }, [&renderer]() { renderer.cleanupVulkan(); }},
+        pipelineFactory};
+    LOGI("VkRenderer initialized successfully.");
+
+    Gui gui;
+    ENG::SceneState sceneState;
+    SceneGui sceneGui;
+    gui.registerDrawCall([&sceneGui, &sceneState]() { sceneGui.drawGui(sceneState); });
+
+    VkAdapter adapter{renderer};
 
     Application application;
-    application.registerSurfaceDestroyedCallback([]() { LOGI("Surface destroyed"); });
-    application.registerSurfaceCreatedCallback([]() { LOGI("Surface (re)created"); });
+    application.registerSurfaceDestroyedCallback([&renderer]() {
+        renderer.handleSurfaceDestroyed();
+        LOGI("Surface destroyed");
+    });
+    application.registerSurfaceCreatedCallback([&renderer]() {
+        renderer.handleSurfaceCreated();
+        LOGI("Surface (re)created");
+    });
     application.registerPauseCallback([]() { LOGI("App paused"); });
     application.registerResumeCallback([]() { LOGI("App resumed"); });
 
     AndroidInput input;
     WindowUserData windowUserData;
     window.getWindowSize(windowUserData.windowWidthScreenCoords, windowUserData.windowHeightScreenCoords);
-    CameraControls::set_callbacks(window, input, windowUserData);
+
+    // initializeBlueSkyScene() wires CameraControls::set_callbacks(window, input,
+    // windowUserData) internally - same call desktop's initializeScene() makes.
+    initializeBlueSkyScene(sceneState, adapter, window, input, windowUserData);
+    renderer.sceneReadyToRender = true;
+    LOGI("SceneBlueSky initialized successfully.");
+
+    renderer.registerCommandRecorder([&adapter, &renderer, &sceneState](VkCommandBuffer commandBuffer) {
+        adapter.recordCommandsForSceneGraph2(renderer, commandBuffer, sceneState);
+    });
+    renderer.registerUniformBufferProducer([&sceneState](float aspectRatio) -> UniformBufferObject {
+        return createUniformBufferObject(sceneState, aspectRatio);
+    });
+    renderer.registerModelMatrixBufferUpdateFunction([&sceneState]() -> std::vector<glm::mat4>& {
+        updateModelMatrices(sceneState);
+        return sceneState.modelMatrices;
+    });
 
     DispatchState dispatchState{&window, &application, &input};
     app->userData = &dispatchState;
@@ -230,12 +341,12 @@ void android_main(android_app* app) {
 
     while (!window.shouldClose()) {
         window.pollEvents();
-        // Draining eventQueue would normally feed a scene's active camera node (see
-        // handleHIDEvents() in main.cpp) - no scene exists on Android yet (issue #50), so
-        // this just confirms touch gestures are actually reaching the queue.
-        if (!windowUserData.eventQueue.empty()) {
-            LOGI("CameraControls queued a look event from touch input.");
-            windowUserData.eventQueue.clear();
-        }
+        handleHIDEvents(windowUserData.eventQueue, sceneState);
+        handleGraphicsEvents(renderer, adapter, sceneState);
+
+        gui.drawGui();
+        renderer.drawFrame();
     }
+
+    vkDeviceWaitIdle(renderer.device);
 }
