@@ -4,6 +4,12 @@
 # this Gradle project's source sets (see issue #58 - Gradle itself doesn't build the native
 # side; it only packages what this script stages under app/src/main/).
 #
+# Builds for both arm64-v8a (real devices) and x86_64 (a natively-accelerated emulator on
+# an x86_64 host - the emulator refuses to run arm64 system images at all on such a host,
+# it's not just slow) so the resulting APK installs on either. CI only exercises
+# Android-Clang-arm64 (see profiles/) - x86_64 is purely a local dev-loop convenience, not
+# an architecture this engine ships to real devices on.
+#
 # Usage: ./build_native.sh <path-to-NDK-r27c>
 # (or set ANDROID_NDK_HOME). VULKAN_SDK must also be set (same env var the desktop build
 # already relies on - see root CMakeLists.txt) so glslc can compile shaders to SPIR-V; that
@@ -15,7 +21,12 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ANDROID_DIR="$REPO_ROOT/android"
 NATIVE_OUT="$ANDROID_DIR/.native-build"
-ABI="arm64-v8a"
+
+# conan_profile:abi:ndk_triple
+TARGETS=(
+    "Android-Clang-arm64:arm64-v8a:aarch64-linux-android"
+    "Android-Clang-x86_64:x86_64:x86_64-linux-android"
+)
 
 NDK_PATH="${ANDROID_NDK_HOME:-${1:-}}"
 if [ -z "$NDK_PATH" ]; then
@@ -47,7 +58,7 @@ if [ -z "$NINJA" ] || [ ! -x "$NINJA" ]; then
     exit 1
 fi
 
-# conan install below regenerates CMakeUserPresets.json in the repo root regardless of
+# Each conan install below regenerates CMakeUserPresets.json in the repo root regardless of
 # --output-folder (that's inherent to Conan's CMakeToolchain generator), adding an include
 # for this script's own preset alongside the desktop build's. This script drives CMake with
 # an explicit -DCMAKE_TOOLCHAIN_FILE instead of that preset, so it doesn't need the extra
@@ -69,36 +80,7 @@ restore_user_presets() {
 }
 trap restore_user_presets EXIT
 
-echo "==> Conan install (Android-Clang-arm64)"
-conan config install "$REPO_ROOT/profiles/Android-Clang-arm64" --type=file --target-folder=profiles
-conan install "$REPO_ROOT" -pr:h Android-Clang-arm64 -pr:b default \
-    -c tools.android:ndk_path="$NDK_PATH" --output-folder "$NATIVE_OUT" --build=missing
-
-echo "==> CMake configure + build"
-cmake -S "$REPO_ROOT" -B "$NATIVE_OUT/cmakebuild" \
-    -DCMAKE_TOOLCHAIN_FILE="$NATIVE_OUT/build/generators/conan_toolchain.cmake" \
-    -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_MAKE_PROGRAM="$NINJA"
-cmake --build "$NATIVE_OUT/cmakebuild" --parallel
-
-echo "==> Staging native library"
-mkdir -p "$ANDROID_DIR/app/src/main/jniLibs/$ABI"
-cp "$NATIVE_OUT/cmakebuild/libEngine.so" "$ANDROID_DIR/app/src/main/jniLibs/$ABI/libEngine.so"
-
-# libEngine.so is dynamically linked against libc++_shared.so (the Android-Clang-arm64
-# profile sets compiler.libcxx=c++_shared) - unlike libandroid.so/liblog.so/libvulkan.so
-# etc, this isn't a system library the OS already provides, so it has to be bundled into
-# the APK too or the dynamic linker fails to load libEngine.so at all before any of our
-# own code runs (no crash log under our own tag - just nothing, since NativeActivity's
-# dlopen() never succeeds). Confirm this is still true if the toolchain/profile changes via:
-#   llvm-readelf -d libEngine.so | grep NEEDED
-LIBCXX_SHARED="$(ls -1 "$NDK_PATH"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so 2>/dev/null | head -1)"
-if [ -z "$LIBCXX_SHARED" ]; then
-    echo "libc++_shared.so not found under \$NDK_PATH/toolchains/llvm/prebuilt/*/sysroot - check NDK_PATH." >&2
-    exit 1
-fi
-cp "$LIBCXX_SHARED" "$ANDROID_DIR/app/src/main/jniLibs/$ABI/libc++_shared.so"
-
-echo "==> Staging assets"
+echo "==> Staging assets (architecture-independent, only needs doing once)"
 ASSETS_DIR="$ANDROID_DIR/app/src/main/assets"
 rm -rf "$ASSETS_DIR"
 mkdir -p "$ASSETS_DIR"
@@ -113,5 +95,39 @@ for shader in "$REPO_ROOT"/shaders/*.vert "$REPO_ROOT"/shaders/*.frag; do
     "$GLSLC" "$shader" -o "$ASSETS_DIR/shaders/$name.spv"
 done
 
-echo "Done. Native lib + assets are staged under $ANDROID_DIR/app/src/main. Run:"
+for target in "${TARGETS[@]}"; do
+    IFS=':' read -r PROFILE ABI NDK_TRIPLE <<< "$target"
+    OUT="$NATIVE_OUT/$ABI"
+
+    echo "==> [$ABI] Conan install ($PROFILE)"
+    conan config install "$REPO_ROOT/profiles/$PROFILE" --type=file --target-folder=profiles
+    conan install "$REPO_ROOT" -pr:h "$PROFILE" -pr:b default \
+        -c tools.android:ndk_path="$NDK_PATH" --output-folder "$OUT" --build=missing
+
+    echo "==> [$ABI] CMake configure + build"
+    cmake -S "$REPO_ROOT" -B "$OUT/cmakebuild" \
+        -DCMAKE_TOOLCHAIN_FILE="$OUT/build/generators/conan_toolchain.cmake" \
+        -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_MAKE_PROGRAM="$NINJA"
+    cmake --build "$OUT/cmakebuild" --parallel
+
+    echo "==> [$ABI] Staging native library"
+    mkdir -p "$ANDROID_DIR/app/src/main/jniLibs/$ABI"
+    cp "$OUT/cmakebuild/libEngine.so" "$ANDROID_DIR/app/src/main/jniLibs/$ABI/libEngine.so"
+
+    # libEngine.so is dynamically linked against libc++_shared.so (these profiles set
+    # compiler.libcxx=c++_shared) - unlike libandroid.so/liblog.so/libvulkan.so etc, this
+    # isn't a system library the OS already provides, so it has to be bundled into the APK
+    # too or the dynamic linker fails to load libEngine.so at all before any of our own
+    # code runs (no crash log under our own tag - just nothing, since NativeActivity's
+    # dlopen() never succeeds). Confirm this is still true if a profile changes via:
+    #   llvm-readelf -d libEngine.so | grep NEEDED
+    LIBCXX_SHARED="$(ls -1 "$NDK_PATH/toolchains/llvm/prebuilt"/*/sysroot/usr/lib/"$NDK_TRIPLE"/libc++_shared.so 2>/dev/null | head -1)"
+    if [ -z "$LIBCXX_SHARED" ]; then
+        echo "libc++_shared.so not found under \$NDK_PATH/toolchains/llvm/prebuilt/*/sysroot/usr/lib/$NDK_TRIPLE - check NDK_PATH." >&2
+        exit 1
+    fi
+    cp "$LIBCXX_SHARED" "$ANDROID_DIR/app/src/main/jniLibs/$ABI/libc++_shared.so"
+done
+
+echo "Done. Native libs (arm64-v8a, x86_64) + assets are staged under $ANDROID_DIR/app/src/main. Run:"
 echo "  cd $ANDROID_DIR && ./gradlew assembleDebug"

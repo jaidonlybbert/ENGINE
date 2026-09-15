@@ -1,0 +1,19 @@
+[settings]
+os=Android
+# 24 (Nougat) is the minimum API level with baseline Vulkan 1.0 support - this project
+# needs Vulkan, so there's no reason to target anything older.
+os.api_level=24
+arch=x86_64
+compiler=clang
+# The NDK's own clang version, not a system one - Conan's CMakeToolchain hands off to the
+# NDK's android.toolchain.cmake for the actual compiler when os=Android, so this mostly
+# matters for Conan's package-binary-compatibility hashing rather than "which compiler to
+# find". Pin to whatever the CI job's NDK version actually reports if this drifts (see the
+# same kind of drift the Windows-MSVC profile hit with its VS version - issue #39/PR #39).
+compiler.version=18
+compiler.libcxx=c++_shared
+compiler.cppstd=20
+build_type=Release
+[conf]
+# See Android-Clang-arm64's own comment - not set here for the same reason (machine-
+# specific NDK path, passed on the command line instead).

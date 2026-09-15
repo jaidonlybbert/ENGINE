@@ -136,9 +136,14 @@ void verifyImguiAndroidBackend(AndroidWindow& window, android_app* app) {
     }
     LOGI("ImGui_ImplAndroid_Init succeeded.");
 
-    ImGui_ImplAndroid_NewFrame();
-    ImGui::NewFrame();
-    ImGui::EndFrame();
+    // Deliberately doesn't call ImGui_ImplAndroid_NewFrame()/ImGui::NewFrame() here -
+    // confirmed on a real device (see PR discussion) that ImGui::NewFrame() null-derefs
+    // atlas->Builder unless a renderer backend (ImGui_ImplVulkan_Init(), which builds the
+    // font atlas and sets ImGuiBackendFlags_RendererHasTextures) has already run first.
+    // VkRenderer::initGui() does call that before Gui::drawGui() ever reaches NewFrame(),
+    // so the real code path is unaffected - there's just no renderer here to stand up for
+    // this isolated platform-backend smoke test (same #59 blocker as everything else in
+    // this file).
 
     ImGui_ImplAndroid_Shutdown();
     ImGui::DestroyContext();
