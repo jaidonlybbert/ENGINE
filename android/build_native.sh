@@ -84,6 +84,20 @@ echo "==> Staging native library"
 mkdir -p "$ANDROID_DIR/app/src/main/jniLibs/$ABI"
 cp "$NATIVE_OUT/cmakebuild/libEngine.so" "$ANDROID_DIR/app/src/main/jniLibs/$ABI/libEngine.so"
 
+# libEngine.so is dynamically linked against libc++_shared.so (the Android-Clang-arm64
+# profile sets compiler.libcxx=c++_shared) - unlike libandroid.so/liblog.so/libvulkan.so
+# etc, this isn't a system library the OS already provides, so it has to be bundled into
+# the APK too or the dynamic linker fails to load libEngine.so at all before any of our
+# own code runs (no crash log under our own tag - just nothing, since NativeActivity's
+# dlopen() never succeeds). Confirm this is still true if the toolchain/profile changes via:
+#   llvm-readelf -d libEngine.so | grep NEEDED
+LIBCXX_SHARED="$(ls -1 "$NDK_PATH"/toolchains/llvm/prebuilt/*/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so 2>/dev/null | head -1)"
+if [ -z "$LIBCXX_SHARED" ]; then
+    echo "libc++_shared.so not found under \$NDK_PATH/toolchains/llvm/prebuilt/*/sysroot - check NDK_PATH." >&2
+    exit 1
+fi
+cp "$LIBCXX_SHARED" "$ANDROID_DIR/app/src/main/jniLibs/$ABI/libc++_shared.so"
+
 echo "==> Staging assets"
 ASSETS_DIR="$ANDROID_DIR/app/src/main/assets"
 rm -rf "$ASSETS_DIR"

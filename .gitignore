@@ -13,6 +13,7 @@ __pycache__
 # is just a staged copy).
 android/.native-build
 android/.gradle
+android/.idea
 android/local.properties
 android/build
 android/app/build
