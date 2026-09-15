@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- asio sockets need these on Android - see the original #10 triage comment. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <uses-feature android:name="android.hardware.vulkan.level" android:required="true" />
+
+    <application
+        android:allowBackup="false"
+        android:label="Engine"
+        android:hasCode="false">
+
+        <!-- android.app.NativeActivity + the android.app.lib_name meta-data below is what
+             android_native_app_glue hooks into: it loads libEngine.so (see
+             src/main/jniLibs) and calls ANativeActivity_onCreate, which the NDK's glue
+             code wires to android_main() in src/main_android.cpp. See root
+             CMakeLists.txt's target_link_options("-u" "ANativeActivity_onCreate") for why
+             that symbol survives linking despite nothing in this engine calling it
+             directly. -->
+        <activity
+            android:name="android.app.NativeActivity"
+            android:exported="true"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|keyboardHidden|screenSize">
+            <meta-data android:name="android.app.lib_name" android:value="Engine" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

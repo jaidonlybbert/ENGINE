@@ -1,0 +1,22 @@
+name: Gradle Wrapper Validation
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validation:
+    name: Validate Gradle Wrapper
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # android/gradle/wrapper/gradle-wrapper.jar is a checked-in binary (see issue #58) -
+      # this checks its checksum (and gradlew/gradlew.bat's) against Gradle's own list of
+      # known-good wrapper releases, so a tampered/malicious jar can't slip in unnoticed.
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6

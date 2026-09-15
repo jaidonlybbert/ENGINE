@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.jaidonlybbert.engine'
+    // 34 just needs to be installed locally/downloadable - it isn't tied to what the
+    // engine actually requires at runtime (that's minSdk below, matching the Conan
+    // profile's os.api_level - see profiles/Android-Clang-arm64).
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.jaidonlybbert.engine"
+        // 24 (Nougat) is the minimum API level with baseline Vulkan 1.0 support, matching
+        // profiles/Android-Clang-arm64's os.api_level - keep these in sync.
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "0.0.1"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    // No Java/Kotlin sources - AndroidManifest.xml points straight at
+    // android.app.NativeActivity, which loads libEngine.so (see src/main/jniLibs) and
+    // hands off to android_native_app_glue's ANativeActivity_onCreate/android_main().
+    //
+    // The native library and game assets (src/main/jniLibs, src/main/assets) aren't built
+    // by Gradle - they're staged here by ../build_native.sh, which drives the engine's own
+    // Conan + CMake + NDK pipeline (the same one .github/workflows/android-ndk.yml uses).
+    // Conan owns this project's C++ dependencies; teaching Gradle's own
+    // externalNativeBuild/CMake integration to drive Conan too isn't worth the added
+    // complexity over a standalone script - see issue #58.
+}
