@@ -1,8 +1,9 @@
 name: engine-agents
 
 # See docker/README.md before running this - it explains the isolation properties this
-# gives you (and, just as importantly, the ones it doesn't) and how to configure API keys
-# safely.
+# gives you (and, just as importantly, the ones it doesn't) and how to authenticate Claude
+# Code safely, whether that's a Pro/Max subscription (docker compose exec agent1 claude -
+# no API key needed) or ANTHROPIC_API_KEY.
 
 networks:
   agents:
@@ -15,7 +16,9 @@ networks:
 
 volumes:
   agent1-workspace:
+  agent1-home:
   agent2-workspace:
+  agent2-home:
   # Shared, read-write in every agent, at /shared - the mechanism for agents to exchange
   # files/notes with each other (see docker/README.md). Not shared with the host.
   shared:
@@ -48,6 +51,11 @@ services:
     hostname: agent1
     volumes:
       - agent1-workspace:/workspace
+      # The agent user's whole $HOME, not just /workspace - this is where `claude login`
+      # (see docker/README.md) persists its session, so logging in once survives
+      # `docker compose restart`/`down` (without -v) instead of needing to repeat the
+      # browser flow every time. Never shared with the host or with agent2.
+      - agent1-home:/home/agent
       - shared:/shared
     env_file:
       - .env
@@ -61,6 +69,7 @@ services:
     hostname: agent2
     volumes:
       - agent2-workspace:/workspace
+      - agent2-home:/home/agent
       - shared:/shared
     env_file:
       - .env
