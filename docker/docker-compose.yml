@@ -1,0 +1,84 @@
+name: engine-agents
+
+# See docker/README.md before running this - it explains the isolation properties this
+# gives you (and, just as importantly, the ones it doesn't) and how to authenticate Claude
+# Code safely, whether that's a Pro/Max subscription (docker compose exec agent1 claude -
+# no API key needed) or ANTHROPIC_API_KEY.
+
+networks:
+  agents:
+    driver: bridge
+    # No network_mode: host and no `ports:` published on any service below - nothing on
+    # the host's network is reachable from a container, and nothing in a container is
+    # reachable from the host network except via `docker compose exec`. Agents CAN still
+    # reach the general internet (needed for the Anthropic API and package registries) -
+    # see docker/README.md's "What this does NOT protect against" section.
+
+volumes:
+  agent1-workspace:
+  agent1-home:
+  agent2-workspace:
+  agent2-home:
+  # Shared, read-write in every agent, at /shared - the mechanism for agents to exchange
+  # files/notes with each other (see docker/README.md). Not shared with the host.
+  shared:
+
+x-agent-common: &agent-common
+  build:
+    context: ./agent
+  networks:
+    - agents
+  # Resource limits so one runaway agent (or a build it kicks off) can't starve the host
+  # or the other agent containers - tune to taste.
+  mem_limit: 8g
+  cpus: 4.0
+  pids_limit: 512
+  # Defense in depth beyond the non-root USER already set in the image: even a process
+  # that somehow got root in here still can't do anything a dropped capability would have
+  # allowed, and can't escalate via a setuid binary.
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  restart: "no"
+  stdin_open: true
+  tty: true
+
+services:
+  agent1:
+    <<: *agent-common
+    container_name: engine-agent1
+    hostname: agent1
+    volumes:
+      - agent1-workspace:/workspace
+      # The agent user's whole $HOME, not just /workspace - this is where `claude login`
+      # (see docker/README.md) persists its session, so logging in once survives
+      # `docker compose restart`/`down` (without -v) instead of needing to repeat the
+      # browser flow every time. Never shared with the host or with agent2.
+      - agent1-home:/home/agent
+      - shared:/shared
+    env_file:
+      - .env
+    environment:
+      - GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME:-agent1}
+      - GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL:-agent1@local}
+      # git commit needs a committer identity too, not just an author.
+      - GIT_COMMITTER_NAME=${GIT_AUTHOR_NAME:-agent1}
+      - GIT_COMMITTER_EMAIL=${GIT_AUTHOR_EMAIL:-agent1@local}
+
+  agent2:
+    <<: *agent-common
+    container_name: engine-agent2
+    hostname: agent2
+    volumes:
+      - agent2-workspace:/workspace
+      - agent2-home:/home/agent
+      - shared:/shared
+    env_file:
+      - .env
+    environment:
+      - GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME:-agent2}
+      - GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL:-agent2@local}
+      # git commit needs a committer identity too, not just an author.
+      - GIT_COMMITTER_NAME=${GIT_AUTHOR_NAME:-agent2}
+      - GIT_COMMITTER_EMAIL=${GIT_AUTHOR_EMAIL:-agent2@local}
