@@ -186,3 +186,17 @@ mount them the same way `agent1`/`agent2` do), and it'll pick up everything else
 build, resource limits, capability drops, and network - from the `x-agent-common` anchor at
 the top of the file. It'll need its own authentication the same as any other agent - see
 "Authenticating Claude Code".
+
+## What the agent image can and can't do
+
+Each agent can build the engine (Conan + CMake, GCC 14 and clang) and run the unit tests,
+run `clang-format` at the same version CI uses (20), and debug with `gdb`/`valgrind`. It
+can also start `Engine` under a virtual display - `xvfb-run -a ./build/Debug/Engine` - with
+Mesa's software Vulkan (llvmpipe), so it gets past window/surface creation; that's enough
+to check startup, but rendering, ImGui and input still can't be verified visually.
+
+Not covered, and worth knowing before you hand an agent work: no Android toolchain (no JDK,
+SDK, NDK, `adb`, or KVM to run an emulator), and no macOS/iOS/Windows toolchains - anything
+that touches those platforms can only be verified by CI. There's also no `sudo`/root
+(deliberate - see above), so system packages the image lacks can't be installed at
+runtime; add them to `agent/Dockerfile` and rebuild instead.

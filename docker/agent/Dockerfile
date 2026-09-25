@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     libgl1-mesa-dev \
     xorg-dev \
     gcc-14 \
+    g++-14 \
     libwayland-dev \
     curl \
     wget \
@@ -33,6 +34,15 @@ RUN apt-get update && apt-get install -y \
     clang-tidy \
     clangd \
     ca-certificates \
+    gdb \
+    valgrind \
+    graphviz \
+    ccache \
+    python3-venv \
+    python-is-python3 \
+    xvfb \
+    mesa-vulkan-drivers \
+    vulkan-tools \
     libx11-dev \
     libx11-xcb-dev \
     libfontenc-dev \
@@ -74,8 +84,10 @@ RUN echo "deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] \
 RUN apt-get update && apt-get install -y cmake=4.4.2-0kitware1ubuntu24.04.1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Conan
-RUN pip3 install --break-system-packages conan
+# Install Conan, and clang-format 20 from pip - CI's style check (.github/workflows/
+# style.yml) uses clang-format-20, newer than the version Ubuntu 24.04's apt ships, and
+# /usr/local/bin (where pip puts it) comes before /usr/bin on PATH so it wins.
+RUN pip3 install --break-system-packages conan clang-format==20.1.3
 
 # Install the Vulkan SDK
 RUN curl -L https://sdk.lunarg.com/sdk/download/${VULKAN_SDK_VERSION}/linux/vulkan-sdk.tar.xz \

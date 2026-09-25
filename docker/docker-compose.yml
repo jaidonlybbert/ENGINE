@@ -62,6 +62,9 @@ services:
     environment:
       - GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME:-agent1}
       - GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL:-agent1@local}
+      # git commit needs a committer identity too, not just an author.
+      - GIT_COMMITTER_NAME=${GIT_AUTHOR_NAME:-agent1}
+      - GIT_COMMITTER_EMAIL=${GIT_AUTHOR_EMAIL:-agent1@local}
 
   agent2:
     <<: *agent-common
@@ -76,3 +79,6 @@ services:
     environment:
       - GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME:-agent2}
       - GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL:-agent2@local}
+      # git commit needs a committer identity too, not just an author.
+      - GIT_COMMITTER_NAME=${GIT_AUTHOR_NAME:-agent2}
+      - GIT_COMMITTER_EMAIL=${GIT_AUTHOR_EMAIL:-agent2@local}
