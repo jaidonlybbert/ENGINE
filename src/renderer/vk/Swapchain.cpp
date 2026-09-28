@@ -4,6 +4,7 @@
 #include <array>
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 #include "renderer/vk/Image.hpp"
 #include "renderer/vk/PhysicalDevice.hpp"
@@ -61,6 +62,23 @@ void Swapchain::createSwapChain(const VkPhysicalDevice& physicalDevice, const Vk
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
+
+    // Pre-rotation (issue #61): when the surface says its content must be rotated 90/270
+    // degrees to match the panel, the images we hand it have to be in the panel's native
+    // orientation - i.e. the display size, swapped. Some drivers already report
+    // currentExtent that way (nothing to do); others (the Android emulator) report the
+    // display orientation, in which case swap it. The window's own size is always
+    // display-oriented, so comparing orientations against it tells the two apart.
+    preTransform = swapChainSupport.capabilities.currentTransform;
+    if (swapsAxes(preTransform)) {
+        int displayWidth = 0, displayHeight = 0;
+        window.getFramebufferSize(displayWidth, displayHeight);
+        const bool displayIsLandscape = displayWidth > displayHeight;
+        const bool extentIsLandscape = extent.width > extent.height;
+        if (displayWidth != displayHeight && displayIsLandscape == extentIsLandscape) {
+            std::swap(extent.width, extent.height);
+        }
+    }
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
     if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -90,7 +108,7 @@ void Swapchain::createSwapChain(const VkPhysicalDevice& physicalDevice, const Vk
         createInfo.pQueueFamilyIndices = nullptr;
     }
 
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.preTransform = preTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
@@ -106,6 +124,41 @@ void Swapchain::createSwapChain(const VkPhysicalDevice& physicalDevice, const Vk
 
     swapChainImageFormat = surfaceFormat.format;
     swapChainExtent = extent;
+}
+
+bool Swapchain::swapsAxes(VkSurfaceTransformFlagBitsKHR transform) {
+    return transform == VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR ||
+           transform == VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR ||
+           transform == VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90_BIT_KHR ||
+           transform == VK_SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270_BIT_KHR;
+}
+
+VkExtent2D Swapchain::displayExtent() const {
+    return swapsAxes(preTransform) ? VkExtent2D{swapChainExtent.height, swapChainExtent.width} : swapChainExtent;
+}
+
+glm::mat4 Swapchain::preRotationMatrix() const {
+    // Maps display-space clip coordinates (X right, Y down, Vulkan convention) to the
+    // rotated image's. Mirror transforms aren't produced by Android's compositor for
+    // NativeActivity windows, so they fall through to identity.
+    glm::mat4 m{1.f};
+    switch (preTransform) {
+        case VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR:
+            m[0] = glm::vec4(0.f, -1.f, 0.f, 0.f);
+            m[1] = glm::vec4(1.f, 0.f, 0.f, 0.f);
+            break;
+        case VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR:
+            m[0] = glm::vec4(0.f, 1.f, 0.f, 0.f);
+            m[1] = glm::vec4(-1.f, 0.f, 0.f, 0.f);
+            break;
+        case VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR:
+            m[0] = glm::vec4(-1.f, 0.f, 0.f, 0.f);
+            m[1] = glm::vec4(0.f, -1.f, 0.f, 0.f);
+            break;
+        default:
+            break;
+    }
+    return m;
 }
 
 void Swapchain::createFramebuffers(const VkRenderPass& renderPass, const VkDevice& device) {
