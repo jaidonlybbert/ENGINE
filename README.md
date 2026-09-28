@@ -4,6 +4,9 @@
 [![macOS-AppleClang](https://github.com/jaidonlybbert/ENGINE/actions/workflows/macos-appleclang.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/macos-appleclang.yml)
 [![Unit Tests](https://github.com/jaidonlybbert/ENGINE/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/unit-tests.yml)
 [![Code Style Check](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/style.yml)
+[![Android-NDK](https://github.com/jaidonlybbert/ENGINE/actions/workflows/android-ndk.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/android-ndk.yml)
+[![Docker Agent Image](https://github.com/jaidonlybbert/ENGINE/actions/workflows/docker-agent.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/docker-agent.yml)
+[![Gradle Wrapper Validation](https://github.com/jaidonlybbert/ENGINE/actions/workflows/gradle-wrapper-validation.yml/badge.svg?branch=main)](https://github.com/jaidonlybbert/ENGINE/actions/workflows/gradle-wrapper-validation.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 # ENGINE
 Cross-platform real-time 3D rendering application template based on Vulkan
