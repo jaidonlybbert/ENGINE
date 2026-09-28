@@ -1,0 +1,28 @@
+name: Docker Agent Image
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build Agent Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # No real secrets here - just enough for `docker compose config` to substitute
+      # variables and confirm the compose file itself is well-formed.
+      - name: Validate compose config
+        run: |
+          cd docker
+          cp .env.example .env
+          echo "ANTHROPIC_API_KEY=ci-placeholder" >> .env
+          docker compose config
+
+      - name: Build agent image
+        run: docker build -t engine-agent:ci docker/agent

@@ -19,3 +19,6 @@ android/build
 android/app/build
 android/app/src/main/assets
 android/app/src/main/jniLibs
+
+# Docker agent sandbox (see docker/README.md - issue #64): real secrets, never tracked.
+docker/.env
