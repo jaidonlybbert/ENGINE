@@ -33,13 +33,22 @@ x-agent-common: &agent-common
   mem_limit: 8g
   cpus: 4.0
   pids_limit: 512
-  # Defense in depth beyond the non-root USER already set in the image: even a process
-  # that somehow got root in here still can't do anything a dropped capability would have
-  # allowed, and can't escalate via a setuid binary.
+  # Every capability dropped except what the egress firewall needs (issue #67). The agent
+  # user itself is non-root and has none of these in effect - only the one script it may
+  # run through sudo (entrypoint.sh -> init-firewall.sh) does: NET_ADMIN/NET_RAW for
+  # iptables/ipset, SETUID/SETGID/AUDIT_WRITE so sudo itself can switch to root.
+  #
+  # The cost: no-new-privileges is NOT set, because it would stop sudo's setuid bit from
+  # working at all. See docker/README.md before changing this - it's the main
+  # trade-off of running the firewall inside the container.
   cap_drop:
     - ALL
-  security_opt:
-    - no-new-privileges:true
+  cap_add:
+    - NET_ADMIN
+    - NET_RAW
+    - SETUID
+    - SETGID
+    - AUDIT_WRITE
   restart: "no"
   stdin_open: true
   tty: true

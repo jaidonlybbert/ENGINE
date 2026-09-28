@@ -34,6 +34,13 @@ RUN apt-get update && apt-get install -y \
     clang-tidy \
     clangd \
     ca-certificates \
+    sudo \
+    iptables \
+    ipset \
+    iproute2 \
+    dnsutils \
+    jq \
+    aggregate \
     gdb \
     valgrind \
     graphviz \
@@ -139,6 +146,15 @@ RUN if getent group ${AGENT_GID} >/dev/null; then \
 
 COPY --chown=agent:agent entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Egress firewall (issue #67). Root-owned and not writable by `agent`, and the ONLY thing
+# `agent` may run as root (via sudo, from entrypoint.sh) - see docker/README.md for the
+# capabilities this needs and what it costs.
+COPY init-firewall.sh /usr/local/bin/init-firewall.sh
+RUN chown root:root /usr/local/bin/init-firewall.sh \
+ && chmod 0755 /usr/local/bin/init-firewall.sh \
+ && echo "agent ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/agent-firewall \
+ && chmod 0440 /etc/sudoers.d/agent-firewall
 
 USER agent
 WORKDIR /workspace

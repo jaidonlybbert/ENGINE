@@ -5,6 +5,16 @@
 # hands off to whatever CMD the compose service was given (default: an interactive shell).
 set -euo pipefail
 
+# Egress firewall first, before anything touches the network (see issue #67 and
+# docker/README.md). Fails closed: if the rules can't be applied, `set -e` stops the
+# container rather than starting an agent with open internet access.
+if [ "${ENABLE_FIREWALL:-1}" != "0" ]; then
+    echo "==> Applying egress firewall"
+    sudo /usr/local/bin/init-firewall.sh
+else
+    echo "WARNING: ENABLE_FIREWALL=0 - egress is NOT restricted" >&2
+fi
+
 REPO_URL="${REPO_URL:-https://github.com/jaidonlybbert/ENGINE.git}"
 REPO_BRANCH="${REPO_BRANCH:-main}"
 

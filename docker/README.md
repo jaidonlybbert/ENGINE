@@ -44,9 +44,9 @@ workspace/home/shared volumes, including any saved login, and start fresh next t
   Code"), `docker compose cp agent1:/workspace/some/file .`, or `docker run --rm -v
   engine-agents_agent1-workspace:/w -v "$PWD":/out busybox cp -r /w/. /out/`.
 - **Non-root, capability-dropped.** Each container runs as an unprivileged `agent` user
-  (not root), with every Linux capability dropped (`cap_drop: [ALL]`) and
-  `no-new-privileges` set, so even a process that found a way to misbehave inside the
-  container has very little to work with.
+  (not root), with every Linux capability dropped (`cap_drop: [ALL]`) except the few the
+  egress firewall needs (see "Egress firewall" below) - the `agent` user itself has none of
+  them in effect.
 - **No Docker socket.** Nothing here mounts `/var/run/docker.sock` into a container - doing
   so would hand out root on the host (a container with the socket can start new containers
   with arbitrary mounts). If a future workflow needs agents to build/run containers
@@ -58,6 +58,8 @@ workspace/home/shared volumes, including any saved login, and start fresh next t
   published to the host (no `ports:`), and nothing runs with `network_mode: host`. Agents
   can reach each other by hostname (`agent1`, `agent2`) but can't reach anything else
   running on your host.
+- **Egress firewall.** Outbound traffic is default-deny except an allowlist, applied when
+  the container starts (see "Egress firewall" below).
 - **Resource limits.** Each container is capped (`mem_limit`, `cpus`, `pids_limit` in
   `docker-compose.yml`) so one agent (or a build it kicks off) can't starve your machine or
   the other agent.
@@ -66,12 +68,10 @@ workspace/home/shared volumes, including any saved login, and start fresh next t
 
 Being transparent about the limits of this setup matters more than the setup itself:
 
-- **Network egress is not filtered.** Agents can reach the general internet (they need to,
-  for the Anthropic API and package registries like PyPI/npm/Conan Center). A compromised
-  or badly-instructed agent could still make outbound requests to somewhere you didn't
-  intend, including sending it data from inside its own container. If you need to lock this
-  down further, put an egress-filtering proxy (an allowlist of just the hosts each tool
-  needs) in front of the `agents` network - out of scope for this PR.
+- **Allowed hosts are still open channels.** The egress firewall restricts *where* an agent
+  can connect, not *what it sends*. GitHub is allowed, and an agent with a `GITHUB_TOKEN`
+  can push to any repo that token reaches; the Anthropic API is allowed, and it carries
+  whatever the agent puts in a prompt. Token scope (see below) is what bounds this.
 - **The agent can still open pull requests, or push, if you give it `GITHUB_TOKEN`.**
   That's the point (an agent that can't ever contribute anything isn't very useful), but it
   means *you* are the safety net - review what it changed before merging, the same as
@@ -186,6 +186,39 @@ mount them the same way `agent1`/`agent2` do), and it'll pick up everything else
 build, resource limits, capability drops, and network - from the `x-agent-common` anchor at
 the top of the file. It'll need its own authentication the same as any other agent - see
 "Authenticating Claude Code".
+
+## Egress firewall
+
+Each container applies an iptables/ipset firewall at start (`agent/init-firewall.sh`,
+adapted from the reference firewall in Anthropic's Claude Code devcontainer; see
+[issue #67](https://github.com/jaidonlybbert/ENGINE/issues/67)). Outbound traffic is denied
+except to: the Anthropic/Claude hosts, GitHub (its published IP ranges), npm, PyPI, Conan
+Center, and the other agent container. It fails closed - if the rules can't be applied the
+container exits rather than running with open internet.
+
+- **Not allowed:** the Docker host (the network's gateway), the rest of your LAN, cloud
+  metadata addresses, outbound SSH, DNS to anything but the configured resolver, and all
+  IPv6.
+- **Adding hosts.** Some Conan recipes download sources from hosts not on the list. When a
+  build fails on a blocked host, add it to `FIREWALL_EXTRA_DOMAINS` in `docker/.env`
+  (space-separated) and restart the containers, rather than turning the firewall off.
+  `ENABLE_FIREWALL=0` disables it entirely - only for debugging, since the rest of the
+  isolation story assumes it's on.
+- **Limits.** Allowed hosts are resolved to IPs once, at start, so a long-running container
+  can go stale as CDN addresses rotate (restart it to refresh). DNS itself is still an
+  exfiltration channel to anyone who can run a resolver you allow.
+
+**The trade-off you should know about:** the firewall has to be applied by something with
+`CAP_NET_ADMIN`, and in this design that's a root-owned script the `agent` user can run through
+`sudo` (and nothing else). That costs two things compared with the earlier setup:
+`no-new-privileges` is no longer set (it would stop sudo's setuid bit from working), and the
+container's capability set is no longer empty - `NET_ADMIN`, `NET_RAW`, `SETUID`, `SETGID`
+and `AUDIT_WRITE` are in its bounding set. The agent process runs non-root with none of them
+in effect, and can't change the rules (CI checks this), but a privilege-escalation bug in
+the container would land on a wider capability set than before. A stronger design keeps
+`no-new-privileges` and an empty capability set on the agent by applying the rules from a
+separate sidecar container that shares its network namespace - more moving parts, and not
+done here.
 
 ## What the agent image can and can't do
 

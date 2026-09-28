@@ -26,3 +26,22 @@ jobs:
 
       - name: Build agent image
         run: docker build -t engine-agent:ci docker/agent
+
+      # Runs the real entrypoint (clone + submodules included, so this also proves the
+      # allowlist is enough for that) and then checks the firewall it applied: blocked vs
+      # allowed destinations, and that the agent user can't undo it. Same capabilities as
+      # docker/docker-compose.yml grants.
+      - name: Test egress firewall
+        run: |
+          docker run --rm --cap-drop ALL \
+            --cap-add NET_ADMIN --cap-add NET_RAW --cap-add SETUID --cap-add SETGID --cap-add AUDIT_WRITE \
+            engine-agent:ci bash -euxc '
+              ! curl -sS --connect-timeout 5 https://example.com
+              curl -sSf --connect-timeout 10 https://api.github.com/zen
+              curl -sS --connect-timeout 10 -o /dev/null https://api.anthropic.com
+              curl -sS --connect-timeout 10 -o /dev/null https://center2.conan.io
+              test -f /workspace/third_party/imgui/imgui.h
+              ! iptables -F
+              ! sudo -n iptables -F
+              ! sudo -n /bin/true
+            '
