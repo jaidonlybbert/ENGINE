@@ -128,23 +128,33 @@ void Swapchain::createFramebuffers(const VkRenderPass& renderPass, const VkDevic
     }
 }
 
+// Safe to call twice in a row: everything is reset to VK_NULL_HANDLE/empty afterwards (and
+// every vkDestroy*/vkFree* accepts VK_NULL_HANDLE). Android's surface-loss path needs that -
+// handleSurfaceDestroyed() cleans up, and the recreateSwapChain() that follows on resume
+// cleans up first again.
 void Swapchain::cleanupSwapChain(const VkDevice& device) {
     vkDestroyImageView(device, depthImageView, nullptr);
     vkDestroyImage(device, depthImage, nullptr);
     vkFreeMemory(device, depthImageMemory, nullptr);
+    depthImageView = VK_NULL_HANDLE;
+    depthImage = VK_NULL_HANDLE;
+    depthImageMemory = VK_NULL_HANDLE;
 
     for (auto framebuffer : swapChainFramebuffers) {
         vkDestroyFramebuffer(device, framebuffer, nullptr);
     }
+    swapChainFramebuffers.clear();
 
     for (auto imageView : swapChainImageViews) {
         vkDestroyImageView(device, imageView, nullptr);
     }
+    swapChainImageViews.clear();
 
     vkDestroySwapchainKHR(device, swapChain, nullptr);
+    swapChain = VK_NULL_HANDLE;
 }
 
-void Swapchain::recreateSwapChain(const VkPhysicalDevice& physicalDevice, const VkDevice& device,
+bool Swapchain::recreateSwapChain(const VkPhysicalDevice& physicalDevice, const VkDevice& device,
                                   const VkSurfaceKHR& surface, WindowI& window, const VkRenderPass& renderPass) {
     int width = 0, height = 0;
     while (width == 0 || height == 0) {
@@ -156,10 +166,23 @@ void Swapchain::recreateSwapChain(const VkPhysicalDevice& physicalDevice, const 
 
     cleanupSwapChain(device);
 
+    // Only checkable now: on Android a surface whose window is being torn down still looks
+    // fine while the old swapchain is attached to it, but reports no formats/present modes
+    // (or a zero extent) once that swapchain is destroyed - and creating one from that
+    // would dereference an empty format list.
+    const auto support = ENG::PhysicalDevice::querySwapChainSupport(physicalDevice, surface);
+    const auto& currentExtent = support.capabilities.currentExtent;
+    if (support.formats.empty() || support.presentModes.empty() ||
+        (currentExtent.width != std::numeric_limits<uint32_t>::max() &&
+         (currentExtent.width == 0 || currentExtent.height == 0))) {
+        return false;
+    }
+
     createSwapChain(physicalDevice, surface, device, window);
     createImageViews(device, swapChainImages, swapChainImageFormat, swapChainImageViews);
     createDepthResources(device, physicalDevice, swapChainExtent, depthImage, depthImageMemory, depthImageView);
     createFramebuffers(renderPass, device);
+    return true;
 }
 
 }  // namespace ENG

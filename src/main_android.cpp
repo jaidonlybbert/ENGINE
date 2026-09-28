@@ -341,6 +341,14 @@ void android_main(android_app* app) {
 
     while (!window.shouldClose()) {
         window.pollEvents();
+        if (!renderer.hasSurface()) {
+            // Backgrounded: the OS took the window away (APP_CMD_TERM_WINDOW) and hasn't
+            // given a new one back yet. Nothing can be drawn - and the ImGui Android
+            // backend and swapchain recreation would both touch a window that no longer
+            // exists - so sleep until the next OS event instead of spinning.
+            window.waitEvents();
+            continue;
+        }
         handleHIDEvents(windowUserData.eventQueue, sceneState);
         handleGraphicsEvents(renderer, adapter, sceneState);
 

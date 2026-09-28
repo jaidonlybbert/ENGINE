@@ -222,7 +222,44 @@ void VkRenderer::createSurface() {
     }
 }
 
+// Android abandons the surface's buffer queue when the app is backgrounded, slightly BEFORE
+// APP_CMD_TERM_WINDOW reaches our event loop (which is what calls handleSurfaceDestroyed()).
+// In that window vkAcquireNextImageKHR/vkQueuePresentKHR report OUT_OF_DATE/SURFACE_LOST,
+// but the surface handle still looks live - and querying it returns no formats or present
+// modes, so a swapchain can't be created from it. Detect that rather than crash.
+bool VkRenderer::surfaceUsable() const {
+    VkSurfaceCapabilitiesKHR caps;
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &caps) != VK_SUCCESS) {
+        return false;
+    }
+    if (caps.currentExtent.width == 0 || caps.currentExtent.height == 0) {
+        return false;
+    }
+    uint32_t formatCount = 0;
+    uint32_t presentModeCount = 0;
+    return vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr) == VK_SUCCESS &&
+           formatCount != 0 &&
+           vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr) ==
+               VK_SUCCESS &&
+           presentModeCount != 0;
+}
+
+// Returns false if the surface can't host a swapchain right now - the caller should skip the
+// frame and wait for the OS to sort the window out (drawFrame() retries every frame while
+// there's no swapchain, and handleSurfaceCreated() rebuilds one for a new surface).
+bool VkRenderer::recreateSwapChainIfUsable() {
+    if (!surfaceUsable() || !swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass)) {
+        return false;
+    }
+    recreateRenderFinishedSemaphores();
+    recalculateAspectRatio();
+    return true;
+}
+
 void VkRenderer::handleSurfaceDestroyed() {
+    if (!hasSurface()) {
+        return;
+    }
     vkDeviceWaitIdle(device);
     swapchain->cleanupSwapChain(device);
     vkDestroySurfaceKHR(instanceFactory->instance, surface, nullptr);
@@ -230,13 +267,20 @@ void VkRenderer::handleSurfaceDestroyed() {
 }
 
 void VkRenderer::handleSurfaceCreated() {
+    if (hasSurface()) {
+        return;
+    }
     createSurface();
     // Rebuilds the swapchain/image views/depth resources/framebuffers against the surface
     // just (re)created above - the same machinery a desktop resize already uses, since by
     // this point the surface itself is valid again and recreateSwapChain() only cares
     // about the current surface/window, not how it got there.
-    swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
-    recalculateAspectRatio();
+    recreateSwapChainIfUsable();
+#if defined(__ANDROID__)
+    // imgui_impl_android keeps the ANativeWindow* it was initialized with and queries it
+    // every frame - the old one is gone, so point it at the new one.
+    ImGui_ImplAndroid_Init(reinterpret_cast<ANativeWindow*>(window.nativeHandle()));
+#endif
 }
 
 void VkRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
@@ -322,6 +366,12 @@ void VkRenderer::recalculateAspectRatio() {
 }
 
 void VkRenderer::drawFrame() {
+    if (!hasSurface()) {
+        return;
+    }
+    if (swapchain->swapChain == VK_NULL_HANDLE && !recreateSwapChainIfUsable()) {
+        return;
+    }
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
     uint32_t imageIndex;
 
@@ -329,10 +379,10 @@ void VkRenderer::drawFrame() {
                                             imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-        swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
-        recreateRenderFinishedSemaphores();
-        recalculateAspectRatio();
+        recreateSwapChainIfUsable();
         return;
+    } else if (result == VK_ERROR_SURFACE_LOST_KHR) {
+        return;  // handleSurfaceDestroyed() is on its way - see surfaceUsable()
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
@@ -388,10 +438,8 @@ void VkRenderer::drawFrame() {
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
         framebufferResized = false;
-        swapchain->recreateSwapChain(physicalDevice, device, surface, window, renderPass);
-        recreateRenderFinishedSemaphores();
-        recalculateAspectRatio();
-    } else if (result != VK_SUCCESS) {
+        recreateSwapChainIfUsable();
+    } else if (result != VK_SUCCESS && result != VK_ERROR_SURFACE_LOST_KHR) {
         throw std::runtime_error("failed to present swap chain image!");
     }
 
