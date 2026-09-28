@@ -1,4 +1,5 @@
 // stdlib includes
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -239,6 +240,65 @@ void VkRenderer::handleSurfaceCreated() {
     recalculateAspectRatio();
 }
 
+namespace {
+
+// ImGui lays out and hit-tests in display space (io.DisplaySize, as the user sees the
+// screen), but when the swapchain is pre-rotated (issue #61) the image being drawn into is
+// rotated relative to that - and ImGui_ImplVulkan_RenderDrawData only knows how to scale
+// and translate, not rotate. So rotate the already-built draw lists into the image's
+// space here instead: every vertex, every clip rect, and the display size the backend
+// derives its viewport and projection from. Input needs no equivalent, since touches and
+// ImGui's mouse position are already in display space.
+void rotateImGuiDrawData(ImDrawData* drawData, VkSurfaceTransformFlagBitsKHR transform) {
+    if (drawData == nullptr || drawData->CmdLists.Size == 0) {
+        return;
+    }
+
+    // Draw data is rebuilt every ImGui::NewFrame()/Render() cycle - make sure a second
+    // recordCommandBuffer() for the same frame doesn't rotate it twice.
+    static int lastRotatedFrame = -1;
+    if (lastRotatedFrame == ImGui::GetFrameCount()) {
+        return;
+    }
+    lastRotatedFrame = ImGui::GetFrameCount();
+
+    const float w = drawData->DisplaySize.x;
+    const float h = drawData->DisplaySize.y;
+
+    // Point (x, y) in display space -> (u, v) in the image, and the same for a rect.
+    auto point = [&](const ImVec2& p) -> ImVec2 {
+        switch (transform) {
+            case VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR:
+                return ImVec2(h - p.y, p.x);
+            case VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR:
+                return ImVec2(p.y, w - p.x);
+            default:  // ROTATE_180
+                return ImVec2(w - p.x, h - p.y);
+        }
+    };
+    auto rect = [&](const ImVec4& r) -> ImVec4 {
+        const ImVec2 a = point(ImVec2(r.x, r.y));
+        const ImVec2 b = point(ImVec2(r.z, r.w));
+        return ImVec4(std::min(a.x, b.x), std::min(a.y, b.y), std::max(a.x, b.x), std::max(a.y, b.y));
+    };
+
+    for (int n = 0; n < drawData->CmdLists.Size; n++) {
+        ImDrawList* list = drawData->CmdLists[n];
+        for (ImDrawVert& vertex : list->VtxBuffer) {
+            vertex.pos = point(vertex.pos);
+        }
+        for (ImDrawCmd& cmd : list->CmdBuffer) {
+            cmd.ClipRect = rect(cmd.ClipRect);
+        }
+    }
+
+    if (transform != VK_SURFACE_TRANSFORM_ROTATE_180_BIT_KHR) {
+        drawData->DisplaySize = ImVec2(h, w);
+    }
+}
+
+}  // namespace
+
 void VkRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -284,7 +344,11 @@ void VkRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
 
     // ENG::ImplVulkan_RenderDrawData(ENG::GetDrawData(), commandBuffer);
 
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+    ImDrawData* imguiDrawData = ImGui::GetDrawData();
+    if (swapchain->preTransform != VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
+        rotateImGuiDrawData(imguiDrawData, swapchain->preTransform);
+    }
+    ImGui_ImplVulkan_RenderDrawData(imguiDrawData, commandBuffer);
 
     vkCmdEndRenderPass(commandBuffer);
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -315,7 +379,9 @@ void VkRenderer::registerModelMatrixBufferUpdateFunction(std::function<std::vect
 }
 
 void VkRenderer::recalculateAspectRatio() {
-    const VkExtent2D& extent = swapchain->swapChainExtent;
+    // The aspect ratio the scene is projected with is the screen as the user sees it, not
+    // the (possibly pre-rotated, so swapped) swapchain images - see Swapchain::preTransform.
+    const VkExtent2D extent = swapchain->displayExtent();
     if (extent.height != 0) {
         aspectRatio = static_cast<float>(extent.width) / static_cast<float>(extent.height);
     }
@@ -345,8 +411,11 @@ void VkRenderer::drawFrame() {
     if (sceneReadyToRender) {
         assert(uniformBufferProducer);
         assert(modelMatrixBufferUpdateFunction);
-        const auto& ubo = uniformBufferProducer(aspectRatio);
+        UniformBufferObject ubo = uniformBufferProducer(aspectRatio);
         notifyUboConsumers(ubo);
+        // Consumers above see the projection as the scene defined it; what reaches the
+        // GPU is additionally rotated to match a pre-rotated swapchain (identity on desktop).
+        ubo.proj = swapchain->preRotationMatrix() * ubo.proj;
         copyUniformBufferToGpu(currentFrame, ubo);
         copyModelMatrixBufferToGpu(modelMatrixBufferUpdateFunction());
     }
