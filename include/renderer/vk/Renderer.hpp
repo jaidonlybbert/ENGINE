@@ -79,7 +79,11 @@ class VkRenderer {
     VkDevice device;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
-    VkSurfaceKHR surface;
+    VkSurfaceKHR surface{VK_NULL_HANDLE};
+    // False between handleSurfaceDestroyed() and handleSurfaceCreated() (Android, while
+    // the app is backgrounded): nothing can be drawn or presented then - drawFrame() is a
+    // no-op, and a caller's main loop should stop building frames too.
+    bool hasSurface() const { return surface != VK_NULL_HANDLE; }
     VkRenderPass renderPass;
     std::vector<VkSemaphore> imageAvailableSemaphores;
     std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -142,6 +146,8 @@ class VkRenderer {
     void destroyRenderFinishedSemaphores();
     void recreateRenderFinishedSemaphores();
     void recalculateAspectRatio();
+    bool surfaceUsable() const;
+    bool recreateSwapChainIfUsable();
     void createUniformBuffers();
 
     /// <summary>
